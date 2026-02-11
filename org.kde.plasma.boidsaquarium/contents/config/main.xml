@@ -1,0 +1,132 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<kcfg xmlns="http://www.kde.org/standards/kcfg/1.0"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="http://www.kde.org/standards/kcfg/1.0/kcfg.xsd" >
+  <kcfgfile name=""/>
+
+  <group name="General">
+    <entry name="fps" type="Int">
+      <label>Frames per second</label>
+      <default>30</default>
+      <min>15</min>
+      <max>120</max>
+    </entry>
+    
+    <entry name="waterTop" type="String">
+      <label>Water top color</label>
+      <default>#021a30</default>
+    </entry>
+    <entry name="waterBottom" type="String">
+      <label>Water bottom color</label>
+      <default>#001020</default>
+    </entry>
+
+    <entry name="sensorMode" type="Int">
+      <label>Reactivity Mode (0=Hybrid, 1=CPU, 2=GPU, 3=Custom, 4=Passive)</label>
+      <default>0</default>
+    </entry>
+    <entry name="sensorId" type="String">
+      <label>System Sensor ID</label>
+      <default>cpu/all/usage</default>
+    </entry>
+    <entry name="sensorId2" type="String">
+      <label>Secondary Sensor ID</label>
+      <default>gpu/all/usage</default>
+    </entry>
+    
+    <entry name="reactivityIntensity" type="Double">
+      <label>Response Intensity</label>
+      <default>1.0</default>
+      <min>0.25</min>
+      <max>2.0</max>
+    </entry>
+  </group>
+
+  <group name="Entities">
+    <entry name="fishCount" type="Int">
+      <label>Fish count</label>
+      <default>38</default>
+    </entry>
+    <entry name="fishSize" type="Double">
+      <label>Fish scale</label>
+      <default>4.0</default>
+    </entry>
+
+    <entry name="jellyCount" type="Int">
+      <label>Jellyfish count</label>
+      <default>5</default>
+    </entry>
+    <entry name="jellySize" type="Double">
+      <label>Jellyfish scale</label>
+      <default>2.5</default>
+    </entry>
+
+    <entry name="anglerCount" type="Int">
+      <label>Angler count</label>
+      <default>3</default>
+    </entry>
+    <entry name="anglerSize" type="Double">
+      <label>Angler scale</label>
+      <default>4.0</default>
+    </entry>
+
+    <entry name="orcaCount" type="Int">
+      <label>Orca count</label>
+      <default>3</default>
+    </entry>
+    <entry name="orcaSize" type="Double">
+      <label>Orca scale</label>
+      <default>5.5</default>
+    </entry>
+
+    <entry name="wormSize" type="Double">
+      <label>Worm size</label>
+      <default>4</default>
+    </entry>
+    <entry name="cursorFearLevel" type="Int">
+      <label>Cursor Fear Level</label>
+      <default>1</default>
+    </entry>
+  </group>
+
+  <group name="Physics">
+    <entry name="maxSpeed" type="Double">
+      <label>Max speed</label>
+      <default>0.75</default>
+    </entry>
+    <entry name="minSpeed" type="Double">
+      <label>Min speed</label>
+      <default>0.25</default>
+    </entry>
+
+    <entry name="visualRange" type="Int">
+      <label>Flocking range</label>
+      <default>130</default>
+    </entry>
+    <entry name="separationDist" type="Int">
+      <label>Separation distance</label>
+      <default>30</default>
+    </entry>
+
+    <entry name="cohesionFactor" type="Double">
+      <label>Cohesion factor</label>
+      <default>0.005</default>
+    </entry>
+    <entry name="alignmentFactor" type="Double">
+      <label>Alignment factor</label>
+      <default>0.05</default>
+    </entry>
+    <entry name="separationFactor" type="Double">
+      <label>Separation factor</label>
+      <default>0.05</default>
+    </entry>
+    <entry name="wanderFactor" type="Double">
+      <label>Wander factor</label>
+      <default>0.015</default>
+    </entry>
+    <entry name="turnFactor" type="Double">
+      <label>Edge turn factor</label>
+      <default>0.03</default>
+    </entry>
+  </group>
+</kcfg>

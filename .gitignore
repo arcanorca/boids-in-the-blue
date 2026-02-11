@@ -1,0 +1,22 @@
+# KDE / Qt
+.kdev4/
+*.kdev4
+.directory
+*.user
+*.pro.user
+CMakelists.txt.user
+CMakeCache.txt
+CMakeFiles/
+Makefile
+*.cmake
+build/
+.DS_Store
+
+# Temporary / Backup
+*~
+*.bak
+*.tmp
+
+# Release Artifacts (Optional: You might want to upload these to Releases page instead of repo)
+*.kpackage
+*.zip

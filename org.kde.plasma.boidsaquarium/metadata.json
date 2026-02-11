@@ -1,0 +1,20 @@
+{
+    "KPackageStructure": "Plasma/Wallpaper",
+    "KPlugin": {
+        "Authors": [
+            {
+                "Email": "user@example.com",
+                "Name": "Arcanorca"
+            }
+        ],
+        "Category": "Abstract",
+        "Description": "Dive into a computational abyss. Watch emergent schooling behavior that reacts to your hardware.",
+        "Icon": "preferences-desktop-wallpaper",
+        "Id": "org.kde.plasma.boidsaquarium",
+        "License": "GPLv3+",
+        "Name": "Boids in the Blue",
+        "Version": "1.0",
+        "Website": "https://github.com/arcanorca/boids-in-the-blue"
+    },
+    "X-KDE-ParentApp": "org.kde.plasmashell"
+}
