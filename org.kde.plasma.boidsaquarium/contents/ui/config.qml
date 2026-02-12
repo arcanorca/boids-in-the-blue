@@ -48,51 +48,13 @@ Kirigami.FormLayout {
     property alias cfg_sensorId2: sensorIdInput2.text
     property alias cfg_reactivityIntensity: reactivitySlider.value
 
-    function resetToDefaults() {
-        cfg_fps = 30;
-        
-        cfg_fishCount = 38;
-        cfg_jellyCount = 5;
-        cfg_anglerCount = 3;
-        cfg_orcaCount = 3;
-        
-        cfg_liteMode = false;
 
-        cfg_fishSize = 4.0;
-        cfg_jellySize = 2.5;
-        cfg_anglerSize = 4.0;
-        cfg_orcaSize = 5.5;
-        cfg_wormSize = 4;
-
-        cfg_maxSpeed = 0.75;
-        cfg_minSpeed = 0.25;
-        cfg_visualRange = 130;
-        cfg_separationDist = 30;
-        cfg_cohesionFactor = 0.005;
-        cfg_alignmentFactor = 0.05;
-        cfg_separationFactor = 0.05;
-        cfg_wanderFactor = 0.015;
-        cfg_turnFactor = 0.03;
-
-        cfg_waterTop = "#052A45";
-        cfg_waterBottom = "#001020";
-
-        
-        cfg_sensorId = "cpu/all/usage";
-        cfg_sensorId2 = "gpu/all/usage";
-        cfg_reactivityIntensity = 1.0;
-    }
 
     // ============================================================
     //  HEADER
     // ============================================================
 
-    Button {
-        Layout.alignment: Qt.AlignRight
-        text: i18n("Reset All Defaults")
-        icon.name: "edit-reset"
-        onClicked: root.resetToDefaults()
-    }
+
 
     // Lite Mode Removed
 
