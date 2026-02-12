@@ -1,4 +1,6 @@
-# Boids in the Blue 🐟 (KDE Plasma 6 Live Wallpaper)
+# Boids in the Blue 🐟
+
+<div align="center">
 
 ```text
        ████
@@ -9,54 +11,93 @@
      ██
 ```
 
-A system-reactive flocking simulation.
+**A System-Reactive Artificial Life Simulation for KDE Plasma 6**
 
-## DEMO
+[![Plasma 6 Compatible](https://img.shields.io/badge/Plasma-6.0%2B-blue?style=flat-square&logo=kde)](https://kde.org/plasma-desktop/)
+[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-green.svg?style=flat-square)](LICENSE)
 
-Real-time render. Not a video loop.
+</div>
 
-[Watch Demo](https://github.com/user-attachments/assets/cb6ac6cf-664a-43f1-abf5-2ebe053aeaf6)
+---
 
-<div align="center"> <img src="preview.png" alt="preview_render" width="100%"> </div>
+> **"Dive into a computational abyss."**
+>
+> Watch complex schooling patterns emerge from simple rules. This isn't a looped video—it's a living ecosystem that breathes with your hardware.
 
-## HOW IT WORKS
+---
 
-This wallpaper runs a procedural simulation based on Craig Reynolds' Boids algorithm (1987). It's built with QML and HTML5 Canvas.
+## 🎥 Alive on Your Desktop
 
-Instead of just swimming randomly, the flock is connected to your hardware sensors.
+**Real-time render. Fluid dynamics. Zero pre-baked animations.**
 
-### 1. Hardware Reactivity
+[Watch the Demo](https://github.com/user-attachments/assets/cb6ac6cf-664a-43f1-abf5-2ebe053aeaf6)
 
-The simulation monitors your system's stress level in real-time.
+<div align="center"> <img src="preview.png" alt="Boids Aquarium Preview" width="100%"> </div>
 
-*   **Hybrid Monitoring**: It checks both CPU and GPU load and reacts to whichever is higher.
-*   **Visual Feedback**: When your computer is idle, the flock is calm. When you compile code or play a game (high load), the flock gets agitated, faster, and more chaotic.
-*   **Control**: You can adjust how sensitive they are via the Response Intensity slider.
+## ⚡ System Reactivity
 
-### 2. Ecosystem Logic
+The ocean reflects your computer's state. The flock connects directly to your hardware sensors, creating a visualized `htop` for your desktop.
 
-*   **The Rules**: Fish follow three simple vectors: Separation (don't crash), Alignment (fly together), and Cohesion (stay close).
-*   **Life Cycle**: Left-click to spawn worms. If a fish eats 10 worms, it spawns a baby fish. The school grows as you feed it.
-*   **Predators & Mob Fear**: Orcas hunt the fish. However, if the school gets dense enough (>20 fish), the predator gets scared and flees. Safety in numbers.
+### 🧠 Hybrid Monitoring Engine
+The simulation monitors both **CPU** and **GPU** load in real-time, reacting to whichever is under higher stress.
 
-## INSTALLATION
+*   **Idle State**: The water is calm. Fish drift lazily. Ideal for focused work.
+*   **High Load**: When you compile code, render 3D scenes, or train models, the ecosystem responds. The flock becomes agitated, faster, and chaotic.
+*   **Response Intensity**: Customizable sensitivity. From *Subtle* shifts to *Organic* panic.
 
-**Requirements**: KDE Plasma 6 + kpackagetool6
+## 🧬 The Ecosystem
+
+The simulation is built on an extended version of Craig Reynolds' Boids algorithm (1987), featuring:
+
+*   **Diverse Population**:
+    *   **Fish**: The core school. They follow Alignment, Cohesion, and Separation rules.
+    *   **Jellyfish**: Drift slowly, unaffected by the school's panic.
+    *   **Anglers**: Solitary deep-sea dwellers.
+    *   **Orcas**: Apex predators that hunt the fish.
+*   **Mob Dynamics**:
+    *   **Predation**: Orcas hunt fish.
+    *   **Fear & courage**: If the fish school becomes dense enough (>20 units), they turn the tables and chase the predator away. Safety in numbers.
+*   **Lifecycle**:
+    *   **Feeding**: Left-click to spawn worms.
+    *   **Reproduction**: Fish that eat enough worms will spawn offspring.
+
+## ⚙️ Configuration & Customization
+
+Tailor the simulation to your aesthetic and performance needs via the Plasma Desktop settings.
+
+### 1. Population Control
+Fine-tune the density of your aquarium.
+*   **Spawn Counts**: Set exact numbers for Fish, Jellyfish, Anglers, and Orcas.
+*   **Creature Scale**: Adjust the size of each species independently (e.g., make massive whales or tiny nano-swarms).
+
+### 2. Behavior Engine
+*   **Flocking Physics**: Tweak *Cohesion*, *Alignment*, and *Separation* forces to change how the school moves.
+*   **Speed Limits**: Set *Min/Max Speed* constraints.
+*   **Personal Space**: Adjust collision avoidance distance.
+*   **Cursor Interaction**:
+    *   *Panic*: Fish flee from your mouse.
+    *   *Zen*: Fish ignore the cursor for a purely observational experience.
+
+### 3. Visuals
+*   **Water Colors**: Customize the gradient of the deep. Pick your own *Surface* and *Deep* colors to match your desktop theme (e.g., Dracula, Nord, or Gruvbox palettes).
+*   **FPS Limit**: Cap the simulation frame rate for battery saving on laptops.
+
+## 📦 Installation
+
+**Requirements**: KDE Plasma 6 + `kpackagetool6`
 
 ### Option A: Git (Recommended)
 
 ```bash
-# 1. Clone the repo
+# 1. Clone the repository
 git clone https://github.com/arcanorca/boids-in-the-blue.git
 cd boids-in-the-blue
 
-# 2. Install
+# 2. Install the wallpaper plugin
 kpackagetool6 --type Plasma/Wallpaper --install .
 ```
 
-### Option B: Update
-
-If you already have it installed and want the new features:
+### Option B: Update Existing
 
 ```bash
 cd boids-in-the-blue
@@ -64,21 +105,16 @@ git pull
 kpackagetool6 --type Plasma/Wallpaper --upgrade .
 ```
 
-## CONTROLS & CONFIG
+## 🎮 Controls
 
-**Mouse Interactions:**
+| Action | Effect |
+| :--- | :--- |
+| **Left Click** | Drop food (Worms) for the fish to eat. |
+| **Right Click** | Open Desktop Menu -> "Configure Desktop and Wallpaper" to access settings. |
+| **Hover** | Pushes fish away (unless in *Zen* mode). |
 
-*   **Left Click**: Drop food (Worms).
-*   **Hover**: Pushes fish away (creates bubble trails).
+## 📝 Credits
 
-**Settings Menu:**
-
-*   **Input Source**: Choose between CPU, GPU, or Hybrid.
-*   **Intensity**: Set how hard the flock reacts to system load (25% to 200%).
-*   **Zen Mode**: Removes sudden movements for a calmer look.
-
-## CREDITS
-
-*   **Developer**: arcanorca
+*   **Developer**: [arcanorca](https://github.com/arcanorca)
+*   **Tech Stack**: QML / JavaScript / HTML5 Canvas
 *   **License**: GPLv3
-*   **Stack**: QML / JavaScript / HTML5 Canvas Context
