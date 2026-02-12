@@ -24,19 +24,19 @@ https://github.com/user-attachments/assets/d896e1b9-4d1e-4f65-bfdf-85580c7df1e8
 This wallpaper runs a procedural flocking simulation based on Craig Reynolds’ Boids algorithm (1987), which models lifelike group motion using simple local rules like separation, alignment, and cohesion. The name “Boids” comes from “bird-oid”. It’s built with QML and an HTML5 Canvas renderer for smooth real-time animation.
 
 
-### 1. Hardware Reactivity
+### 1. Reactivity & Interaction
 
 The simulation monitors your system's stress level in real-time.
 
-*   **Hybrid Monitoring**: It checks both CPU and GPU load and reacts to whichever is higher.
-*   **Visual Feedback**: When your computer is idle, the flock is calm. When you compile code or play a game, the flock gets agitated, faster, and more chaotic.
-*   **Control**: You can adjust how sensitive they are via the Response Intensity slider.
+*   **Hybrid Monitoring**:Fully configurable—choose to track CPU, GPU, Both or custom sensor ID. As the load increases, the fish gradually turn red and start trembling nervously.
+*   **Cursor Evasion**: The school (flock of fish) perceives your mouse cursor as a foreign object. If you move the pointer too close, the fish will scatter and flee to avoid it.
+*   **Control**: You can fine-tune the reaction sensitivity and cursor panic using the Response Intensity slider in settings GUI.
 
 ### 2. Ecosystem Logic
 
-*   **The Rules**: Fish follow three simple bird-oid vectors: Separation (don't crash), Alignment (fly together), and Cohesion (stay close).
-*   **Life Cycle**: Left-click to spawn worms. If a fish eats 10 worms, it spawns a baby fish. The school grows as you feed it.
-*   **Predators & Mob Fear**: Orcas hunt the fish. However, if the school gets dense enough (>20 fish), the predator gets scared and flees. Safety in numbers.
+*   **The Algorithm**: Fish follow three simple bird-oid vectors: Separation (don't crash), Alignment (swim together), and Cohesion (stay close).
+*   **Life Cycle**: Left-click to spawn worms. Breeding is a group effort: whenever the school collectively consumes 10 worms, a new baby fish is born.
+*   **Predators**: Orcas and Anglerfish roam the screen. If the school gets too close, they simply chase the fish, causing them to scatter.
 
 ## // INSTALLATION
 
