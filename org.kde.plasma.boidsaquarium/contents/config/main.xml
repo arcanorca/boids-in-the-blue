@@ -67,7 +67,7 @@
     </entry>
     <entry name="anglerSize" type="Double">
       <label>Angler scale</label>
-      <default>4.0</default>
+      <default>4.2</default>
     </entry>
 
     <entry name="orcaCount" type="Int">

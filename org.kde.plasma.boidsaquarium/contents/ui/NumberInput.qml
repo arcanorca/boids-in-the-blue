@@ -24,6 +24,31 @@ RowLayout {
         Layout.preferredWidth: 40
     }
     
+    
+    TextField {
+        id: field
+        text: value.toFixed(precision)
+        Layout.minimumWidth: 60
+        horizontalAlignment: Text.AlignHCenter
+        
+        function applyValue() {
+            var v = parseFloat(text);
+            if (isNaN(v)) {
+                text = value.toFixed(precision);
+                return;
+            }
+            if (v < min) v = min;
+            if (v > max) v = max;
+            value = Number(v.toFixed(precision));
+        }
+        
+    
+    onValueChanged: {
+        if (!field.activeFocus) {
+            field.text = value.toFixed(precision)
+        }
+    }
+
     TextField {
         id: field
         text: value.toFixed(precision)
