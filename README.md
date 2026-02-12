@@ -11,15 +11,13 @@
 
 A system-reactive flocking simulation.
 
-## DEMO
-
-Real-time render. Not a video loop.
+## // DEMO
 
 [Watch Demo](https://github.com/user-attachments/assets/cb6ac6cf-664a-43f1-abf5-2ebe053aeaf6)
 
 <div align="center"> <img src="settings_preview.png" alt="Boids Aquarium Settings Preview" width="100%"> </div>
 
-## HOW IT WORKS
+## // HOW IT WORKS
 
 This wallpaper runs a procedural simulation based on Craig Reynolds' Boids algorithm (1987). It's built with QML and HTML5 Canvas.
 
@@ -30,7 +28,7 @@ Instead of just swimming randomly, the flock is connected to your hardware senso
 The simulation monitors your system's stress level in real-time.
 
 *   **Hybrid Monitoring**: It checks both CPU and GPU load and reacts to whichever is higher.
-*   **Visual Feedback**: When your computer is idle, the flock is calm. When you compile code or play a game (high load), the flock gets agitated, faster, and more chaotic.
+*   **Visual Feedback**: When your computer is idle, the flock is calm. When you compile code or play a game, the flock gets agitated, faster, and more chaotic.
 *   **Control**: You can adjust how sensitive they are via the Response Intensity slider.
 
 ### 2. Ecosystem Logic
@@ -39,7 +37,7 @@ The simulation monitors your system's stress level in real-time.
 *   **Life Cycle**: Left-click to spawn worms. If a fish eats 10 worms, it spawns a baby fish. The school grows as you feed it.
 *   **Predators & Mob Fear**: Orcas hunt the fish. However, if the school gets dense enough (>20 fish), the predator gets scared and flees. Safety in numbers.
 
-## INSTALLATION
+## // INSTALLATION
 
 **Requirements**: KDE Plasma 6 + kpackagetool6
 
@@ -64,7 +62,8 @@ git pull
 kpackagetool6 --type Plasma/Wallpaper --upgrade .
 ```
 
-## CONTROLS & CONFIG
+## // INSTALLATION
+##  CONTROLS & CONFIG
 
 **Mouse Interactions:**
 
@@ -78,7 +77,7 @@ kpackagetool6 --type Plasma/Wallpaper --upgrade .
 *   **Zen Mode**: Removes sudden movements for a calmer look.
 
 
-## CREDITS
+## // CREDITS
 
 *   **Developer**: arcanorca
 *   **License**: GPLv3
