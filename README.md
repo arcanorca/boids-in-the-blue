@@ -7,81 +7,78 @@
  ████████████
    ██████
      ██
-     
-A system-reactive flocking simulation
+```
 
-// DEMO
+A system-reactive flocking simulation.
 
-    Real-time render. Not a video loop.
+## DEMO
 
-https://www.google.com/search?q=https://github.com/user-attachments/assets/cb6ac6cf-664a-43f1-abf5-2ebe053aeaf6
+Real-time render. Not a video loop.
+
+[Watch Demo](https://github.com/user-attachments/assets/cb6ac6cf-664a-43f1-abf5-2ebe053aeaf6)
 
 <div align="center"> <img src="preview.png" alt="preview_render" width="100%"> </div>
-// HOW IT WORKS
+
+## HOW IT WORKS
 
 This wallpaper runs a procedural simulation based on Craig Reynolds' Boids algorithm (1987). It's built with QML and HTML5 Canvas.
 
 Instead of just swimming randomly, the flock is connected to your hardware sensors.
-1. Hardware Reactivity
+
+### 1. Hardware Reactivity
 
 The simulation monitors your system's stress level in real-time.
 
-    Hybrid Monitoring: It checks both CPU and GPU load and reacts to whichever is higher.
+*   **Hybrid Monitoring**: It checks both CPU and GPU load and reacts to whichever is higher.
+*   **Visual Feedback**: When your computer is idle, the flock is calm. When you compile code or play a game (high load), the flock gets agitated, faster, and more chaotic.
+*   **Control**: You can adjust how sensitive they are via the Response Intensity slider.
 
-    Visual Feedback: When your computer is idle, the flock is calm. When you compile code or play a game (high load), the flock gets agitated, faster, and more chaotic.
+### 2. Ecosystem Logic
 
-    Control: You can adjust how sensitive they are via the Response Intensity slider.
+*   **The Rules**: Fish follow three simple vectors: Separation (don't crash), Alignment (fly together), and Cohesion (stay close).
+*   **Life Cycle**: Left-click to spawn worms. If a fish eats 10 worms, it spawns a baby fish. The school grows as you feed it.
+*   **Predators & Mob Fear**: Orcas hunt the fish. However, if the school gets dense enough (>20 fish), the predator gets scared and flees. Safety in numbers.
 
-2. Ecosystem Logic
+## INSTALLATION
 
-    The Rules: Fish follow three simple vectors: Separation (don't crash), Alignment (fly together), and Cohesion (stay close).
+**Requirements**: KDE Plasma 6 + kpackagetool6
 
-    Life Cycle: Left-click to spawn worms. If a fish eats 10 worms, it spawns a baby fish. The school grows as you feed it.
+### Option A: Git (Recommended)
 
-    Predators & Mob Fear: Orcas hunt the fish. However, if the school gets dense enough (>20 fish), the predator gets scared and flees. Safety in numbers.
-
-// INSTALLATION
-
-Requirements: KDE Plasma 6 + kpackagetool6
-Option A: Git (Recommended)
-Bash
-
+```bash
 # 1. Clone the repo
-git clone [https://github.com/arcanorca/boids-in-the-blue.git](https://github.com/arcanorca/boids-in-the-blue.git)
+git clone https://github.com/arcanorca/boids-in-the-blue.git
 cd boids-in-the-blue
 
 # 2. Install
 kpackagetool6 --type Plasma/Wallpaper --install .
+```
 
-Option B: Update
+### Option B: Update
 
 If you already have it installed and want the new features:
-Bash
 
+```bash
 cd boids-in-the-blue
 git pull
 kpackagetool6 --type Plasma/Wallpaper --upgrade .
+```
 
-// CONTROLS & CONFIG
+## CONTROLS & CONFIG
 
-Mouse Interactions:
+**Mouse Interactions:**
 
-    Left Click: Drop food (Worms).
+*   **Left Click**: Drop food (Worms).
+*   **Hover**: Pushes fish away (creates bubble trails).
 
-    Hover: Pushes fish away (creates bubble trails).
+**Settings Menu:**
 
-Settings Menu:
+*   **Input Source**: Choose between CPU, GPU, or Hybrid.
+*   **Intensity**: Set how hard the flock reacts to system load (25% to 200%).
+*   **Zen Mode**: Removes sudden movements for a calmer look.
 
-    Input Source: Choose between CPU, GPU, or Hybrid.
+## CREDITS
 
-    Intensity: Set how hard the flock reacts to system load (25% to 200%).
-
-    Zen Mode: Removes sudden movements for a calmer look.
-
-// CREDITS
-
-    Developer: arcanorca
-
-    License: GPLv3
-
-    Stack: QML / JavaScript / HTML5 Canvas Context
+*   **Developer**: arcanorca
+*   **License**: GPLv3
+*   **Stack**: QML / JavaScript / HTML5 Canvas Context
