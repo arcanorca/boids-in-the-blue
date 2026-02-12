@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Boids in the Blue (Web Port)</title>
+    <style>
+        body, html { margin: 0; padding: 0; overflow: hidden; background: #000; }
+        canvas { display: block; }
+    </style>
+</head>
+<body>
+<canvas id="ocean"></canvas>
+
+<script>
+    // --- BOIDS IN THE BLUE (WEB PORT) ---
+    // Standalone HTML5 version.
+
+    // --- 1. SETTINGS ---
+    const FISH_COUNT = 30;
+    const JELLY_COUNT = 4;
+    const ANGLER_COUNT = 2;
+    const ORCA_COUNT = 2;
+
+    const FISH_SIZE = 4;
+    const ANGLER_SIZE = 6;
+    const ORCA_SIZE = 6;
+    
+    const MAX_SPEED = 0.85;
+    const MIN_SPEED = 0.25;
+    const TURN_FACTOR = 0.04;
+
+    // --- PHYSICS ---
+    const VISUAL_RANGE = 130;
+    const VISUAL_RANGE_SQ = VISUAL_RANGE * VISUAL_RANGE;
+    const COHESION_FACTOR = 0.005;
+    const ALIGNMENT_FACTOR = 0.05;
+    const SEPARATION_FACTOR = 0.05;
+    const SEPARATION_DIST = 35;
+    const SEPARATION_DIST_SQ = SEPARATION_DIST * SEPARATION_DIST;
+    const WANDER_FACTOR = 0.015;
+    const PANIC_RANGE = 140;
+    const ORCA_PANIC_RANGE = 200;
+    const FEAR_FACTOR = 1.0;
+    const MARGIN = 100;
+
+    const WATER_TOP = "rgb(13, 26, 64)";
+    const WATER_BOTTOM = "rgb(5, 10, 31)";
+    const FISH_PALETTE = ['rgb(255, 128, 128)', 'rgb(255, 179, 77)', 'rgb(230, 230, 102)', 'rgb(77, 204, 230)', 'rgb(204, 153, 230)'];
+
+    // --- 2. SPRITES ---
+    const SPRITES = {
+        FISH: [[0,0,0,1,1,0,0], [0,1,1,1,1,1,0], [1,1,1,1,1,2,0], [1,1,1,1,1,1,0], [0,1,1,1,0,0,0], [0,0,1,0,0,0,0]],
+        ANGLER: [[0,0,0,0,0,0,2,2,0,0], [0,0,0,0,0,0,1,1,0,0], [0,0,0,1,1,1,1,1,0,0], [0,0,1,1,1,1,1,1,1,0], [0,1,1,1,1,3,3,1,1,1], [1,1,1,1,1,1,1,1,1,1], [1,1,1,1,1,1,1,1,1,0], [0,1,1,1,1,1,1,0,0,0], [0,0,1,0,0,1,0,0,0,0]],
+        ORCA: [[0,0,0,0,0,1,0,0,0,0,0], [0,0,0,0,1,1,1,0,0,0,0], [0,0,1,1,1,1,1,1,0,0,0], [0,1,1,1,1,1,1,1,1,1,0], [1,1,2,1,1,1,1,1,1,1,1], [1,1,1,2,2,2,1,0,1,0,1], [0,0,0,0,1,1,0,0,0,0,0]],
+        JELLY: [[0,1,1,1,0], [1,1,1,1,1], [1,1,1,1,1], [2,0,2,0,2], [2,0,2,0,2], [0,0,2,0,0]]
+    };
+
+    // --- 3. SYSTEM ---
+    const canvas = document.getElementById('ocean');
+    const ctx = canvas.getContext('2d', { alpha: false });
+
+    let width, height;
+    let entities = { fish: [], anglers: [], orcas: [], jellies: [] };
+
+    function resize() {
+        width = canvas.width = window.innerWidth;
+        height = canvas.height = window.innerHeight;
+    }
+    window.addEventListener('resize', resize);
+    resize();
+
+    class Entity {
+        constructor(x, y) {
+            this.x = x; this.y = y; this.vx = 0; this.vy = 0; this.dead = false;
+        }
+
+        checkBoundaries() {
+            // Horizontal Wrap
+            if (this.x < -150) this.x = width + 150;
+            if (this.x > width + 150) this.x = -150;
+
+            // Vertical Bounce (Single Screen Mode)
+            if (this.y > height + MARGIN) {
+               this.vy *= -1;
+               this.y = height + MARGIN - 5;
+            }
+            else if (this.y < -MARGIN) {
+               this.vy *= -1;
+               this.y = -MARGIN + 5;
+            }
+        }
+    }
+
+    class Fish extends Entity {
+        constructor(x, y, vx, vy, color) {
+            super(x, y);
+            this.kind = 'fish';
+            this.vx = (vx !== undefined) ? vx : (Math.random() - 0.5);
+            this.vy = (vy !== undefined) ? vy : (Math.random() - 0.5);
+            this.color = color || FISH_PALETTE[Math.floor(Math.random() * FISH_PALETTE.length)];
+            this.scale = FISH_SIZE + (Math.random() * 2 - 1);
+            this.personality = 0.8 + Math.random() * 0.4;
+            this.wanderTheta = Math.random() * Math.PI * 2;
+            this.facingRight = this.vx >= 0;
+        }
+
+        update() {
+            let closeDx = 0, closeDy = 0, xVelAvg = 0, yVelAvg = 0, xPosAvg = 0, yPosAvg = 0;
+            let neighbors = 0;
+            let panic = false;
+
+            const predators = [...entities.orcas, ...entities.anglers];
+            for (let p of predators) {
+                let dx = this.x - p.x; let dy = this.y - p.y;
+                let rangeSq = (p.kind === 'orca') ? ORCA_PANIC_RANGE**2 : PANIC_RANGE**2;
+                if ((dx*dx + dy*dy) < rangeSq) {
+                    panic = true;
+                    let dist = Math.sqrt(dx*dx + dy*dy);
+                    this.vx += (dx/dist) * FEAR_FACTOR;
+                    this.vy += (dy/dist) * FEAR_FACTOR;
+                }
+            }
+
+            if (!panic) {
+                for (let other of entities.fish) {
+                    if (other === this) continue;
+                    let dx = this.x - other.x; let dy = this.y - other.y;
+                    if (Math.abs(dx) > VISUAL_RANGE || Math.abs(dy) > VISUAL_RANGE) continue;
+                    let distSq = dx*dx + dy*dy;
+
+                    if (distSq < VISUAL_RANGE_SQ) {
+                        xVelAvg += other.vx; yVelAvg += other.vy;
+                        xPosAvg += other.x; yPosAvg += other.y;
+                        if (distSq < SEPARATION_DIST_SQ) {
+                            closeDx += (this.x - other.x);
+                            closeDy += (this.y - other.y);
+                        }
+                        neighbors++;
+                    }
+                }
+            }
+
+            if (neighbors > 0 && !panic) {
+                xVelAvg /= neighbors; yVelAvg /= neighbors;
+                xPosAvg /= neighbors; yPosAvg /= neighbors;
+                this.vx += (xVelAvg - this.vx) * ALIGNMENT_FACTOR;
+                this.vy += (yVelAvg - this.vy) * ALIGNMENT_FACTOR;
+                this.vx += (xPosAvg - this.x) * COHESION_FACTOR;
+                this.vy += (yPosAvg - this.y) * COHESION_FACTOR;
+            }
+
+            this.vx += closeDx * SEPARATION_FACTOR;
+            this.vy += closeDy * SEPARATION_FACTOR;
+
+            if (!panic) {
+                this.wanderTheta += (Math.random() - 0.5) * 0.1;
+                this.vx += Math.cos(this.wanderTheta) * WANDER_FACTOR;
+                this.vy += Math.sin(this.wanderTheta) * WANDER_FACTOR;
+            }
+
+            if (this.x < MARGIN) this.vx += TURN_FACTOR;
+            if (this.x > width - MARGIN) this.vx -= TURN_FACTOR;
+
+            // Vertical Soft Turn
+            if (this.y < MARGIN) this.vy += TURN_FACTOR;
+            if (this.y > height - MARGIN) this.vy -= TURN_FACTOR;
+
+            this.vx *= 0.99; this.vy *= 0.99;
+
+            let speed = Math.sqrt(this.vx*this.vx + this.vy*this.vy);
+            let currentMax = panic ? MAX_SPEED * 1.6 : MAX_SPEED * this.personality;
+            if (speed > currentMax) {
+                this.vx = (this.vx/speed) * currentMax;
+                this.vy = (this.vy/speed) * currentMax;
+            }
+
+            this.x += this.vx; this.y += this.vy;
+            this.checkBoundaries();
+        }
+
+        draw() {
+            if (this.vx > 0.35) this.facingRight = true;
+            else if (this.vx < -0.35) this.facingRight = false;
+            drawSprite(SPRITES.FISH, this.x, this.y, this.scale, this.facingRight, (val) => (val===1) ? this.color : '#FFF');
+        }
+    }
+
+    class Angler extends Entity {
+        constructor(x, y, vx, vy) {
+            super(x, y);
+            this.kind = 'angler';
+            this.vx = vx || (Math.random() - 0.5) * 0.9;
+            this.vy = vy || (Math.random() - 0.5) * 0.9;
+            this.scale = ANGLER_SIZE;
+        }
+        update() {
+            this.vx *= 0.995; this.vy *= 0.995;
+            this.vx += (Math.random()-0.5)*0.04;
+            this.vy += (Math.random()-0.5)*0.04;
+            
+            // Soft boundaries
+            if (this.x < MARGIN) this.vx += 0.04;
+            if (this.x > width - MARGIN) this.vx -= 0.04;
+            if (this.y < MARGIN) this.vy += 0.04;
+            if (this.y > height - MARGIN) this.vy -= 0.04;
+
+            this.x += this.vx; this.y += this.vy;
+            this.checkBoundaries();
+        }
+        draw() {
+            drawSprite(SPRITES.ANGLER, this.x, this.y, this.scale, this.vx >= 0, (val) => {
+                if(val===1) return 'rgb(64, 51, 89)';
+                if(val===2) return 'rgb(255, 255, 153)';
+                return 'rgb(255, 51, 51)';
+            });
+        }
+    }
+
+    class Orca extends Entity {
+        constructor(x, y, vx, vy) {
+            super(x, y);
+            this.kind = 'orca';
+            this.scale = ORCA_SIZE;
+            this.angle = Math.random() * Math.PI * 2;
+        }
+        update() {
+            this.angle += 0.005;
+            this.vx = Math.cos(this.angle) * 0.5;
+            this.vy = Math.sin(this.angle * 0.7) * 0.2;
+            this.x += this.vx; this.y += this.vy;
+            this.checkBoundaries();
+        }
+        draw() {
+            drawSprite(SPRITES.ORCA, this.x, this.y, this.scale, this.vx >= 0, (val) => (val===1)?'rgb(77, 102, 128)':'rgb(230, 230, 230)');
+        }
+    }
+
+    class Jelly extends Entity {
+        constructor(x, y) {
+            super(x, y);
+            this.kind = 'jelly';
+            this.scale = 4 + Math.random() * 2;
+            this.speed = 0.2 + Math.random() * 0.2;
+            this.wobble = Math.random() * Math.PI * 2;
+            this.direction = Math.random() > 0.5 ? 1 : -1;
+        }
+        update() {
+            this.y += this.speed * this.direction;
+            this.wobble += 0.04;
+            this.x += Math.sin(this.wobble) * 0.4;
+
+            if (this.y < -50) this.direction = 1;
+            if (this.y > height + 50) this.direction = -1;
+        }
+        draw() {
+            drawSprite(SPRITES.JELLY, this.x, this.y, this.scale, false, () => 'rgba(200, 180, 255, 0.25)');
+        }
+    }
+
+    function drawSprite(grid, x, y, scale, flip, colorFunc) {
+        if (x < -50 || x > width + 50 || y < -50 || y > height + 50) return;
+        const iX = Math.floor(x); const iY = Math.floor(y);
+        for (let r = 0; r < grid.length; r++) {
+            for (let c = 0; c < grid[r].length; c++) {
+                let val = grid[r][c];
+                if (!val) continue;
+                ctx.fillStyle = colorFunc(val);
+                let drawC = flip ? c : (grid[r].length - 1 - c);
+                ctx.fillRect(iX + (drawC * scale), iY + (r * scale), scale, scale);
+            }
+        }
+    }
+
+    // --- MAIN LOOP ---
+    function init() {
+        entities = { fish: [], anglers: [], orcas: [], jellies: [] };
+        for(let i=0; i<FISH_COUNT; i++) entities.fish.push(new Fish(Math.random()*width, Math.random()*height));
+        for(let i=0; i<ANGLER_COUNT; i++) entities.anglers.push(new Angler(Math.random()*width, Math.random()*height));
+        for(let i=0; i<ORCA_COUNT; i++) entities.orcas.push(new Orca(Math.random()*width, Math.random()*height));
+        for(let i=0; i<JELLY_COUNT; i++) entities.jellies.push(new Jelly(Math.random()*width, Math.random()*height));
+        lastTime = performance.now();
+        requestAnimationFrame(animate);
+    }
+
+    let lastTime = 0, accumulator = 0;
+    const TICK_DURATION = 33;
+
+    function animate(currentTime) {
+        requestAnimationFrame(animate);
+        let deltaTime = Math.min(currentTime - lastTime, 100);
+        lastTime = currentTime;
+        accumulator += deltaTime;
+        while (accumulator >= TICK_DURATION) {
+            Object.values(entities).forEach(list => {
+                for (let i = list.length - 1; i >= 0; i--) {
+                    list[i].update();
+                    if (list[i].dead) list.splice(i, 1);
+                }
+            });
+            accumulator -= TICK_DURATION;
+        }
+        let grad = ctx.createLinearGradient(0, 0, 0, height);
+        grad.addColorStop(0, WATER_TOP); grad.addColorStop(1, WATER_BOTTOM);
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, width, height);
+        [entities.jellies, entities.orcas, entities.anglers, entities.fish].forEach(list => {
+            for (let i = 0; i < list.length; i++) list[i].draw();
+        });
+    }
+
+    init();
+</script>
+</body>
+</html>

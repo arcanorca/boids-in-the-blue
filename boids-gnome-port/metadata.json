@@ -1,0 +1,19 @@
+{
+  "name": "Boids Gnome Port",
+  "description": "A pixel-art aquarium live wallpaper using Boids algorithm. Port for Gnome Shell.",
+  "uuid": "boids-gnome-port@arcanorca",
+  "shell-version": [
+    "45",
+    "46",
+    "47",
+    "48",
+    "49",
+    "50",
+    "51",
+    "52",
+    "53",
+    "54",
+    "55"
+  ],
+  "version": 1
+}
