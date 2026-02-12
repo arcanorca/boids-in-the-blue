@@ -67,14 +67,14 @@ kpackagetool6 --type Plasma/Wallpaper --upgrade .
 
 ### 1. Gnome Shell Port
 A lightweight port for Gnome Desktop users is included in the `boids-gnome-port` folder.
-*   **Supports**: Gnome 45 - 55
 *   **Tested On**: Fedora 43 (Other distributions are likely compatible but unverified).
 *   **Install**: Copy `boids-gnome-port` to `~/.local/share/gnome-shell/extensions/boids-gnome-port@arcanorca` and restart session.
+    **Configuration**: No GUI yet. You can manually tweak visual parameters (count, speed, colors) by editing the constants in extension.js.
 
 ### 2. Web / HTML5 Port
 A standalone HTML5 version is available in the `boids-web` folder.
 *   **Usage**: Simply open `boids-web/index.html` in any modern web browser.
-*   **Note**: This version does not support hardware reactivity.
+*   **Configuration**: You can customize the simulation behavior by modifying the variables directly inside the index.html file.
 
 ## // CONTROLS & CONFIG
 
