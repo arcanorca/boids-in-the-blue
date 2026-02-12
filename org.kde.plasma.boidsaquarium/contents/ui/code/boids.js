@@ -380,8 +380,8 @@ Fish.prototype.update = function (sim, dt) {
         }
     }
 
-    // --- BOIDS: Cohesion + Alignment + Separation (only when not panicking) ---
-    if (!panic) {
+    // --- BOIDS: Cohesion + Alignment + Separation (Always, for natural swarm avoidance) ---
+    if (true) {
         for (var i = 0; i < sim.entities.fish.length; i++) {
             var other = sim.entities.fish[i];
             if (other === this) continue;
@@ -400,7 +400,7 @@ Fish.prototype.update = function (sim, dt) {
         }
     }
 
-    if (neighbors > 0 && !panic) {
+    if (neighbors > 0) {
         xVelAvg /= neighbors; yVelAvg /= neighbors;
         xPosAvg /= neighbors; yPosAvg /= neighbors;
         this.vx += (xVelAvg - this.vx) * alignF;
@@ -551,7 +551,7 @@ Angler.prototype.update = function (sim, dt) {
         }
     }
 
-    // MOB FEAR: If 20+ fish nearby, angler flees from the swarm!
+    // MOB ATTRACTION: If 20+ fish nearby, angler gently approaches the swarm!
     var MOB_RANGE_A = 200;
     var nearbyFish = 0;
     var swarmCx = 0, swarmCy = 0;
@@ -565,13 +565,14 @@ Angler.prototype.update = function (sim, dt) {
     }
     if (nearbyFish >= 20) {
         swarmCx /= nearbyFish; swarmCy /= nearbyFish;
-        var sdx = this.x - swarmCx; var sdy = this.y - swarmCy;
+        var sdx = swarmCx - this.x; var sdy = swarmCy - this.y; // Vector TOWARDS swarm
         var sdist = Math.sqrt(sdx * sdx + sdy * sdy);
         if (sdist > 0.01) {
-            this.vx += (sdx / sdist) * 0.15; // Gentle flee
-            this.vy += (sdy / sdist) * 0.15;
+            this.vx += (sdx / sdist) * 0.05; // Gentle approach
+            this.vy += (sdy / sdist) * 0.05;
         }
     }
+
 
     this.vx *= 0.995; this.vy *= 0.995;
     this.vx += (Math.random() - 0.5) * 0.04;
@@ -604,7 +605,7 @@ var Orca = function (x, y, sim) {
     this.chasing = false;
 };
 Orca.prototype.update = function (sim, dt) {
-    // MOB FEAR: If 30+ fish nearby, orca flees!
+    // MOB ATTRACTION: If 30+ fish nearby, orca gently approaches the swarm!
     var MOB_RANGE_O = 250;
     var nearbyFish = 0;
     var swarmCx = 0, swarmCy = 0;
@@ -618,40 +619,39 @@ Orca.prototype.update = function (sim, dt) {
     }
 
     if (nearbyFish >= 30) {
-        // Orca is scared of the mob!
-        this.chasing = false;
+        // Orca is intrigued by the mob!
         swarmCx /= nearbyFish; swarmCy /= nearbyFish;
-        var sdx = this.x - swarmCx; var sdy = this.y - swarmCy;
+        var sdx = swarmCx - this.x; var sdy = swarmCy - this.y; // Vector TOWARDS swarm
         var sdist = Math.sqrt(sdx * sdx + sdy * sdy);
         if (sdist > 0.01) {
-            this.vx += (sdx / sdist) * 0.2;
-            this.vy += (sdy / sdist) * 0.2;
+            this.vx += (sdx / sdist) * 0.08; // Gentle approach
+            this.vy += (sdy / sdist) * 0.08;
+        }
+    }
+
+    // Check for nearby fish to chase
+    var CHASE_RANGE = 180;
+    var closestFish = null;
+    var closestDist = 999999;
+    for (var i = 0; i < sim.entities.fish.length; i++) {
+        var f = sim.entities.fish[i];
+        var dx = f.x - this.x; var dy = f.y - this.y;
+        var d2 = dx * dx + dy * dy;
+        if (d2 < closestDist) { closestDist = d2; closestFish = f; }
+    }
+
+    if (closestFish && closestDist < CHASE_RANGE * CHASE_RANGE) {
+        this.chasing = true;
+        var dist = Math.sqrt(closestDist);
+        if (dist > 0.01) {
+            this.vx += ((closestFish.x - this.x) / dist) * 0.03;
+            this.vy += ((closestFish.y - this.y) / dist) * 0.03;
         }
     } else {
-        // Check for nearby fish to chase
-        var CHASE_RANGE = 180;
-        var closestFish = null;
-        var closestDist = 999999;
-        for (var i = 0; i < sim.entities.fish.length; i++) {
-            var f = sim.entities.fish[i];
-            var dx = f.x - this.x; var dy = f.y - this.y;
-            var d2 = dx * dx + dy * dy;
-            if (d2 < closestDist) { closestDist = d2; closestFish = f; }
-        }
-
-        if (closestFish && closestDist < CHASE_RANGE * CHASE_RANGE) {
-            this.chasing = true;
-            var dist = Math.sqrt(closestDist);
-            if (dist > 0.01) {
-                this.vx += ((closestFish.x - this.x) / dist) * 0.03;
-                this.vy += ((closestFish.y - this.y) / dist) * 0.03;
-            }
-        } else {
-            this.chasing = false;
-            this.angle += 0.005;
-            this.vx += Math.cos(this.angle) * 0.02;
-            this.vy += Math.sin(this.angle * 0.7) * 0.01;
-        }
+        this.chasing = false;
+        this.angle += 0.005;
+        this.vx += Math.cos(this.angle) * 0.02;
+        this.vy += Math.sin(this.angle * 0.7) * 0.01;
     }
 
     // Drag
