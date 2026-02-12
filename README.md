@@ -17,7 +17,7 @@ Real-time render. Not a video loop.
 
 [Watch Demo](https://github.com/user-attachments/assets/cb6ac6cf-664a-43f1-abf5-2ebe053aeaf6)
 
-<div align="center"> <img src="settings_preview.png" alt="preview_render" width="100%"> </div>
+<div align="center"> <img src="settings_preview.png" alt="Boids Aquarium Settings Preview" width="100%"> </div>
 
 ## HOW IT WORKS
 
