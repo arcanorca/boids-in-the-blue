@@ -13,8 +13,7 @@ A system-reactive flocking simulation.
 
 ## // DEMO
 
-https://github.com/user-attachments/assets/5d6c3304-87da-4c55-aa8f-8b1c4cd34b78
-
+[boids-in-the-blue-preview.webm](https://github.com/user-attachments/assets/d896e1b9-4d1e-4f65-bfdf-85580c7df1e8)
 
 <div align="center"> <img src="settings_preview.png" alt="Boids Aquarium Settings Preview" width="100%"> </div>
 
