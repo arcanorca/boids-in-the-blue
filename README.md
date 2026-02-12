@@ -13,8 +13,7 @@ A system-reactive flocking simulation.
 
 ## // DEMO
 
-https://github.com/user-attachments/assets/5d6c3304-87da-4c55-aa8f-8b1c4cd34b78
-
+https://github.com/user-attachments/assets/d896e1b9-4d1e-4f65-bfdf-85580c7df1e8
 
 [View Settings Preview](settings_preview.png)
 
