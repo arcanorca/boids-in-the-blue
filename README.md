@@ -15,7 +15,9 @@ A system-reactive flocking simulation.
 
 https://github.com/user-attachments/assets/d896e1b9-4d1e-4f65-bfdf-85580c7df1e8
 
-[View Settings Preview](settings_preview.png)
+<div align="center">
+  <img src="settings_preview.png" alt="Settings Menu" width="35%">
+</div>
 
 ## // HOW IT WORKS
 
@@ -66,6 +68,7 @@ kpackagetool6 --type Plasma/Wallpaper --upgrade .
 ### 1. Gnome Shell Port
 A lightweight port for Gnome Desktop users is included in the `boids-gnome-port` folder.
 *   **Supports**: Gnome 45 - 55
+*   **Tested On**: Fedora 43 (Other distributions are likely compatible but unverified).
 *   **Install**: Copy `boids-gnome-port` to `~/.local/share/gnome-shell/extensions/boids-gnome-port@arcanorca` and restart session.
 
 ### 2. Web / HTML5 Port
