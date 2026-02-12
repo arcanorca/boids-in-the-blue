@@ -62,8 +62,7 @@ git pull
 kpackagetool6 --type Plasma/Wallpaper --upgrade .
 ```
 
-## // INSTALLATION
-##  CONTROLS & CONFIG
+## // CONTROLS & CONFIG
 
 **Mouse Interactions:**
 
