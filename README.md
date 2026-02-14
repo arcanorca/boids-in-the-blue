@@ -1,13 +1,9 @@
-# Boids in the Blue 🐟 (KDE Plasma 6 Live Wallpaper)
+# Boids in the Blue (KDE Plasma 6 Live Wallpaper)
 
-```text
-       ████
-   ██████████
- ██████████◉◉
- ████████████
-   ██████
-     ██
-```
+<div align="center">
+  <img src="https://raw.githubusercontent.com/arcanorca/boids-in-the-blue/main/logo.svg" width="200" />
+</div>
+
 
 A lightweight, real-time Boids simulation. Relaxing, interactive, and performance-friendly.
 
@@ -120,3 +116,14 @@ A standalone HTML5 version is available in the `boids-web` folder.
 *   **Developer**: arcanorca
 *   **License**: GPLv3
 *   **Stack**: QML / JavaScript / HTML5 Canvas Context
+
+
+
+```text
+       ████
+   ██████████
+ ██████████◉◉
+ ████████████
+   ██████
+     ██
+```
