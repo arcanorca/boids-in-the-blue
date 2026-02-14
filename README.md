@@ -96,13 +96,12 @@ A standalone HTML5 version is available in the `boids-web` folder.
 ## // CHANGELOG
 
 ### v1.1
-- **Day/Night Cycle** — Time-synced water gradient with surface glimmer at sunrise/sunset.
-- **Orca Cursor Chase** — Orcas pursue your cursor.
-- **Predator Separation** — Orcas and anglers no longer overlap.
-- **Smooth U-Turn** — Fish arc away from walls instead of bouncing.
-- **CPU Optimization** — Cached config per-step, removed redundant repaints.
-- **Web Port Sync** — Day/night cycle, cursor interaction, predator AI ported to HTML5 version.
-- **Config Cleanup** — Removed unused Turn Sensitivity. Speed sliders up to 3×, defaults tuned.
+- **Day/Night Cycle**: Added a real-time Day/Night cycle with sunrise/sunset gradients and surface glimmer.
+- **Major Optimization**: Cached config per-step, removed redundant repaints. CPU thread usage reduced 80% compare to v1.0.
+- **Web Port Sync**: Day/night cycle, cursor interaction, predator AI ported to HTML5 version.
+- **UI Polish**: Refreshed the Settings GUI and added a "Reset to Defaults" button.
+- **Orca Cursor Chase**: Orcas pursue your cursor.
+- **Smooth U-Turn**: Fish arc away from walls instead of bouncing.
 
 ## // CREDITS
 
