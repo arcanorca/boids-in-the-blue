@@ -34,8 +34,8 @@ The simulation monitors your system's stress level in real-time.
 
 ### 2. Ecosystem Logic
 
-*   **The Algorithm**: Fish follow three simple bird-oid vectors: Separation (don't crash), Alignment (swim together), and Cohesion (stay close).
-*   **Life Cycle**: Left-click to spawn worms. Breeding is a group effort: whenever the school collectively consumes 10 worms, a new baby fish is born.
+*   **The Algorithm**: Fish follow three simple bird-oid vectors: Separation (don't crash!), Alignment (swim together), and Cohesion (stay close).
+*   **Life Cycle**: Left-click to spawn worms. Breeding is a group effort: whenever the school collectively consumes 10 worms, a new baby fish is born, yay!
 *   **Predators**: Orcas and Anglerfish roam the screen. If the school gets too close, they simply chase the fish, causing them to scatter.
 
 ## // INSTALLATION
@@ -80,26 +80,24 @@ A standalone HTML5 version is available in the `boids-web` folder.
 
 **Mouse Interactions:**
 
-*   **Left Click**: Drop food (Worms).
-*   **Left Click + Drag**: Cursor interaction fallback (fish flee + bubbles).
-*   **Right Click**: Bubble burst.
-*   **Hover**: Pushes fish away (creates bubble trails).
+*   **Left-click**: Drop food (Worms).
+*   **Left-click hold**: Cursor interaction fallback (fish flee + bubbles).
 
 **Settings Menu:**
 
 *   **Input Source**: Choose between CPU, GPU, Hybrid or custom ID for sensors.
-*   **Intensity**: Set how hard the flock reacts to system load (25% to 200%).
-*   **Cursor Fear**: Zen, Zen+, Strong, Panic — controls how dramatically fish react to your cursor.
-*   **Day/Night Cycle**: Syncs water gradient to your local time of day.
+*   **Response Intensity**: Set how hard the flock reacts to system load (25% to 200%).
+*   **Cursor Fear**: Zen, Zen+, Strong, Panic, it controls how dramatically fish react to your cursor.
+*   **Day/Night Cycle**: Syncs water gradient to your local time of day, can be toggle on/off.
 *   **Predator Speed/Aggression**: Fine-tune orca and angler behavior.
 
 ## // CHANGELOG
 
 ### v1.1
-- **Day/Night Cycle**: Added a real-time Day/Night cycle with sunrise/sunset gradients and surface glimmer.
 - **Major Optimization**: Cached config per-step, removed redundant repaints. CPU thread usage reduced 80% compare to v1.0.
-- **Web Port Sync**: Day/night cycle, cursor interaction, predator AI ported to HTML5 version.
+- **Day/Night Cycle**: Added a real-time Day/Night cycle with sunrise/sunset gradients and surface glimmer.
 - **UI Polish**: Refreshed the Settings GUI and added a "Reset to Defaults" button.
+- **Web Port Sync**: Day/night cycle, cursor interaction, predator AI ported to HTML5 version.
 - **Orca Cursor Chase**: Orcas pursue your cursor.
 - **Smooth U-Turn**: Fish arc away from walls instead of bouncing.
 
