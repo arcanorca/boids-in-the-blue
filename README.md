@@ -9,7 +9,7 @@
      ██
 ```
 
-A system-reactive flocking simulation.
+A lightweight, real-time Boids simulation. Relaxing, interactive, and performance-friendly.
 
 ## // DEMO
 
