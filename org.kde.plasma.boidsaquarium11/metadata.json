@@ -1,0 +1,20 @@
+{
+    "KPackageStructure": "Plasma/Wallpaper",
+    "KPlugin": {
+        "Authors": [
+            {
+                "Email": "user@example.com",
+                "Name": "Arcanorca"
+            }
+        ],
+        "Category": "Abstract",
+        "Description": "A lightweight, real-time Boids simulation. Relaxing, interactive, and performance-friendly.",
+        "Icon": "preferences-desktop-wallpaper",
+        "Id": "org.kde.plasma.boidsaquarium11",
+        "License": "GPLv3+",
+        "Name": "Boids in the Blue v1.1",
+        "Version": "1.1",
+        "Website": "https://github.com/arcanorca/boids-in-the-blue"
+    },
+    "X-KDE-ParentApp": "org.kde.plasmashell"
+}

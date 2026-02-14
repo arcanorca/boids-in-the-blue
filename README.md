@@ -81,14 +81,28 @@ A standalone HTML5 version is available in the `boids-web` folder.
 **Mouse Interactions:**
 
 *   **Left Click**: Drop food (Worms).
+*   **Left Click + Drag**: Cursor interaction fallback (fish flee + bubbles).
+*   **Right Click**: Bubble burst.
 *   **Hover**: Pushes fish away (creates bubble trails).
 
 **Settings Menu:**
 
-*   **Input Source**: Choose between CPU, GPU, Hybrid or custom ID for sensors
+*   **Input Source**: Choose between CPU, GPU, Hybrid or custom ID for sensors.
 *   **Intensity**: Set how hard the flock reacts to system load (25% to 200%).
-*   **Zen Mode**: Removes sudden movements for a calmer look.
+*   **Cursor Fear**: Zen, Zen+, Strong, Panic — controls how dramatically fish react to your cursor.
+*   **Day/Night Cycle**: Syncs water gradient to your local time of day.
+*   **Predator Speed/Aggression**: Fine-tune orca and angler behavior.
 
+## // CHANGELOG
+
+### v1.1
+- **Day/Night Cycle** — Time-synced water gradient with surface glimmer at sunrise/sunset.
+- **Orca Cursor Chase** — Orcas pursue your cursor.
+- **Predator Separation** — Orcas and anglers no longer overlap.
+- **Smooth U-Turn** — Fish arc away from walls instead of bouncing.
+- **CPU Optimization** — Cached config per-step, removed redundant repaints.
+- **Web Port Sync** — Day/night cycle, cursor interaction, predator AI ported to HTML5 version.
+- **Config Cleanup** — Removed unused Turn Sensitivity. Speed sliders up to 3×, defaults tuned.
 
 ## // CREDITS
 
