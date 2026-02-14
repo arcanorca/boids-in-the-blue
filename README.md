@@ -1,5 +1,7 @@
 # Boids in the Blue (KDE Plasma 6 Live Wallpaper)
 
+<br/>
+  <br/> <br/>
 <div align="center">
   <img src="https://raw.githubusercontent.com/arcanorca/boids-in-the-blue/main/logo.svg" width="200" />
   
