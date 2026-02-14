@@ -2,10 +2,9 @@
 
 <div align="center">
   <img src="https://raw.githubusercontent.com/arcanorca/boids-in-the-blue/main/logo.svg" width="200" />
-</div>
-
-
-
+  
+  <br/>
+  <br/> <br/> </div>
 
 A lightweight, real-time Boids simulation. Relaxing, interactive, and performance-friendly.
 
