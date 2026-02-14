@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="bg_grad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#0f4c75;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#051e36;stop-opacity:1" />
+    </linearGradient>
+    <filter id="text_glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="3" result="blur"/>
+      <feOffset in="blur" dx="0" dy="0" result="offsetBlur"/>
+      <feFlood flood-color="#00e5ff" flood-opacity="0.5" result="glowColor"/>
+      <feComposite in="glowColor" in2="offsetBlur" operator="in" result="glowBlur"/>
+      <feMerge>
+        <feMergeNode in="glowBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect x="0" y="0" width="512" height="512" rx="64" ry="64" fill="url(#bg_grad)" />
+
+  <!-- Fish -->
+  <g id="fish" transform="translate(130.0, 108.0)">
+    <rect x="108" y="0" width="36" height="36" rx="4" ry="4" fill="#00e5ff" />
+    <rect x="144" y="0" width="36" height="36" rx="4" ry="4" fill="#00e5ff" />
+    <rect x="36" y="36" width="36" height="36" rx="4" ry="4" fill="#00e5ff" />
+    <rect x="72" y="36" width="36" height="36" rx="4" ry="4" fill="#00e5ff" />
+    <rect x="108" y="36" width="36" height="36" rx="4" ry="4" fill="#00e5ff" />
+    <rect x="144" y="36" width="36" height="36" rx="4" ry="4" fill="#00e5ff" />
+    <rect x="180" y="36" width="36" height="36" rx="4" ry="4" fill="#00e5ff" />
+    <rect x="0" y="72" width="36" height="36" rx="4" ry="4" fill="#00e5ff" />
+    <rect x="36" y="72" width="36" height="36" rx="4" ry="4" fill="#00e5ff" />
+    <rect x="72" y="72" width="36" height="36" rx="4" ry="4" fill="#00e5ff" />
+    <rect x="108" y="72" width="36" height="36" rx="4" ry="4" fill="#00e5ff" />
+    <rect x="144" y="72" width="36" height="36" rx="4" ry="4" fill="#00e5ff" />
+    <rect x="180" y="72" width="36" height="36" rx="4" ry="4" fill="#ffffff" />
+    <rect x="0" y="108" width="36" height="36" rx="4" ry="4" fill="#00e5ff" />
+    <rect x="36" y="108" width="36" height="36" rx="4" ry="4" fill="#00e5ff" />
+    <rect x="72" y="108" width="36" height="36" rx="4" ry="4" fill="#00e5ff" />
+    <rect x="108" y="108" width="36" height="36" rx="4" ry="4" fill="#00e5ff" />
+    <rect x="144" y="108" width="36" height="36" rx="4" ry="4" fill="#00e5ff" />
+    <rect x="180" y="108" width="36" height="36" rx="4" ry="4" fill="#00e5ff" />
+    <rect x="36" y="144" width="36" height="36" rx="4" ry="4" fill="#00e5ff" />
+    <rect x="72" y="144" width="36" height="36" rx="4" ry="4" fill="#00e5ff" />
+    <rect x="108" y="144" width="36" height="36" rx="4" ry="4" fill="#00e5ff" />
+    <rect x="72" y="180" width="36" height="36" rx="4" ry="4" fill="#00e5ff" />
+  </g>
+
+  <!-- Text -->
+  <text x="256.0" y="442" fill="#ffffff" font-family="'Segoe UI', 'Roboto', Helvetica, Arial, sans-serif" font-weight="bold" font-size="80" letter-spacing="15" text-anchor="middle" filter="url(#text_glow)">boids</text>
+</svg>
