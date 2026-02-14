@@ -16,21 +16,21 @@ A lightweight, real-time Boids simulation. Relaxing, interactive, and performanc
 https://github.com/user-attachments/assets/d896e1b9-4d1e-4f65-bfdf-85580c7df1e8
 
 <div align="center">
-  <h3>📸 Screenshots</h3>
+  <h3>Screenshots</h3>
   
   <img src="https://github.com/user-attachments/assets/37279e9e-3b12-47c3-9e43-376c1617dfd7" width="45%" style="margin:5px;" />
   <img src="https://github.com/user-attachments/assets/bff973bc-1e15-4aec-86fc-962ca3192d8e" width="45%" style="margin:5px;" />
   
   <br/>
 
-  <img src="https://github.com/user-attachments/assets/8b23d0b4-882c-4c08-a89b-0b8d0c220dcd" width="45%" style="margin:5px;" />
+  <img src="https://github.com/user-attachments/assets/42380813-dab9-4f95-a1d4-643c1fef97fd" width="45%" style="margin:5px;" />
   <img src="https://github.com/user-attachments/assets/eb6690f0-bea8-43a3-bf50-86fe543a07bb" width="45%" style="margin:5px;" />
 
   <br/><br/>
 
   <h3>⚙️ Settings GUI</h3>
   <img src="https://github.com/user-attachments/assets/ec79a3fd-f08e-4cc7-85e5-8b15863ef60e" width="30%" style="box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2); border-radius: 10px;" />
-
+</div>
 
 
 ## // HOW IT WORKS
