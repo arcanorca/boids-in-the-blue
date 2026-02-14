@@ -69,7 +69,7 @@ Kirigami.FormLayout {
     Kirigami.Separator { Kirigami.FormData.label: i18n("🌊 Boids in the Blue") }
 
     Label {
-        text: i18n("Dive into a computational abyss. Watch complex schooling patterns arise from simple rules. The ecosystem breathes with your PC.")
+        text: i18n("A lightweight, real-time Boids simulation. Relaxing, interactive, and performance-friendly.")
         wrapMode: Text.WordWrap
         Layout.fillWidth: true
         Layout.maximumWidth: 400 // Limit width to prevent stretching
