@@ -1,12 +1,12 @@
 #!/bin/bash
 
-# Boids in the Blue Installer
-# ---------------------------
+# Boids in the Blue v1.1 Installer
+# ----------------------------------
 
-PLUGIN_DIR="org.kde.plasma.boidsaquarium"
-PLUGIN_ID="org.kde.plasma.boidsaquarium"
+PLUGIN_DIR="org.kde.plasma.boidsaquarium11"
+PLUGIN_ID="org.kde.plasma.boidsaquarium11"
 
-echo "🌊 Installing Boids in the Blue..."
+echo "🌊 Installing Boids in the Blue v1.1..."
 
 # Check if kpackagetool6 exists
 if ! command -v kpackagetool6 &> /dev/null; then
@@ -32,7 +32,7 @@ if [ $? -eq 0 ]; then
     echo
     if [[ $REPLY =~ ^[Yy]$ ]]; then
         systemctl --user restart plasma-plasmashell
-        echo "✨ Plasma restarted. Enjoy your aquarium!"
+        echo "✨ Plasma restarted. Enjoy your aquarium v1.1!"
     else
         echo "✨ Done. You may need to re-apply the wallpaper."
     fi
