@@ -1,22 +1,123 @@
-# KDE / Qt
-.kdev4/
-*.kdev4
-.directory
-*.user
-*.pro.user
-CMakelists.txt.user
-CMakeCache.txt
-CMakeFiles/
-Makefile
-*.cmake
-build/
+########################################
+# OS / File manager junk
+########################################
 .DS_Store
+.AppleDouble
+.LSOverride
+Thumbs.db
+Desktop.ini
+*.lnk
 
-# Temporary / Backup
+########################################
+# Editor / IDE
+########################################
+.vscode/
+.idea/
+*.iml
+*.suo
+*.user
+*.user.*
+*.code-workspace
+
+# Vim / Kate / swap / backups
+*.swp
+*.swo
+*.kate-swp
 *~
+\#*\#
 *.bak
 *.tmp
 
-# Release Artifacts (Optional: You might want to upload these to Releases page instead of repo)
-*.kpackage
-*.zip
+########################################
+# Cursor / local helper tooling (if local-only)
+########################################
+cursorhelper/
+
+########################################
+# Qt / KDE / QML / QtCreator
+########################################
+*.pro.user
+*.pro.user.*
+*.qbs.user
+*.qbs.user.*
+*.qmlc
+*.jsc
+qmlcache/
+.qmldir.user
+
+# KDevelop
+*.kdev4
+.kdev4/
+
+########################################
+# Build outputs (CMake / Make / general)
+########################################
+build/
+build-*/
+cmake-build-*/
+out/
+bin/
+lib/
+dist/
+target/
+
+# CMake generated
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+CTestTestfile.cmake
+Makefile
+compile_commands.json
+*.cmake
+
+########################################
+# Qt / translation build artifacts
+########################################
+*.o
+*.obj
+*.so
+*.dll
+*.dylib
+*.a
+*.lib
+*.prl
+*.moc
+moc_*.cpp
+qrc_*.cpp
+ui_*.h
+*.qmlcache
+*.rcc
+*.qm
+
+########################################
+# Node / Web tooling
+########################################
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.eslintcache
+.parcel-cache/
+.cache/
+.vite/
+.next/
+.nuxt/
+.svelte-kit/
+coverage/
+
+# Env files (keep secrets out of repo)
+.env
+.env.*
+!.env.example
+
+########################################
+# Logs
+########################################
+*.log
+
+########################################
+# Misc
+########################################
+*.pid
+*.seed
