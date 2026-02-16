@@ -31,7 +31,9 @@ https://github.com/user-attachments/assets/d896e1b9-4d1e-4f65-bfdf-85580c7df1e8
 
 ## // HOW IT WORKS
 
-This wallpaper runs a procedural flocking simulation based on Craig Reynolds’ Boids algorithm (1987), which models lifelike group motion using simple local rules like separation, alignment, and cohesion. The name “Boids” comes from “bird-oid”. It’s built with QML and an HTML5 Canvas renderer for smooth real-time animation.
+This wallpaper runs a procedural flocking simulation based on Craig Reynolds’ Boids algorithm (1987), which models lifelike group motion using simple local rules like separation, alignment, and cohesion. The name “Boids” comes from “bird-oid”. 
+
+It’s built with QML and an HTML5 Canvas renderer for smooth real-time animation.
 
 
 ### 1. Reactivity & Interaction
@@ -39,7 +41,7 @@ This wallpaper runs a procedural flocking simulation based on Craig Reynolds’ 
 The simulation monitors your system's stress level in real-time.
 
 *   **Hybrid Monitoring**:Fully configurable—choose to track CPU, GPU, Both or custom sensor ID. As the load increases, the fish gradually turn red and start trembling nervously.
-*   **Cursor Evasion**: The school (flock of fish) perceives your mouse cursor as a foreign object. If you move the pointer too close, the fish will scatter and flee to avoid it.
+*   **Cursor Evasion**: The school (group of fish) perceives your mouse cursor as a foreign object. If you move the pointer too close, the fish will scatter and flee to avoid it.
 *   **Control**: You can fine-tune the reaction sensitivity and cursor panic using the Response Intensity slider in settings GUI.
 
 ### 2. Ecosystem Logic
