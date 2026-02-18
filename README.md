@@ -29,8 +29,6 @@ https://github.com/user-attachments/assets/d896e1b9-4d1e-4f65-bfdf-85580c7df1e8
 </div>
 
 
-<img width="1108" height="2617" alt="image" src="https://github.com/user-attachments/assets/4a7821b8-8e1b-48d8-9365-3cfd12d00fee" />
-
 
 ## // HOW IT WORKS
 
