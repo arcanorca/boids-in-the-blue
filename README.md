@@ -25,8 +25,11 @@ https://github.com/user-attachments/assets/d896e1b9-4d1e-4f65-bfdf-85580c7df1e8
   <br/><br/>
 
   <h3>[Settings GUI]</h3>
-  <img src="https://github.com/user-attachments/assets/ec79a3fd-f08e-4cc7-85e5-8b15863ef60e" width="30%" style="box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2); border-radius: 10px;" />
+  <img src="https://github.com/user-attachments/assets/4a7821b8-8e1b-48d8-9365-3cfd12d00fee" width="30%" style="box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2); border-radius: 10px;" />
 </div>
+
+
+<img width="1108" height="2617" alt="image" src="https://github.com/user-attachments/assets/4a7821b8-8e1b-48d8-9365-3cfd12d00fee" />
 
 
 ## // HOW IT WORKS
