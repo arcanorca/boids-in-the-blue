@@ -116,7 +116,7 @@ A standalone HTML5 version is available in the `boids-web` folder.
 
 ## // CREDITS
 
-    **Devloper**: arcanorca
+*   **Developer**: arcanorca 
 *   **License**: GPLv3
 *   **Stack**: QML / JavaScript / HTML5 Canvas Context
 
