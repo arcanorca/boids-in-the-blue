@@ -114,10 +114,11 @@ A standalone HTML5 version is available in the `boids-web` folder.
 - **Orca Cursor Chase**: Orcas pursue your cursor.
 - **Smooth U-Turn**: Fish arc away from walls instead of bouncing.
 
+## // CREDITS
 
-*   // **License**: GPLv3
-*   // **Stack**: QML / JavaScript / HTML5 Canvas Context
-
+    **Devloper**: arcanorca
+*   **License**: GPLv3
+*   **Stack**: QML / JavaScript / HTML5 Canvas Context
 
 
 ```text
