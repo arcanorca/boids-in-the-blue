@@ -55,7 +55,12 @@ The simulation monitors your system's stress level in real-time.
 
 **Requirements**: KDE Plasma 6 + kpackagetool6
 
-### Option A: Git (Recommended)
+
+### KDE Store
+
+`Desktop and Wallpaper` -> `Get New Plugins...` -> search `Boids`
+
+### Git
 
 ```bash
 # 1. Clone the repo
@@ -64,16 +69,6 @@ cd boids-in-the-blue
 
 # 2. Install
 kpackagetool6 --type Plasma/Wallpaper --install .
-```
-
-### Option B: Update
-
-If you already have it installed and want the new features:
-
-```bash
-cd boids-in-the-blue
-git pull
-kpackagetool6 --type Plasma/Wallpaper --upgrade .
 ```
 
 ## // OTHER VERSIONS
