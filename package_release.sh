@@ -4,7 +4,7 @@
 # ----------------------------------
 
 VERSION="1.0"
-PLUGIN_DIR="org.kde.plasma.boidsaquarium"
+PLUGIN_DIR="."
 OUTPUT_NAME="BoidsInTheBlue-v${VERSION}.kpackage"
 ZIP_NAME="BoidsInTheBlue-v${VERSION}.zip"
 
