@@ -41,7 +41,7 @@ It’s built with QML and an HTML5 Canvas renderer for smooth real-time animatio
 
 The simulation monitors your system's stress level in real-time.
 
-*   **System Monitoring**: Fully configurable—choose to track CPU, GPU, Both or custom sensor ID. As the load increases, the fish gradually turn red and start trembling nervously.
+*   **System Monitoring**: Choose to track CPU, GPU, Both or custom sensor ID. As the load increases, the fish gradually turn red and start trembling nervously.
 *   **Cursor Evasion**: The school (group of fish) perceives your mouse cursor as a foreign object. If you move the pointer too close, the fish will scatter and flee to avoid it.
 *   **Control**: You can fine-tune the reaction sensitivity and cursor panic using the Response Intensity slider in settings GUI.
 
