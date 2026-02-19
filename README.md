@@ -74,20 +74,6 @@ cd boids-in-the-blue
 # kpackagetool6 --type Plasma/Wallpaper --install .
 ```
 
-<<<<<<< HEAD
-=======
-### Option B: Update
-
-If you already have it installed and want the new features:
-
-```bash
-cd boids-in-the-blue
-git pull
-./install.sh
-# OR manually: kpackagetool6 --type Plasma/Wallpaper --upgrade .
-```
-
->>>>>>> 690e3c8 (Refactor: move package to root and update installation scripts/docs)
 ## // OTHER VERSIONS
 
 ### 1. Gnome Shell Port
