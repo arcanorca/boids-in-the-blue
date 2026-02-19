@@ -3,7 +3,7 @@
 # Boids in the Blue v1.1 Installer
 # ----------------------------------
 
-PLUGIN_DIR="org.kde.plasma.boidsaquarium11"
+PLUGIN_DIR="."
 PLUGIN_ID="org.kde.plasma.boidsaquarium11"
 
 echo "🌊 Installing Boids in the Blue v1.1..."
