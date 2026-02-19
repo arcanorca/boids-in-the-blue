@@ -15,11 +15,29 @@ if ! command -v kpackagetool6 &> /dev/null; then
 fi
 
 # Try to upgrade first, if fails, install
+# Function to install
+install_pkg() {
+    kpackagetool6 --type Plasma/Wallpaper --install "$PLUGIN_DIR"
+}
+
+# Function to remove
+remove_pkg() {
+    echo "🗑️ Removing old package registration..."
+    kpackagetool6 --type Plasma/Wallpaper --remove "$PLUGIN_ID"
+}
+
 echo "📦 Deploying package..."
 if kpackagetool6 --type Plasma/Wallpaper --list | grep -q "$PLUGIN_ID"; then
+    echo "🔄 Found existing installation. Attempting upgrade..."
     kpackagetool6 --type Plasma/Wallpaper --upgrade "$PLUGIN_DIR"
+    
+    if [ $? -ne 0 ]; then
+        echo "⚠️ Upgrade failed (possibly corrupted installation). Retrying with clean install..."
+        remove_pkg
+        install_pkg
+    fi
 else
-    kpackagetool6 --type Plasma/Wallpaper --install "$PLUGIN_DIR"
+    install_pkg
 fi
 
 if [ $? -eq 0 ]; then
