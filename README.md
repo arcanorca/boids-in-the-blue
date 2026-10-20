@@ -107,19 +107,32 @@ A standalone HTML5 version is available in the `boids-web` folder.
 *   **Left-click**: Drop food (Worms).
 *   **Left-click hold**: Cursor interaction fallback (fish flee + bubbles).
 
-**Settings Menu:**
+**Settings Menu** (top to bottom, most used first):
 
-*   **Input Source**: Choose between CPU, GPU, Hybrid or custom ID for sensors.
-*   **Response Intensity**: Set how hard the flock reacts to system load (25% to 200%).
-*   **Cursor Fear**: Zen, Zen+, Strong, Panic, it controls how dramatically fish react to your cursor.
-*   **Day/Night Cycle**: Syncs water gradient to your local time of day, can be toggle on/off.
-*   **Predator Speed/Aggression**: Fine-tune orca and angler behavior.
+*   **Theme**: see below.
+*   **Ocean**: how many fish, jellyfish, anglerfish and orcas.
+*   **Behavior**: cursor reaction (Off to Panic), orca/angler aggression, and fish flocking presets (Calm, Default, Lively, Chaotic).
+*   **Environment**: day/night cycle and water colors (greyed out, with a note, when the theme does not use them).
+*   **System reactivity**: react to CPU, GPU, a custom sensor or nothing, and how strongly.
+*   **Performance**: pause while the desktop is covered.
+*   **Advanced** (collapsed): creature sizes, speeds and the raw flocking values. **Reset to Defaults** is at the bottom.
+
+## // THEMES
+
+Four looks share the same simulation. Open the wallpaper settings and pick one under **Theme** (it switches live):
+
+*   **Refined Pixel** (default): crisp animated pixel-art sprites, stepped water, light shafts, marine snow and a seabed.
+*   **Classic**: the original blocky sprites on a smooth gradient.
+*   **Bioluminescent Deep**: glowing creatures in dark water.
+*   **Soft Illustrated**: soft vector illustration with depth fog, kelp and dawn/dusk grading.
 
 ## // CHANGELOG
 
 ### v1.2
 - **Plugin id change**: now `com.github.arcanorca.boidsintheblue` (no version in id or name); `install.sh` migrates existing settings and removes the old package.
 - **Pause when covered**: the simulation pauses while a maximized/fullscreen window covers the wallpaper (not applied on the lock screen).
+- **Themes**: four selectable looks (Refined Pixel is the new default, Classic keeps the original rendering, plus Bioluminescent Deep and Soft Illustrated); switching at runtime keeps the same school.
+- **Settings redesign**: grouped by Theme, Ocean, Behavior, Environment, System reactivity and Performance; flocking presets; plain-word levels instead of "Zen+"; help buttons; raw sizes, speeds and flocking values moved into a collapsed Advanced section. All saved settings keep working.
 - **Bug fixes**: (to be refined)
 
 ### v1.1
