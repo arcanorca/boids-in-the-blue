@@ -5,9 +5,6 @@
   <kcfgfile name=""/>
 
   <group name="General">
-    <!-- FPS Slider Removed as per user request -->
-    <!-- Optimization is now fixed at 8Hz internal tick -->
-    
     <entry name="dayNightCycle" type="Bool">
       <label>Enable day/night cycle</label>
       <default>false</default>
@@ -25,6 +22,8 @@
     <entry name="sensorMode" type="Int">
       <label>Reactivity Mode (0=Hybrid, 1=CPU, 2=GPU, 3=Custom, 4=Passive)</label>
       <default>0</default>
+      <min>0</min>
+      <max>4</max>
     </entry>
     <entry name="sensorId" type="String">
       <label>System Sensor ID</label>
@@ -47,47 +46,67 @@
     <entry name="fishCount" type="Int">
       <label>Fish count</label>
       <default>38</default>
+      <min>5</min>
+      <max>200</max>
     </entry>
 
     <entry name="fishSize" type="Double">
       <label>Fish scale</label>
       <default>4.0</default>
+      <min>1.0</min>
+      <max>8.0</max>
     </entry>
 
     <entry name="jellyCount" type="Int">
       <label>Jellyfish count</label>
       <default>5</default>
+      <min>0</min>
+      <max>50</max>
     </entry>
     <entry name="jellySize" type="Double">
       <label>Jellyfish scale</label>
       <default>3.0</default>
+      <min>1.0</min>
+      <max>8.0</max>
     </entry>
 
     <entry name="anglerCount" type="Int">
       <label>Angler count</label>
       <default>3</default>
+      <min>0</min>
+      <max>20</max>
     </entry>
     <entry name="anglerSize" type="Double">
       <label>Angler scale</label>
       <default>4.2</default>
+      <min>1.0</min>
+      <max>10.0</max>
     </entry>
 
     <entry name="orcaCount" type="Int">
       <label>Orca count</label>
       <default>3</default>
+      <min>0</min>
+      <max>10</max>
     </entry>
     <entry name="orcaSize" type="Double">
       <label>Orca scale</label>
       <default>5.5</default>
+      <min>1.0</min>
+      <max>10.0</max>
     </entry>
 
     <entry name="wormSize" type="Double">
       <label>Worm size</label>
       <default>4</default>
+      <min>1.0</min>
+      <max>10.0</max>
     </entry>
     <entry name="cursorFearLevel" type="Int">
       <label>Cursor Fear Level</label>
       <default>2</default>
+      <min>0</min>
+      <max>4</max>
     </entry>
   </group>
 
@@ -95,58 +114,84 @@
     <entry name="fishMaxSpeed" type="Double">
       <label>Fish's Max Speed</label>
       <default>0.8</default>
+      <min>0.1</min>
+      <max>3.0</max>
     </entry>
     <entry name="fishMinSpeed" type="Double">
       <label>Fish's Min Speed</label>
       <default>0.2</default>
+      <min>0.05</min>
+      <max>1.0</max>
     </entry>
 
 
     <entry name="anglerSpeed" type="Double">
       <label>Angler speed multiplier</label>
       <default>1.0</default>
+      <min>0.1</min>
+      <max>3.0</max>
     </entry>
     <entry name="orcaSpeed" type="Double">
       <label>Orca speed multiplier</label>
       <default>1.0</default>
+      <min>0.1</min>
+      <max>3.0</max>
     </entry>
     <entry name="orcaChase" type="Double">
       <label>Orca chase intensity</label>
       <default>0.7</default>
+      <min>0.0</min>
+      <max>2.0</max>
     </entry>
     <entry name="anglerChase" type="Double">
       <label>Angler chase intensity</label>
       <default>0.7</default>
+      <min>0.0</min>
+      <max>2.0</max>
     </entry>
 
     <entry name="visualRange" type="Int">
       <label>Flocking range</label>
       <default>130</default>
+      <min>40</min>
+      <max>400</max>
     </entry>
     <entry name="separationDist" type="Int">
       <label>Separation distance</label>
       <default>35</default>
+      <min>10</min>
+      <max>100</max>
     </entry>
 
     <entry name="cohesionFactor" type="Double">
       <label>Cohesion factor</label>
       <default>0.005</default>
+      <min>0.0</min>
+      <max>0.02</max>
     </entry>
     <entry name="alignmentFactor" type="Double">
       <label>Alignment factor</label>
       <default>0.05</default>
+      <min>0.0</min>
+      <max>0.15</max>
     </entry>
     <entry name="separationFactor" type="Double">
       <label>Separation factor</label>
       <default>0.05</default>
+      <min>0.0</min>
+      <max>0.2</max>
     </entry>
     <entry name="wanderFactor" type="Double">
       <label>Wander factor</label>
       <default>0.015</default>
+      <min>0.0</min>
+      <max>0.05</max>
     </entry>
     <entry name="turnFactor" type="Double">
       <label>Edge turn factor</label>
       <default>0.06</default>
+      <min>0.0</min>
+      <max>0.15</max>
     </entry>
   </group>
 </kcfg>

@@ -79,12 +79,13 @@ WallpaperItem {
             triggeredOnStart: true
 
             onTriggered: {
+                // Wait for a real size before creating the simulation
                 if (!sim) {
+                    if (wallpaper.width <= 0 || wallpaper.height <= 0) return;
                     sim = Boids.createSimulation(
                         wallpaper.width, wallpaper.height,
                         Screen.devicePixelRatio, wallpaper.configuration);
                 }
-                sim.config = wallpaper.configuration;
                 Boids.step(sim, 1, wallpaper.configuration);
                 Boids.sync(sim, entityLayer, boidComponent);
 
@@ -92,7 +93,9 @@ WallpaperItem {
                 var intensity = (wallpaper.configuration &&
                                  wallpaper.configuration.reactivityIntensity !== undefined)
                                 ? wallpaper.configuration.reactivityIntensity : 1.0;
-                var targetStress = wallpaper.sensorStress * intensity;
+                // Mode 4 = Disabled: sensors stop reporting, so don't keep the last reading
+                var sensorsOff = wallpaper.configuration && wallpaper.configuration.sensorMode === 4;
+                var targetStress = sensorsOff ? 0.0 : wallpaper.sensorStress * intensity;
                 sim.cpuStress += (targetStress - sim.cpuStress) * 0.1;
                 if (Math.abs(sim.cpuStress - targetStress) < 0.005) sim.cpuStress = targetStress;
                 var targetMul = 1.0 + (sim.cpuStress * 0.4);
@@ -118,8 +121,13 @@ WallpaperItem {
             }
         }
 
-        onWidthChanged:  { requestPaint(); if (sim) Boids.resize(sim, width, height, 1); }
-        onHeightChanged: { requestPaint(); if (sim) Boids.resize(sim, width, height, 1); }
+        // Width and height usually change together: coalesce into one resize
+        function applyResize() {
+            if (sim) Boids.resize(sim, width, height, Screen.devicePixelRatio);
+        }
+
+        onWidthChanged:  { requestPaint(); Qt.callLater(applyResize); }
+        onHeightChanged: { requestPaint(); Qt.callLater(applyResize); }
     }
 
     // ── Entity Layer ──
@@ -158,10 +166,9 @@ WallpaperItem {
                 radius: width / 2
                 color: index % 3 === 0 ? "#ffa060" : (index % 3 === 1 ? "#ff8c42" : "#ff7a30")
                 opacity: 0
-                Component.onCompleted: {
-                    x = Math.random() * surfaceGlimmer.width;
-                    y = Math.random() * surfaceGlimmer.height * 0.7;
-                }
+                // Golden-ratio spread: deterministic, follows resizes
+                x: ((index * 0.618034) % 1) * surfaceGlimmer.width
+                y: ((index * 0.754878) % 1) * surfaceGlimmer.height * 0.7
                 SequentialAnimation on opacity {
                     loops: Animation.Infinite
                     PauseAnimation { duration: 400 + (index * 731) % 3500 }
@@ -188,7 +195,7 @@ WallpaperItem {
             property int hoverCount: 0
 
             onPositionChanged: (mouse) => {
-                hoverCount++;
+                hoverCount = (hoverCount + 1) % 1000000;
                 if (sim) { sim.mouse.x = mouse.x; sim.mouse.y = mouse.y; }
                 if (sim && hoverCount % 20 === 0) {
                     Boids.forceSpawnBubble(sim,
@@ -248,6 +255,13 @@ WallpaperItem {
                 if (sim) { sim.mouse.x = -9999; sim.mouse.y = -9999; }
                 isDrag = false;
             }
+
+            // Grab stolen / focus lost: don't leave the cursor or drag state stuck
+            onCanceled: {
+                if (sim) { sim.mouse.x = -9999; sim.mouse.y = -9999; }
+                isDrag = false;
+                moveCount = 0;
+            }
         }
     }
 
@@ -287,7 +301,7 @@ WallpaperItem {
 
     function normalizeSensor(raw, sId) {
         if (raw === undefined || raw === null) return 0.0;
-        var idStr = sId.toLowerCase();
+        var idStr = (sId || "").toLowerCase();
         if (idStr.indexOf("usage") !== -1 || idStr.indexOf("load") !== -1) {
             return Math.max(0.0, Math.min(1.0, raw / 100.0));
         }

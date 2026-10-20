@@ -8,11 +8,13 @@ import org.kde.kquickcontrols as KQControls
 Kirigami.FormLayout {
     id: root
 
+    // Align labels with the Layout / Wallpaper type combos of the shell dialog
+    // (parentLayout is provided by the shell's ConfigurationContainmentAppearance.qml)
+    twinFormLayouts: parentLayout
+    property alias formLayout: root
+
     // --- ALL Config Aliases ---
     
-    // FPS Slider Removed for optimization
-    // property alias cfg_fps: fpsSlider.value
-    // Lite Mode Removed
     property alias cfg_sensorMode: sensorTypeCombo.currentIndex
 
     // Entity Counts
@@ -57,13 +59,45 @@ Kirigami.FormLayout {
     property alias cfg_sensorId2: sensorIdInput2.text
     property alias cfg_reactivityIntensity: reactivitySlider.value
 
+    // Defaults from main.xml, populated by the shell
+    property int cfg_sensorModeDefault
+    property int cfg_fishCountDefault
+    property int cfg_jellyCountDefault
+    property int cfg_anglerCountDefault
+    property int cfg_orcaCountDefault
+    property double cfg_fishSizeDefault
+    property double cfg_jellySizeDefault
+    property double cfg_anglerSizeDefault
+    property double cfg_orcaSizeDefault
+    property double cfg_wormSizeDefault
+    property int cfg_cursorFearLevelDefault
+    property double cfg_anglerSpeedDefault
+    property double cfg_orcaSpeedDefault
+    property double cfg_orcaChaseDefault
+    property double cfg_anglerChaseDefault
+    property double cfg_fishMaxSpeedDefault
+    property double cfg_fishMinSpeedDefault
+    property int cfg_visualRangeDefault
+    property int cfg_separationDistDefault
+    property double cfg_cohesionFactorDefault
+    property double cfg_alignmentFactorDefault
+    property double cfg_separationFactorDefault
+    property double cfg_wanderFactorDefault
+    property double cfg_turnFactorDefault
+    property bool cfg_dayNightCycleDefault
+    property string cfg_waterTopDefault
+    property string cfg_waterBottomDefault
+    property string cfg_sensorIdDefault
+    property string cfg_sensorId2Default
+    property double cfg_reactivityIntensityDefault
+
 
 
     // ─── HEADER ─────────────────────────────────────────────────
     Kirigami.Separator { Kirigami.FormData.isSection: true }
 
     Label {
-        text: i18n("Dive into a computational abyss.\nSchooling patterns arise from simple rules — the ecosystem breathes with your PC.")
+        text: i18n("Dive into a computational abyss. Schooling patterns arise from simple rules — the ecosystem breathes with your PC.")
         wrapMode: Text.WordWrap
         Layout.fillWidth: true
         Layout.maximumWidth: 420
@@ -75,38 +109,38 @@ Kirigami.FormLayout {
     // ─── CREATURES ────────────────────────────────────────────
     Kirigami.Separator { Kirigami.FormData.label: i18n("Creatures"); Kirigami.FormData.isSection: true }
 
-    NumberInput { id: fishCountInput;   label: i18n("Fish");      min: 5;  max: 200; step: 1; precision: 0 }
-    NumberInput { id: jellyCountInput;  label: i18n("Jellyfish");  min: 0;  max: 50;  step: 1; precision: 0 }
-    NumberInput { id: anglerCountInput; label: i18n("Anglers");    min: 0;  max: 20;  step: 1; precision: 0 }
-    NumberInput { id: orcaCountInput;   label: i18n("Orcas");      min: 0;  max: 10;  step: 1; precision: 0 }
+    NumberInput { id: fishCountInput;   label: i18nc("@label:spinbox number of creatures", "Fish");      min: 5;  max: 200; step: 1; precision: 0 }
+    NumberInput { id: jellyCountInput;  label: i18nc("@label:spinbox number of creatures", "Jellyfish");  min: 0;  max: 50;  step: 1; precision: 0 }
+    NumberInput { id: anglerCountInput; label: i18nc("@label:spinbox number of creatures", "Anglers");    min: 0;  max: 20;  step: 1; precision: 0 }
+    NumberInput { id: orcaCountInput;   label: i18nc("@label:spinbox number of creatures", "Orcas");      min: 0;  max: 10;  step: 1; precision: 0 }
 
     // ─── SIZE ─────────────────────────────────────────────────
     Kirigami.Separator { Kirigami.FormData.label: i18n("Size"); Kirigami.FormData.isSection: true }
 
     RowLayout {
-        Kirigami.FormData.label: i18n("Fish")
-        Slider { id: fishSizeSlider; from: 1.0; to: 8.0; stepSize: 0.1; Layout.fillWidth: true }
-        Label { text: fishSizeSlider.value.toFixed(1) + "×"; Layout.preferredWidth: 50; horizontalAlignment: Text.AlignRight }
+        Kirigami.FormData.label: i18nc("@label:slider creature size", "Fish")
+        Slider { id: fishSizeSlider; from: 1.0; to: 8.0; stepSize: 0.1; snapMode: Slider.SnapAlways; Layout.fillWidth: true }
+        Label { text: i18nc("value multiplier", "%1×", fishSizeSlider.value.toFixed(1)); Layout.preferredWidth: 50; horizontalAlignment: Text.AlignRight }
     }
     RowLayout {
-        Kirigami.FormData.label: i18n("Jellyfish")
-        Slider { id: jellySizeSlider; from: 1.0; to: 8.0; stepSize: 0.1; Layout.fillWidth: true }
-        Label { text: jellySizeSlider.value.toFixed(1) + "×"; Layout.preferredWidth: 50; horizontalAlignment: Text.AlignRight }
+        Kirigami.FormData.label: i18nc("@label:slider creature size", "Jellyfish")
+        Slider { id: jellySizeSlider; from: 1.0; to: 8.0; stepSize: 0.1; snapMode: Slider.SnapAlways; Layout.fillWidth: true }
+        Label { text: i18nc("value multiplier", "%1×", jellySizeSlider.value.toFixed(1)); Layout.preferredWidth: 50; horizontalAlignment: Text.AlignRight }
     }
     RowLayout {
-        Kirigami.FormData.label: i18n("Angler")
-        Slider { id: anglerSizeSlider; from: 1.0; to: 10.0; stepSize: 0.1; Layout.fillWidth: true }
-        Label { text: anglerSizeSlider.value.toFixed(1) + "×"; Layout.preferredWidth: 50; horizontalAlignment: Text.AlignRight }
+        Kirigami.FormData.label: i18nc("@label:slider creature size", "Angler")
+        Slider { id: anglerSizeSlider; from: 1.0; to: 10.0; stepSize: 0.1; snapMode: Slider.SnapAlways; Layout.fillWidth: true }
+        Label { text: i18nc("value multiplier", "%1×", anglerSizeSlider.value.toFixed(1)); Layout.preferredWidth: 50; horizontalAlignment: Text.AlignRight }
     }
     RowLayout {
-        Kirigami.FormData.label: i18n("Orca")
-        Slider { id: orcaSizeSlider; from: 1.0; to: 10.0; stepSize: 0.1; Layout.fillWidth: true }
-        Label { text: orcaSizeSlider.value.toFixed(1) + "×"; Layout.preferredWidth: 50; horizontalAlignment: Text.AlignRight }
+        Kirigami.FormData.label: i18nc("@label:slider creature size", "Orca")
+        Slider { id: orcaSizeSlider; from: 1.0; to: 10.0; stepSize: 0.1; snapMode: Slider.SnapAlways; Layout.fillWidth: true }
+        Label { text: i18nc("value multiplier", "%1×", orcaSizeSlider.value.toFixed(1)); Layout.preferredWidth: 50; horizontalAlignment: Text.AlignRight }
     }
     RowLayout {
-        Kirigami.FormData.label: i18n("Worm")
-        Slider { id: wormSizeSlider; from: 1.0; to: 10.0; stepSize: 0.5; Layout.fillWidth: true }
-        Label { text: wormSizeSlider.value.toFixed(1) + "×"; Layout.preferredWidth: 50; horizontalAlignment: Text.AlignRight }
+        Kirigami.FormData.label: i18nc("@label:slider creature size", "Worm")
+        Slider { id: wormSizeSlider; from: 1.0; to: 10.0; stepSize: 0.5; snapMode: Slider.SnapAlways; Layout.fillWidth: true }
+        Label { text: i18nc("value multiplier", "%1×", wormSizeSlider.value.toFixed(1)); Layout.preferredWidth: 50; horizontalAlignment: Text.AlignRight }
     }
 
     // ─── SPEED & MOVEMENT ─────────────────────────────────────
@@ -114,12 +148,12 @@ Kirigami.FormLayout {
 
     RowLayout {
         Kirigami.FormData.label: i18n("Max Speed")
-        Slider { id: maxSpeedSlider; from: 0.1; to: 3.0; stepSize: 0.05; Layout.fillWidth: true }
+        Slider { id: maxSpeedSlider; from: 0.1; to: 3.0; stepSize: 0.05; snapMode: Slider.SnapAlways; onMoved: { if (minSpeedSlider.value > value) minSpeedSlider.value = value; } Layout.fillWidth: true }
         Label { text: maxSpeedSlider.value.toFixed(2); Layout.preferredWidth: 50; horizontalAlignment: Text.AlignRight }
     }
     RowLayout {
         Kirigami.FormData.label: i18n("Min Speed")
-        Slider { id: minSpeedSlider; from: 0.05; to: 1.0; stepSize: 0.05; Layout.fillWidth: true }
+        Slider { id: minSpeedSlider; from: 0.05; to: 1.0; stepSize: 0.05; snapMode: Slider.SnapAlways; onMoved: { if (value > maxSpeedSlider.value) value = maxSpeedSlider.value; } Layout.fillWidth: true }
         Label { text: minSpeedSlider.value.toFixed(2); Layout.preferredWidth: 50; horizontalAlignment: Text.AlignRight }
     }
 
@@ -127,18 +161,18 @@ Kirigami.FormLayout {
     Kirigami.Separator { Kirigami.FormData.label: i18n("Predators"); Kirigami.FormData.isSection: true }
 
     RowLayout {
-        Kirigami.FormData.label: i18n("Angler Speed")
-        Slider { id: anglerSpeedSlider; from: 0.1; to: 3.0; stepSize: 0.05; Layout.fillWidth: true }
-        Label { text: anglerSpeedSlider.value.toFixed(2) + "×"; Layout.preferredWidth: 50; horizontalAlignment: Text.AlignRight }
+        Kirigami.FormData.label: i18nc("@label:slider", "Angler Speed")
+        Slider { id: anglerSpeedSlider; from: 0.1; to: 3.0; stepSize: 0.05; snapMode: Slider.SnapAlways; Layout.fillWidth: true }
+        Label { text: i18nc("value multiplier", "%1×", anglerSpeedSlider.value.toFixed(2)); Layout.preferredWidth: 50; horizontalAlignment: Text.AlignRight }
     }
     RowLayout {
         Kirigami.FormData.label: i18n("Orca Speed")
-        Slider { id: orcaSpeedSlider; from: 0.1; to: 3.0; stepSize: 0.05; Layout.fillWidth: true }
-        Label { text: orcaSpeedSlider.value.toFixed(2) + "×"; Layout.preferredWidth: 50; horizontalAlignment: Text.AlignRight }
+        Slider { id: orcaSpeedSlider; from: 0.1; to: 3.0; stepSize: 0.05; snapMode: Slider.SnapAlways; Layout.fillWidth: true }
+        Label { text: i18nc("value multiplier", "%1×", orcaSpeedSlider.value.toFixed(2)); Layout.preferredWidth: 50; horizontalAlignment: Text.AlignRight }
     }
     RowLayout {
         Kirigami.FormData.label: i18n("Orca Aggression")
-        Slider { id: orcaChaseSlider; from: 0.0; to: 2.0; stepSize: 0.1; Layout.fillWidth: true }
+        Slider { id: orcaChaseSlider; from: 0.0; to: 2.0; stepSize: 0.1; snapMode: Slider.SnapAlways; Layout.fillWidth: true }
         Label {
             text: {
                 var v = orcaChaseSlider.value;
@@ -154,7 +188,7 @@ Kirigami.FormLayout {
     }
     RowLayout {
         Kirigami.FormData.label: i18n("Angler Aggression")
-        Slider { id: anglerChaseSlider; from: 0.0; to: 2.0; stepSize: 0.1; Layout.fillWidth: true }
+        Slider { id: anglerChaseSlider; from: 0.0; to: 2.0; stepSize: 0.1; snapMode: Slider.SnapAlways; Layout.fillWidth: true }
         Label {
             text: {
                 var v = anglerChaseSlider.value;
@@ -204,7 +238,7 @@ Kirigami.FormLayout {
         Layout.maximumWidth: 420
         Layout.bottomMargin: 4
         font.pointSize: Kirigami.Theme.smallFont.pointSize
-        opacity: 0.55
+        opacity: 0.6
     }
 
     NumberInput { id: sepDistInput;     label: i18n("Personal Space");         min: 10;  max: 100; step: 1;     precision: 0 }
@@ -212,7 +246,7 @@ Kirigami.FormLayout {
         text: i18n("Minimum gap between fish. Higher = looser school.")
         Kirigami.FormData.label: " "
         font.pointSize: Kirigami.Theme.smallFont.pointSize
-        opacity: 0.45
+        opacity: 0.6
         Layout.bottomMargin: 6
     }
 
@@ -221,7 +255,7 @@ Kirigami.FormLayout {
         text: i18n("How far each fish can see its neighbors.")
         Kirigami.FormData.label: " "
         font.pointSize: Kirigami.Theme.smallFont.pointSize
-        opacity: 0.45
+        opacity: 0.6
         Layout.bottomMargin: 6
     }
 
@@ -230,7 +264,7 @@ Kirigami.FormLayout {
         text: i18n("Pull toward center of nearby group.")
         Kirigami.FormData.label: " "
         font.pointSize: Kirigami.Theme.smallFont.pointSize
-        opacity: 0.45
+        opacity: 0.6
         Layout.bottomMargin: 6
     }
 
@@ -239,7 +273,7 @@ Kirigami.FormLayout {
         text: i18n("Match swimming direction with neighbors.")
         Kirigami.FormData.label: " "
         font.pointSize: Kirigami.Theme.smallFont.pointSize
-        opacity: 0.45
+        opacity: 0.6
         Layout.bottomMargin: 6
     }
 
@@ -248,7 +282,7 @@ Kirigami.FormLayout {
         text: i18n("Push away from too-close neighbors.")
         Kirigami.FormData.label: " "
         font.pointSize: Kirigami.Theme.smallFont.pointSize
-        opacity: 0.45
+        opacity: 0.6
         Layout.bottomMargin: 6
     }
 
@@ -257,7 +291,7 @@ Kirigami.FormLayout {
         text: i18n("Natural randomness in movement.")
         Kirigami.FormData.label: " "
         font.pointSize: Kirigami.Theme.smallFont.pointSize
-        opacity: 0.45
+        opacity: 0.6
         Layout.bottomMargin: 6
     }
 
@@ -266,7 +300,7 @@ Kirigami.FormLayout {
         text: i18n("Turn strength when approaching screen edges.")
         Kirigami.FormData.label: " "
         font.pointSize: Kirigami.Theme.smallFont.pointSize
-        opacity: 0.45
+        opacity: 0.6
     }
 
     // ─── ENVIRONMENT ──────────────────────────────────────────
@@ -321,11 +355,11 @@ Kirigami.FormLayout {
         Label {
             text: {
                 var v = Math.round(reactivitySlider.value * 100);
-                if (v <= 25) return v + "% " + i18n("Damped");
-                if (v <= 50) return v + "% " + i18n("Subtle");
-                if (v <= 100) return v + "% " + i18n("Organic");
-                if (v <= 150) return v + "% " + i18n("Nervous");
-                return v + "% " + i18n("Volatile");
+                if (v <= 25) return i18nc("reactivity intensity: percent and description", "%1% Damped", v);
+                if (v <= 50) return i18nc("reactivity intensity: percent and description", "%1% Subtle", v);
+                if (v <= 100) return i18nc("reactivity intensity: percent and description", "%1% Organic", v);
+                if (v <= 150) return i18nc("reactivity intensity: percent and description", "%1% Nervous", v);
+                return i18nc("reactivity intensity: percent and description", "%1% Volatile", v);
             }
             Layout.preferredWidth: 110
             horizontalAlignment: Text.AlignRight
@@ -356,36 +390,36 @@ Kirigami.FormLayout {
         icon.name: "edit-undo"
         Kirigami.FormData.label: " "
         onClicked: {
-            fishCountInput.value = 38;
-            jellyCountInput.value = 5;
-            anglerCountInput.value = 3;
-            orcaCountInput.value = 3;
-            fishSizeSlider.value = 4.0;
-            jellySizeSlider.value = 3.0;
-            anglerSizeSlider.value = 4.2;
-            orcaSizeSlider.value = 5.5;
-            wormSizeSlider.value = 4.0;
-            cursorFearSlider.value = 2;
-            maxSpeedSlider.value = 0.8;
-            minSpeedSlider.value = 0.2;
-            anglerSpeedSlider.value = 1.0;
-            orcaSpeedSlider.value = 1.0;
-            orcaChaseSlider.value = 0.7;
-            anglerChaseSlider.value = 0.7;
-            sepDistInput.value = 35;
-            visualRangeInput.value = 130;
-            cohesionInput.value = 0.005;
-            alignmentInput.value = 0.05;
-            separationInput.value = 0.05;
-            wanderInput.value = 0.015;
-            turnInput.value = 0.06;
-            dayNightSwitch.checked = false;
-            colorTop.color = "#0f4c75";
-            colorBottom.color = "#051e36";
-            sensorTypeCombo.currentIndex = 0;
-            reactivitySlider.value = 1.0;
-            sensorIdInput.text = "cpu/all/usage";
-            sensorIdInput2.text = "gpu/all/usage";
+            root.cfg_sensorMode = root.cfg_sensorModeDefault;
+            root.cfg_fishCount = root.cfg_fishCountDefault;
+            root.cfg_jellyCount = root.cfg_jellyCountDefault;
+            root.cfg_anglerCount = root.cfg_anglerCountDefault;
+            root.cfg_orcaCount = root.cfg_orcaCountDefault;
+            root.cfg_fishSize = root.cfg_fishSizeDefault;
+            root.cfg_jellySize = root.cfg_jellySizeDefault;
+            root.cfg_anglerSize = root.cfg_anglerSizeDefault;
+            root.cfg_orcaSize = root.cfg_orcaSizeDefault;
+            root.cfg_wormSize = root.cfg_wormSizeDefault;
+            root.cfg_cursorFearLevel = root.cfg_cursorFearLevelDefault;
+            root.cfg_anglerSpeed = root.cfg_anglerSpeedDefault;
+            root.cfg_orcaSpeed = root.cfg_orcaSpeedDefault;
+            root.cfg_orcaChase = root.cfg_orcaChaseDefault;
+            root.cfg_anglerChase = root.cfg_anglerChaseDefault;
+            root.cfg_fishMaxSpeed = root.cfg_fishMaxSpeedDefault;
+            root.cfg_fishMinSpeed = root.cfg_fishMinSpeedDefault;
+            root.cfg_visualRange = root.cfg_visualRangeDefault;
+            root.cfg_separationDist = root.cfg_separationDistDefault;
+            root.cfg_cohesionFactor = root.cfg_cohesionFactorDefault;
+            root.cfg_alignmentFactor = root.cfg_alignmentFactorDefault;
+            root.cfg_separationFactor = root.cfg_separationFactorDefault;
+            root.cfg_wanderFactor = root.cfg_wanderFactorDefault;
+            root.cfg_turnFactor = root.cfg_turnFactorDefault;
+            root.cfg_dayNightCycle = root.cfg_dayNightCycleDefault;
+            root.cfg_waterTop = root.cfg_waterTopDefault;
+            root.cfg_waterBottom = root.cfg_waterBottomDefault;
+            root.cfg_sensorId = root.cfg_sensorIdDefault;
+            root.cfg_sensorId2 = root.cfg_sensorId2Default;
+            root.cfg_reactivityIntensity = root.cfg_reactivityIntensityDefault;
         }
     }
 }

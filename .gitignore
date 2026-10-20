@@ -121,3 +121,9 @@ coverage/
 ########################################
 *.pid
 *.seed
+
+########################################
+# Release artifacts
+########################################
+BoidsInTheBlue-*.kpackage
+BoidsInTheBlue-*.zip

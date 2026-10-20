@@ -15,6 +15,7 @@ RowLayout {
     
     Button {
         text: "-"
+        Accessible.name: i18n("Decrease")
         onClicked: {
             var v = value - step;
             if (v < min) v = min;
@@ -31,17 +32,30 @@ RowLayout {
         Layout.minimumWidth: 60
         horizontalAlignment: Text.AlignHCenter
         
-        function applyValue() {
-            var v = parseFloat(text);
-            if (isNaN(v)) {
-                text = value.toFixed(precision);
-                return;
-            }
+        function stepBy(delta) {
+            var v = value + delta;
             if (v < min) v = min;
             if (v > max) v = max;
             value = Number(v.toFixed(precision));
+            text = value.toFixed(precision);
         }
-        
+
+        function applyValue() {
+            // Accept both "0.005" and "0,005"; reject trailing garbage like "12abc"
+            var t = text.trim().replace(",", ".");
+            var v = /^[-+]?(\d+\.?\d*|\.\d+)$/.test(t) ? parseFloat(t) : NaN;
+            if (!isNaN(v)) {
+                if (v < min) v = min;
+                if (v > max) v = max;
+                value = Number(v.toFixed(precision));
+            }
+            // Always resync: valueChanged does not fire when the value is unchanged
+            text = value.toFixed(precision);
+        }
+
+        Keys.onUpPressed: stepBy(step)
+        Keys.onDownPressed: stepBy(-step)
+
         onAccepted: { applyValue(); focus = false; }
         onActiveFocusChanged: { if (!activeFocus) applyValue(); }
     }
@@ -54,6 +68,7 @@ RowLayout {
     
     Button {
         text: "+"
+        Accessible.name: i18n("Increase")
         onClicked: {
             var v = value + step;
             if (v > max) v = max;

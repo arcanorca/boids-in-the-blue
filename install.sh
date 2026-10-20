@@ -3,7 +3,7 @@
 # Boids in the Blue v1.1 Installer
 # ----------------------------------
 
-PLUGIN_DIR="."
+PLUGIN_DIR="$(cd "$(dirname "$0")" && pwd)"
 PLUGIN_ID="org.kde.plasma.boidsaquarium11"
 
 echo "🌊 Installing Boids in the Blue v1.1..."
@@ -27,32 +27,39 @@ remove_pkg() {
 }
 
 echo "📦 Deploying package..."
-if kpackagetool6 --type Plasma/Wallpaper --list | grep -q "$PLUGIN_ID"; then
+status=0
+if kpackagetool6 --type Plasma/Wallpaper --list | grep -qx "$PLUGIN_ID"; then
     echo "🔄 Found existing installation. Attempting upgrade..."
-    kpackagetool6 --type Plasma/Wallpaper --upgrade "$PLUGIN_DIR"
-    
-    if [ $? -ne 0 ]; then
+    if ! kpackagetool6 --type Plasma/Wallpaper --upgrade "$PLUGIN_DIR"; then
         echo "⚠️ Upgrade failed (possibly corrupted installation). Retrying with clean install..."
         remove_pkg
-        install_pkg
+        install_pkg || status=1
     fi
 else
-    install_pkg
+    install_pkg || status=1
 fi
 
-if [ $? -eq 0 ]; then
+if [ "$status" -eq 0 ]; then
     echo "✅ Installation successful!"
     echo "🧹 Clearing QML cache..."
     rm -rf "$HOME/.cache/plasmashell/qmlcache"
-    
-    echo "🔄 Restarting Plasma Shell (Optional)..."
-    read -p "Do you want to restart Plasma to apply changes immediately? (y/N) " -n 1 -r
-    echo
-    if [[ $REPLY =~ ^[Yy]$ ]]; then
-        systemctl --user restart plasma-plasmashell
-        echo "✨ Plasma restarted. Enjoy your aquarium v1.1!"
+
+    if [ -t 0 ]; then
+        echo "🔄 Restarting Plasma Shell (Optional)..."
+        read -p "Do you want to restart Plasma to apply changes immediately? (y/N) " -n 1 -r
+        echo
+        if [[ $REPLY =~ ^[Yy]$ ]]; then
+            if ! systemctl --user restart plasma-plasmashell; then
+                echo "⚠️ systemctl restart failed. Falling back to kquitapp6/kstart..."
+                kquitapp6 plasmashell
+                (setsid kstart plasmashell > /dev/null 2>&1 &)
+            fi
+            echo "✨ Plasma restarted. Enjoy your aquarium v1.1!"
+        else
+            echo "✨ Done. You may need to re-apply the wallpaper."
+        fi
     else
-        echo "✨ Done. You may need to re-apply the wallpaper."
+        echo "✨ Done. Restart Plasma or re-apply the wallpaper to see changes."
     fi
 else
     echo "❌ Installation failed."

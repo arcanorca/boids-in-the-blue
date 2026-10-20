@@ -7,10 +7,16 @@ var ANGLER_COUNT = 3;
 var ORCA_COUNT = 3;
 
 var FISH_SIZE = 4.0;
-var ANGLER_SIZE = 4.0;
+var ANGLER_SIZE = 4.2;
 var ORCA_SIZE = 5.5;
 var JELLY_SIZE = 3.0;
 var WORM_SIZE = 4;
+
+// Hard caps so click/hover spam cannot flood the scene with delegates
+var MAX_BUBBLES = 120;
+var MAX_WORMS = 40;
+var MIN_GRID_CELL = 150;
+var MAX_BORN_EXTRA = 20;   // max babies that may raise the population above the configured fish count
 
 // Per-frame speeds (no dt scaling, matching original architecture)
 var SPEED_MAX = 0.8;
@@ -49,8 +55,28 @@ var SPRITES = {
 
 // --- UTILS ---
 function _cfgNum(cfg, name, def) {
-    if (cfg && cfg[name] !== undefined) return Number(cfg[name]);
+    if (cfg && cfg[name] !== undefined) {
+        var v = Number(cfg[name]);
+        return isFinite(v) ? v : def;
+    }
     return def;
+}
+
+// Entity counts: non-negative integers
+function _cfgCount(cfg, name, def) {
+    return Math.max(0, Math.floor(_cfgNum(cfg, name, def)));
+}
+
+var _blendCache = {};
+function _blendCached(c1, c2, f) {
+    var key = c1 + c2 + f;
+    var r = _blendCache[key];
+    if (r === undefined) r = _blendCache[key] = _blendHex(c1, c2, f);
+    return r;
+}
+
+function _finite(e) {
+    return isFinite(e.x) && isFinite(e.y) && isFinite(e.vx || 0) && isFinite(e.vy || 0);
 }
 
 function _blendHex(c1, c2, f) {
@@ -62,54 +88,34 @@ function _blendHex(c1, c2, f) {
     return "#" + ((1<<24)+(r<<16)+(g<<8)+b).toString(16).slice(1);
 }
 
-function drawSprite(ctx, sprite, x, y, size, flip, colorFunc) {
-    var rows = sprite.length;
-    var cols = sprite[0].length;
-    var w = size + 1.0;
-    var h = size + 1.0;
-
-    ctx.beginPath();
-    var has1 = false;
-    for (var i = 0; i < rows; i++) {
-        for (var j = 0; j < cols; j++) {
-            if (sprite[i][j] === 1) {
-                ctx.rect(x + (flip ? (cols-1-j) : j) * size, y + i * size, w, h);
-                has1 = true;
-            }
-        }
-    }
-    if (has1) { ctx.fillStyle = colorFunc(1); ctx.fill(); }
-
-    ctx.beginPath();
-    var has2 = false;
-    for (var i = 0; i < rows; i++) {
-        for (var j = 0; j < cols; j++) {
-            if (sprite[i][j] === 2) {
-                ctx.rect(x + (flip ? (cols-1-j) : j) * size, y + i * size, w, h);
-                has2 = true;
-            }
-        }
-    }
-    if (has2) { ctx.fillStyle = colorFunc(2); ctx.fill(); }
-
-    ctx.beginPath();
-    var has3 = false;
-    for (var i = 0; i < rows; i++) {
-        for (var j = 0; j < cols; j++) {
-            if (sprite[i][j] === 3) {
-                ctx.rect(x + (flip ? (cols-1-j) : j) * size, y + i * size, w, h);
-                has3 = true;
-            }
-        }
-    }
-    if (has3) { ctx.fillStyle = colorFunc(3); ctx.fill(); }
-}
-
 function _bounceBoundaries(sim, ent) {
     if (ent.x < 0) { ent.x = 2; ent.vx = Math.abs(ent.vx) * 0.3 + 0.05; }
     if (ent.x > sim.width) { ent.x = sim.width - 2; ent.vx = -(Math.abs(ent.vx) * 0.3 + 0.05); }
     if (ent.y < 0) { ent.y = 2; ent.vy = Math.abs(ent.vy) * 0.3 + 0.05; }
     if (ent.y > sim.height) { ent.y = sim.height - 2; ent.vy = -(Math.abs(ent.vy) * 0.3 + 0.05); }
+}
+
+// Log each distinct error once instead of swallowing it silently
+var _seenErrors = {};
+function _report(where, e) {
+    var key = where + ': ' + (e && e.message ? e.message : e);
+    if (_seenErrors[key]) return;
+    _seenErrors[key] = true;
+    console.warn('[boids] ' + key + (e && e.lineNumber ? ' (line ' + e.lineNumber + ')' : ''));
+}
+
+function _addBubble(sim, x, y) {
+    if (sim.entities.bubbles.length >= MAX_BUBBLES) return;
+    sim.entities.bubbles.push(new Bubble(x, y));
+}
+
+// Shrink a list to `target`, releasing the delegates of the removed entities
+function _trimTo(list, target) {
+    while (list.length > target) {
+        var e = list.pop();
+        e.dead = true;
+        if (e.delegate) { e.delegate.destroy(); e.delegate = null; }
+    }
 }
 
 // --- API ---
@@ -119,32 +125,18 @@ function resize(sim, w, h, dpr) { if (!sim) return; sim.resize(w, h, dpr); }
 function sync(sim, parent, component) { if (!sim) return; sim.sync(parent, component); }
 
 function forceSpawnWorm(sim, x, y) {
-    if (!sim) return;
+    if (!sim || sim.entities.worms.length >= MAX_WORMS) return;
     sim.entities.worms.push(new Worm(x, y));
     for (var i = 0; i < 6; i++) {
-        sim.entities.bubbles.push(new Bubble(
+        _addBubble(sim,
             x + (Math.random() - 0.5) * 40,
-            y + (Math.random() - 0.5) * 30
-        ));
+            y + (Math.random() - 0.5) * 30);
     }
 }
 
 function forceSpawnBubble(sim, x, y) {
     if (!sim) return;
-    sim.entities.bubbles.push(new Bubble(x, y));
-}
-
-function forceRepulse(sim, x, y) {
-    if (!sim) return;
-    sim.mouse.x = x;
-    sim.mouse.y = y;
-}
-
-function spawnWorm(sim, x, y) { forceSpawnWorm(sim, x, y); }
-function spawnBubble(sim, x, y) {
-    if (!sim) return;
-    if (sim.entities.bubbles.length > 40) return;
-    sim.entities.bubbles.push(new Bubble(x, y));
+    _addBubble(sim, x, y);
 }
 
 // --- SPATIAL GRID ---
@@ -159,6 +151,7 @@ SpatialGrid.prototype.clear = function () {
     for (var i = 0; i < this.cells.length; i++) this.cells[i].length = 0;
 };
 SpatialGrid.prototype.insert = function (ent) {
+    if (!isFinite(ent.x) || !isFinite(ent.y) || this.cells.length === 0) return;
     var c = Math.floor(ent.x / this.cellSize);
     var r = Math.floor(ent.y / this.cellSize);
     if (c < 0) c = 0; else if (c >= this.cols) c = this.cols - 1;
@@ -177,16 +170,17 @@ var Simulation = function (w, h, dpr, cfg) {
     this.allLists = [this.entities.worms, this.entities.bubbles, this.entities.fish,
                      this.entities.anglers, this.entities.orcas, this.entities.jellies];
     this.totalWormsEaten = 0;
-    this.grid = new SpatialGrid(w, h, 150);
-    this._bubbleTick = 0;
+    this.bornExtra = 0;
+    this.grid = new SpatialGrid(w, h, MIN_GRID_CELL);
     this.init();
 };
 
 Simulation.prototype.init = function () {
-    var fc = _cfgNum(this.config, 'fishCount', FISH_COUNT);
-    var ac = _cfgNum(this.config, 'anglerCount', ANGLER_COUNT);
-    var oc = _cfgNum(this.config, 'orcaCount', ORCA_COUNT);
-    var jc = _cfgNum(this.config, 'jellyCount', JELLY_COUNT);
+    var fc = _cfgCount(this.config, 'fishCount', FISH_COUNT);
+    var ac = _cfgCount(this.config, 'anglerCount', ANGLER_COUNT);
+    var oc = _cfgCount(this.config, 'orcaCount', ORCA_COUNT);
+    var jc = _cfgCount(this.config, 'jellyCount', JELLY_COUNT);
+    this._lastFishBase = fc;
     for (var i = 0; i < fc; i++) this.entities.fish.push(new Fish(Math.random()*this.width, Math.random()*this.height, this));
     for (var i = 0; i < ac; i++) this.entities.anglers.push(new Angler(Math.random()*this.width, Math.random()*this.height));
     for (var i = 0; i < oc; i++) this.entities.orcas.push(new Orca(Math.random()*this.width, Math.random()*this.height));
@@ -194,20 +188,38 @@ Simulation.prototype.init = function () {
 };
 
 Simulation.prototype.resize = function (w, h, dpr) {
+    var wasEmpty = !(this.width > 0 && this.height > 0);
     this.width = w; this.height = h; this.dpr = dpr;
-    this.grid = new SpatialGrid(w, h, 150);
+    if (!(w > 0 && h > 0)) return;
+    var cs = this.grid.cellSize;
+    if (this.grid.cols !== Math.ceil(w / cs) || this.grid.rows !== Math.ceil(h / cs) || this.grid.cells.length === 0)
+        this.grid = new SpatialGrid(w, h, cs);
+    for (var l = 0; l < this.allLists.length; l++) {
+        var list = this.allLists[l];
+        for (var i = 0; i < list.length; i++) {
+            var e = list[i];
+            if (wasEmpty) { e.x = Math.random() * w; e.y = Math.random() * h; }
+            else if (e.kind === 'worm' || e.kind === 'bubble') continue;
+            else { e.x = Math.min(Math.max(e.x, 0), w); e.y = Math.min(Math.max(e.y, 0), h); }
+        }
+    }
 };
 
 Simulation.prototype.step = function (dt) {
+    if (!(this.width > 0 && this.height > 0)) return;
     try {
-        var targetFish = _cfgNum(this.config, 'fishCount', FISH_COUNT);
+        var baseFish = _cfgCount(this.config, 'fishCount', FISH_COUNT);
+        // Babies add to the population (bornExtra); lowering the configured count resets that bonus
+        if (baseFish < this._lastFishBase) this.bornExtra = 0;
+        this._lastFishBase = baseFish;
+        var targetFish = baseFish + this.bornExtra;
         while (this.entities.fish.length < targetFish) this.entities.fish.push(new Fish(Math.random()*this.width, Math.random()*this.height, this));
         // Remove excess fish but NEVER kill actively-animating babies
         while (this.entities.fish.length > targetFish) {
             var removeIdx = -1;
             for (var fi = this.entities.fish.length - 1; fi >= 0; fi--) {
                 var ff = this.entities.fish[fi];
-                if (!(ff.isBaby && ff.birthAnim !== undefined && ff.birthAnim < 50)) {
+                if (!(ff.isBaby && ff.birthAnim !== undefined && ff.birthAnim < 60)) {
                     removeIdx = fi; break;
                 }
             }
@@ -218,24 +230,24 @@ Simulation.prototype.step = function (dt) {
             this.entities.fish.splice(removeIdx, 1);
         }
 
-        var targetAnglers = _cfgNum(this.config, 'anglerCount', ANGLER_COUNT);
+        var targetAnglers = _cfgCount(this.config, 'anglerCount', ANGLER_COUNT);
         while (this.entities.anglers.length < targetAnglers) this.entities.anglers.push(new Angler(Math.random()*this.width, Math.random()*this.height));
-        while (this.entities.anglers.length > targetAnglers) { var a = this.entities.anglers.pop(); a.dead = true; }
+        _trimTo(this.entities.anglers, targetAnglers);
 
-        var targetOrcas = _cfgNum(this.config, 'orcaCount', ORCA_COUNT);
+        var targetOrcas = _cfgCount(this.config, 'orcaCount', ORCA_COUNT);
         while (this.entities.orcas.length < targetOrcas) this.entities.orcas.push(new Orca(Math.random()*this.width, Math.random()*this.height));
-        while (this.entities.orcas.length > targetOrcas) { var o = this.entities.orcas.pop(); o.dead = true; }
+        _trimTo(this.entities.orcas, targetOrcas);
 
-        var targetJellies = _cfgNum(this.config, 'jellyCount', JELLY_COUNT);
+        var targetJellies = _cfgCount(this.config, 'jellyCount', JELLY_COUNT);
         while (this.entities.jellies.length < targetJellies) this.entities.jellies.push(new Jelly(Math.random()*this.width, Math.random()*this.height));
-        while (this.entities.jellies.length > targetJellies) { var j = this.entities.jellies.pop(); j.dead = true; }
+        _trimTo(this.entities.jellies, targetJellies);
 
         // Cache config once per step (eliminates ~430 QML property lookups/frame)
         var c = this.config;
         if (!this._c) this._c = {};
         var cc = this._c;
         cc.maxSpeed = _cfgNum(c, 'fishMaxSpeed', SPEED_MAX);
-        cc.minSpeed = _cfgNum(c, 'fishMinSpeed', SPEED_MIN);
+        cc.minSpeed = Math.min(_cfgNum(c, 'fishMinSpeed', SPEED_MIN), cc.maxSpeed);
         cc.turn = _cfgNum(c, 'turnFactor', TURN_FACTOR);
         cc.vRange = _cfgNum(c, 'visualRange', VISUAL_RANGE);
         cc.cohF = _cfgNum(c, 'cohesionFactor', COHESION_FACTOR);
@@ -243,7 +255,7 @@ Simulation.prototype.step = function (dt) {
         cc.sepF = _cfgNum(c, 'separationFactor', SEPARATION_FACTOR);
         cc.sepDist = _cfgNum(c, 'separationDist', SEPARATION_DIST);
         cc.wanderF = _cfgNum(c, 'wanderFactor', WANDER_FACTOR);
-        cc.fearLevel = Math.round(_cfgNum(c, 'cursorFearLevel', 1));
+        cc.fearLevel = Math.round(_cfgNum(c, 'cursorFearLevel', 2));
         cc.anglerChase = _cfgNum(c, 'anglerChase', 0.7);
         cc.anglerSpeed = _cfgNum(c, 'anglerSpeed', 1.0);
         cc.orcaChase = _cfgNum(c, 'orcaChase', 0.7);
@@ -254,6 +266,10 @@ Simulation.prototype.step = function (dt) {
         cc.jellySize = _cfgNum(c, 'jellySize', JELLY_SIZE);
         cc.wormSize = _cfgNum(c, 'wormSize', WORM_SIZE);
 
+        // The 3x3 neighbourhood only covers one cell in each direction,
+        // so a cell must be at least as wide as the vision range.
+        var cell = Math.max(MIN_GRID_CELL, Math.ceil(cc.vRange));
+        if (this.grid.cellSize !== cell) this.grid = new SpatialGrid(this.width, this.height, cell);
         this.grid.clear();
         for (var i = 0; i < this.entities.fish.length; i++) this.grid.insert(this.entities.fish[i]);
 
@@ -262,10 +278,19 @@ Simulation.prototype.step = function (dt) {
             var list = allLists[l];
             for (var i = list.length - 1; i >= 0; i--) {
                 var ent = list[i];
-                try { ent.update(this, dt); } catch (ex) { ent.dead = true; }
+                try { ent.update(this, dt); } catch (ex) { _report(ent.kind + '.update', ex); ent.dead = true; }
                 if (ent.dead) {
                     if (ent.delegate) { ent.delegate.destroy(); ent.delegate = null; }
                     list.splice(i, 1);
+                } else if (!_finite(ent)) {
+                    if (ent.kind === 'worm' || ent.kind === 'bubble') {
+                        ent.dead = true;
+                        if (ent.delegate) { ent.delegate.destroy(); ent.delegate = null; }
+                        list.splice(i, 1);
+                    } else {
+                        ent.x = Math.random() * this.width; ent.y = Math.random() * this.height;
+                        ent.vx = 0; ent.vy = 0;
+                    }
                 } else if (ent.kind !== 'worm' && ent.kind !== 'bubble') {
                     _bounceBoundaries(this, ent);
                 }
@@ -291,7 +316,7 @@ Simulation.prototype.step = function (dt) {
             }
         }
 
-    } catch (e) { }
+    } catch (e) { _report('step', e); }
 };
 
 Simulation.prototype.sync = function (parent, component) {
@@ -299,6 +324,11 @@ Simulation.prototype.sync = function (parent, component) {
     try {
         var cc = this._c;
         var allLists = this.allLists;
+        var stress = this.cpuStress;
+        var pulse = 0;
+        if (stress > 1.2) pulse = Math.round((Math.sin(Date.now() / 300) + 1) * 4) / 8;
+        var raw = (stress - 0.25) / 0.75;
+        var sf = Math.round(Math.min(1.0, raw * raw) * 16) / 16;
         for (var l = 0; l < allLists.length; l++) {
             var list = allLists[l];
             for (var i = 0; i < list.length; i++) {
@@ -337,63 +367,60 @@ Simulation.prototype.sync = function (parent, component) {
                 }
 
                 if (ent.delegate) {
-                    ent.delegate.x = ent.x;
-                    ent.delegate.y = ent.y;
+                    var dg = ent.delegate;
+                    dg.x = ent.x;
+                    dg.y = ent.y;
 
                     if (ent.kind === 'fish') {
-                        ent.delegate.size = cc.fishSize + ent.sizeVariation;
+                        dg.size = cc.fishSize + ent.sizeVariation;
                     } else if (ent.kind === 'orca') {
-                        ent.delegate.size = cc.orcaSize;
+                        dg.size = cc.orcaSize;
                     } else if (ent.kind === 'angler') {
-                        ent.delegate.size = cc.anglerSize;
+                        dg.size = cc.anglerSize;
                     } else if (ent.kind === 'jelly') {
-                        ent.delegate.size = cc.jellySize + ent.sizeVariation;
+                        dg.size = cc.jellySize + ent.sizeVariation;
                     } else if (ent.kind === 'worm') {
-                        ent.delegate.size = cc.wormSize;
+                        dg.size = cc.wormSize;
                     }
 
                     if (ent.kind === 'fish' || ent.kind === 'angler' || ent.kind === 'orca') {
-                        ent.delegate.flip = !ent.facingRight;
-                        ent.delegate.rotation = 0;
+                        var flip = !ent.facingRight;
+                        if (dg.flip !== flip) dg.flip = flip;
+                        if (dg.rotation !== 0) dg.rotation = 0;
                     }
 
                     if (ent.kind === 'fish') {
-                        if (this.cpuStress > 0.25) {
-                            var col = ent.color;
-                            if (this.cpuStress > 1.2) {
-                                var pulse = (Math.sin(Date.now() / 300) + 1) * 0.5;
-                                col = _blendHex("#FF0000", "#000080", pulse);
+                        if (stress > 0.25) {
+                            var col;
+                            // Quantised so the sprite is only repainted when the colour visibly changes
+                            if (stress > 1.2) col = _blendCached("#FF0000", "#000080", pulse);
+                            else col = _blendCached(ent.color, "#FF3333", sf);
+                            if (dg.colorString !== col) dg.colorString = col;
+                            if (stress > 0.5) {
+                                var shake = (stress - 0.5) * 3.0;
+                                dg.shakeX = (Math.random() - 0.5) * shake;
+                                dg.shakeY = (Math.random() - 0.5) * shake;
                             } else {
-                                var raw = (this.cpuStress - 0.25) / 0.75;
-                                var sf = Math.min(1.0, raw * raw);
-                                col = _blendHex(ent.color, "#FF3333", sf);
-                            }
-                            ent.delegate.colorString = col;
-                            if (this.cpuStress > 0.5) {
-                                var shake = (this.cpuStress - 0.5) * 3.0;
-                                ent.delegate.shakeX = (Math.random() - 0.5) * shake;
-                                ent.delegate.shakeY = (Math.random() - 0.5) * shake;
-                            } else {
-                                ent.delegate.shakeX = 0;
-                                ent.delegate.shakeY = 0;
+                                if (dg.shakeX !== 0) dg.shakeX = 0;
+                                if (dg.shakeY !== 0) dg.shakeY = 0;
                             }
                         } else {
-                            if (ent.delegate.colorString !== ent.color) ent.delegate.colorString = ent.color;
-                            ent.delegate.shakeX = 0;
-                            ent.delegate.shakeY = 0;
+                            if (dg.colorString !== ent.color) dg.colorString = ent.color;
+                            if (dg.shakeX !== 0) dg.shakeX = 0;
+                            if (dg.shakeY !== 0) dg.shakeY = 0;
                         }
                     }
 
                     if (ent.kind === 'worm') {
-                        ent.delegate.opacity = ent.life;
+                        dg.opacity = ent.life;
                     }
                     if (ent.kind === 'jelly') {
-                        ent.delegate.opacity = 0.25;
+                        dg.opacity = 0.25;
                     }
                 }
             }
         }
-    } catch (e) { }
+    } catch (e) { _report('sync', e); }
 };
 
 // ============================================================
@@ -485,7 +512,7 @@ Fish.prototype.update = function (sim) {
     // --- CURSOR FEAR (matches original exactly) ---
     var fearLevel = cc.fearLevel;
 
-    if (fearLevel > 0 && sim.mouse && !panic) {
+    if (fearLevel > 0 && sim.mouse) {
         var range = 180;
         var force = 0.40;
         if (fearLevel === 2) { range = 350; force = 2.0; }
@@ -578,6 +605,7 @@ Fish.prototype.update = function (sim) {
         var closestDist = 999999; var closestWorm = null;
         for (var i = 0; i < sim.entities.worms.length; i++) {
             var w = sim.entities.worms[i];
+            if (w.dead) continue;
             var wdx = w.x - this.x; var wdy = w.y - this.y;
             var wd2 = wdx*wdx + wdy*wdy;
             if (wd2 < closestDist) { closestDist = wd2; closestWorm = w; }
@@ -588,15 +616,16 @@ Fish.prototype.update = function (sim) {
             if (closestDist < 400) {
                 closestWorm.dead = true;
                 sim.totalWormsEaten++;
-                if (sim.totalWormsEaten % 10 === 0) {
+                if (sim.totalWormsEaten % 10 === 0 && sim.bornExtra < MAX_BORN_EXTRA) {
+                    sim.bornExtra++;
                     sim.entities.fish.push(new Fish(
                         this.x + (Math.random()-0.5)*20,
                         this.y + (Math.random()-0.5)*20, sim, true));
                 }
                 for (var eb = 0; eb < 3; eb++) {
-                    sim.entities.bubbles.push(new Bubble(
+                    _addBubble(sim,
                         this.x + (Math.random()-0.5)*15,
-                        this.y + (Math.random()-0.5)*10));
+                        this.y + (Math.random()-0.5)*10);
                 }
             }
         }
@@ -811,5 +840,6 @@ Jelly.prototype.update = function (sim) {
     this.y += this.vy;
     this.wobble += 0.04;
     this.x += Math.sin(this.wobble) * 0.4;
-    if (Math.abs(this.vy) > this.speed) this.vy *= 0.95;
+    // Wall bounces damp vy (see _bounceBoundaries); ease back to cruising speed
+    this.vy += ((this.vy >= 0 ? 1 : -1) * this.speed - this.vy) * 0.05;
 };
