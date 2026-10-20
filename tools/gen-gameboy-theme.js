@@ -68,6 +68,10 @@ function ellipse(g, cx, cy, rx, ry, ch, only) {     // fills cells whose centre 
         if (dx * dx + dy * dy <= 1 && (!only || only(g[y][x]))) g[y][x] = ch;
     }
 }
+function superellipse(g, cx, cy, rx, ry, n, ch) {  // blunter than an ellipse for n > 2
+    for (let y = 0; y < g.length; y++) for (let x = 0; x < g[0].length; x++)
+        if (Math.pow(Math.abs((x - cx) / rx), n) + Math.pow(Math.abs((y - cy) / ry), n) <= 1) g[y][x] = ch;
+}
 function rect(g, x0, y0, x1, y1, ch) { for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) put(g, x, y, ch); }
 function shadesOf(g) { const s = new Set(); g.forEach(r => r.forEach(c => { if (c !== '.') s.add(+c); })); return [...s].sort(); }
 
@@ -102,9 +106,9 @@ function fishBase(tail) {
     return g;
 }
 const FISH_TAIL = [                                  // cols 0..4: spread, narrow, flicked up
-    ['.....', 'ff...', 'fff..', '.fff.', '.fff.', 'fff..', 'ff...', '.....'],
-    ['.....', '.....', '.ff..', '.fff.', '.fff.', '.ff..', '.....', '.....'],
-    ['ff...', 'fff..', '.ff..', '.fff.', '..ff.', '..f..', '.....', '.....']
+    ['.....', 'ff...', 'fff..', '.ffff', '.ffff', 'fff..', 'ff...', '.....'],
+    ['.....', '.....', '.ff..', '.ffff', '.ffff', '.ff..', '.....', '.....'],
+    ['ff...', 'fff..', '.ff..', '.fff.', '..fff', '..ff.', '.....', '.....']
 ];
 function fryBase(tail) {
     const g = mk(8, 8);
@@ -167,21 +171,22 @@ const ANGLER_TAIL = [
 const ANGLER_LURE = [{ x: 18, y: 1 }, { x: 18, y: 2 }, { x: 18, y: 1 }];   // core top-left per frame
 function anglerFrame(fr) {
     const g = mk(24, 16);
-    ellipse(g, 13.2, 9.6, 8.4, 5.3, 'b');
-    for (let y = 0; y < 16; y++) for (let x = 0; x < 24; x++) if (g[y][x] === 'b' && y >= 11 && (x + y) % 2 === 0) g[y][x] = 'd';
-    for (const [x, y] of [[9, 6], [12, 5], [14, 7], [11, 8], [7, 9]]) if (g[y][x] === 'b') g[y][x] = 't';   // light speckles
+    ellipse(g, 12.6, 9.4, 8.6, 5.6, 'b');
+    for (let y = 0; y < 16; y++) for (let x = 0; x < 24; x++) if (g[y][x] === 'b' && y >= 12 && (x + y) % 2 === 0) g[y][x] = 'd';
+    for (const [x, y] of [[9, 6], [12, 5], [14, 7], [11, 8], [7, 9], [8, 11], [13, 11]]) if (g[y][x] === 'b') g[y][x] = 't';   // light speckles
     stamp(g, ANGLER_TAIL[fr], 0, 0, true);
-    rect(g, 19, 10, 22, 11, '.');                           // mouth cut-out (right edge)
-    rect(g, 17, 7, 18, 7, 'w'); rect(g, 17, 8, 18, 8, 'w'); put(g, 18, 8, 'e');
-    put(g, 10, 14, 'f'); put(g, 11, 14, 'f'); put(g, 12, 14, 'f');     // belly fin
+    rect(g, 16, 10, 22, 12, 'm');                           // wide mouth opening through the front edge
+    rect(g, 16, 6, 18, 8, 'w'); rect(g, 17, 7, 18, 8, 'e');   // big eye
+    put(g, 16, 6, 'w'); put(g, 17, 6, 'w'); put(g, 16, 7, 'w'); put(g, 17, 7, 'e'); put(g, 18, 7, 'e'); put(g, 17, 8, 'e'); put(g, 18, 8, 'e'); put(g, 18, 6, 'b'); put(g, 16, 8, 'w');
+    for (const [x, y] of [[8, 14], [9, 14], [10, 14], [11, 14]]) put(g, x, y, 'f');   // belly fin
+    for (const [x, y] of [[11, 3], [12, 3], [13, 3]]) put(g, x, y, 'f');              // dorsal spines
     outline(g, 'o');
-    // teeth: light cells along the mouth edge
-    for (const x of [18, 20, 22]) { put(g, x, 9, 't'); }
-    for (const x of [19, 21]) put(g, x, 12, 't');
-    // stalk (thin, drawn after the outline), ends against the bulb
+    // teeth: light cells along the mouth edge (upper jaw hangs into the opening, lower jaw rises)
+    for (const x of [16, 18, 20]) put(g, x, 10, 't');
+    for (const x of [17, 19, 21]) put(g, x, 12, 't');
     const L = ANGLER_LURE[fr];
-    for (const [x, y] of [[12, 3], [13, 2], [14, 1], [15, 1], [16, 1], [17, L.y]]) put(g, x, y, 's');
-    return remap(g, { o: 0, b: 1, d: 0, t: 3, w: 3, e: 0, f: 1, s: 0 });
+    for (const [x, y] of [[11, 2], [12, 1], [13, 1], [14, 1], [15, 1], [16, 1], [17, L.y]]) put(g, x, y, 's');   // stalk, drawn after the outline
+    return remap(g, { o: 0, b: 1, d: 0, t: 3, w: 3, e: 0, f: 1, s: 0, m: 0 });
 }
 for (let f = 0; f < 3; f++) addSprite('ang-' + f, anglerFrame(f));
 const LURES = [
@@ -200,18 +205,20 @@ const ORCA_TAIL = [          // cols 0..9: flukes up / level / down (stock joins
 ];
 function orcaFrame(fr) {
     const g = mk(32, 16);
-    ellipse(g, 18.6, 8.6, 12.4, 4.6, 'b');
-    // dorsal fin (swept back)
-    stamp(g, ['..bb..', '..bbb.', '.bbbb.', '.bbbbb', 'bbbbbb'], 13, 1, true);
+    superellipse(g, 19.4, 9.0, 12.2, 4.7, 2.7, 'b');
+    // dorsal fin (tall, swept back)
+    stamp(g, ['...bb.', '..bbb.', '..bbbb', '.bbbbb', '.bbbbb', 'bbbbbb'], 14, 0, true);
     stamp(g, ORCA_TAIL[fr], 0, 0, true);
-    // white belly / chin, eye patch, sheen on the back
+    // flipper
+    stamp(g, ['bb..', '.bbb', '..bb'], 20, 13, true);
+    // white belly / chin, sheen on the back
     for (let y = 0; y < 16; y++) for (let x = 0; x < 32; x++) if (g[y][x] === 'b') {
-        if (y >= 11 && x >= 12 && !(y === 11 && x < 15)) g[y][x] = 'w';
+        if (y >= 11 && x >= 11 && !(y === 11 && x < 14)) g[y][x] = 'w';
         else if (y === 10 && x >= 25) g[y][x] = 'w';
-        else if (y === 5 && x >= 20 && x <= 28 && (x % 2 === 0)) g[y][x] = 'g';
+        else if (y === 5 && x >= 21 && x <= 29 && (x % 2 === 1)) g[y][x] = 'g';
     }
-    rect(g, 24, 6, 27, 7, 'w'); put(g, 25, 7, 'e'); put(g, 26, 7, 'e');       // eye patch + eye
-    rect(g, 14, 6, 17, 7, 'g'); rect(g, 15, 6, 16, 6, 'g');                    // saddle sheen
+    rect(g, 24, 6, 27, 8, 'w'); put(g, 24, 6, 'b'); put(g, 27, 6, 'b'); put(g, 26, 7, 'e'); put(g, 26, 8, 'e');   // oval eye patch + eye
+    for (const [x, y] of [[15, 6], [16, 6], [17, 6], [15, 7], [16, 7], [17, 7], [16, 8]]) if (g[y][x] === 'b') g[y][x] = 'g';   // saddle patch
     outline(g, 'o');
     return remap(g, { o: 0, b: 0, g: 1, w: 3, e: 0 });
 }
@@ -275,6 +282,22 @@ function waveStrip(amp, y0, phase, hi, mid, lo) {
 }
 const SURF = [waveStrip(1.6, 3, 0, 3, 2, 1), waveStrip(1.0, 3, 0.35, 3, 2, 2)];
 
+// light rays: 256x192 seamless tile of slanted dithered bands (shade 3 pixels thinning out with depth)
+function rays() {
+    const W = 256, H = 192, g = mk(W, H);
+    for (const [x0, wd, str] of [[30, 14, 1.0], [170, 8, 0.7]]) for (let y = 0; y < H; y++) {
+        const dens = Math.max(0, str * (1 - y / H)) * 16;
+        const c = x0 + Math.floor(y / 3);
+        for (let k = 0; k < wd; k++) {
+            const x = (c + k) % W;
+            const edge = Math.min(k, wd - 1 - k) === 0;
+            if (BAYER[y % 4][x % 4] < (edge ? dens * 0.5 : dens)) g[y][x] = '3';
+        }
+    }
+    return g;
+}
+const RAYS = rays();
+
 // seabed: tile map of 64x14 tiles (512x112 px) in two kelp-sway frames
 const SEA_COLS = 64, SEA_ROWS = 14, SEA_SAND_ROW = 10;
 function lcg(seed) { let a = seed >>> 0; return () => { a = (Math.imul(a, 1664525) + 1013904223) >>> 0; return a / 4294967296; }; }
@@ -294,11 +317,11 @@ for (const h of [3, 4, 5]) for (const v of [0, 1]) T['top' + h + '_' + v] = sand
 T.mid = [0, 1, 2].map(v => { const g = ditherTile(2, 3, 8), r = lcg(50 + v); for (let k = 0; k < 3; k++) put(g, Math.floor(r() * 8), Math.floor(r() * 8), '1'); return g; });
 T.deep = [0, 1, 2].map(v => { const g = ditherTile(1, 2, 4), r = lcg(70 + v); for (let k = 0; k < 3; k++) put(g, Math.floor(r() * 8), Math.floor(r() * 8), '0'); return g; });
 T.floor = [ditherTile(0, 1, 8), ditherTile(0, 1, 6)];
-T.kelpA = tile(['..o11o..', '..o12o..', '.o112o..', 'o1121o..', '.o11o...', '..o11o..', '..o12o..', '..o11o..']);
-T.kelpB = tile(['..o11o..', '..o21o..', '..o211o.', '..o1211o', '...o11o.', '..o11o..', '..o21o..', '..o11o..']);
-T.kelpTop = tile(['...oo...', '..o11o..', '.o1121o.', '.o1111o.', '..o11o..', '..o11o..', '..o12o..', '..o11o..']);
-T.grassA = tile(['........', '..o..o..', '.o1.o1..', '.o1o1o..', '..o1o1o.', '.o1o.o1o', 'o11o.o1o', 'o11oo11o']);
-T.grassB = tile(['........', '.o..o...', '.1o.1o..', '.1o1o...', 'o1o1o...', 'o1o.o1o.', 'o1o.o11o', 'o11oo11o']);
+T.kelpA = tile(['..o11o..', '.o122o..', 'o11221o.', 'o1121o..', '.o11o...', '.o112o..', 'o11221o.', '.o121o..']);
+T.kelpB = tile(['.o121o..', 'o11221o.', '.o211o..', '..o11o..', '.o1121o.', 'o122110.', '.o122o..', '..o11o..']);
+T.kelpTop = tile(['...oo...', '..o11o..', '.o1221o.', 'o122211.', 'o112211.', '.o1111o.', '..o11o..', '..o11o..']);
+T.grassA = tile(['..o..o..', '.o1..1o.', '.o1.o1o.', 'o1o.o1o.', 'o1o1o1o.', 'o1o1o11o', 'o11o111o', 'o111o11o']);
+T.grassB = tile(['.o..o...', '.1o.1o..', 'o1o.1o..', 'o1o1o1o.', '.o1o1o1o', 'o11o1o1o', 'o111o11o', 'o111o11o']);
 T.shell = tile(['........', '........', '........', '........', '..oooo..', '.o3333o.', '.o3o3oo.', '..oooo..']);
 // boulders: half-ellipse domes, lit from the upper left; their bottoms sink into the sand row
 function boulder(w, h, seed) {
@@ -381,14 +404,15 @@ function allImages() {
     }
     // BG atlases: one per BGP fade
     const A = buildSeabed(0), B = buildSeabed(1);
-    const bgH = SEA_ROWS * 8 * 2 + 8 + 8;
+    const bgH = SEA_ROWS * 8 * 2 + 8 + 8 + 192;
     atlas.BG = { seaA: [0, 0, SEA_COLS * 8, SEA_ROWS * 8], seaB: [0, SEA_ROWS * 8, SEA_COLS * 8, SEA_ROWS * 8],
-                 water: WATER.map((_, i) => [i * 8, SEA_ROWS * 16, 8, 8]), surf: SURF.map((_, i) => [i * 16, SEA_ROWS * 16 + 8, 16, 8]) };
+                 water: WATER.map((_, i) => [i * 8, SEA_ROWS * 16, 8, 8]), surf: SURF.map((_, i) => [i * 16, SEA_ROWS * 16 + 8, 16, 8]), rays: [0, SEA_ROWS * 16 + 16, 256, 192] };
     for (const m of BG_ORDER) {
         const im = newImage(SEA_COLS * 8, bgH);
         paint(im, A, 0, 0, BG_MAPS[m]); paint(im, B, 0, SEA_ROWS * 8, BG_MAPS[m]);
         WATER.forEach((t, i) => paint(im, t, i * 8, SEA_ROWS * 16, BG_MAPS[m]));
         SURF.forEach((t, i) => paint(im, t, i * 16, SEA_ROWS * 16 + 8, BG_MAPS[m]));
+        paint(im, RAYS, 0, SEA_ROWS * 16 + 16, BG_MAPS[m]);
         out['bg-' + m + '.png'] = im;
     }
     // LCD glass: one n x n cell per integer scale 2..12 (a dark line along the right and bottom edge)
@@ -425,6 +449,7 @@ function tileStats() {
     sliceTiles(buildSeabed(0), bg); sliceTiles(buildSeabed(1), bg);
     WATER.forEach(t => sliceTiles(t, bg));
     SURF.forEach(t => sliceTiles(t, bg));
+    sliceTiles(RAYS, bg);
     return { obj: obj.size, bg: bg.size };
 }
 

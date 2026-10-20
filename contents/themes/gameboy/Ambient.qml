@@ -4,10 +4,10 @@ import "atlas.js" as A
 
 // Background of the "gameboy" theme, built like a BG tile map on the virtual screen (this item is
 // virtual-pixel sized, the scene scales it): banded dithered water tiles (one row = one Image tiled
-// across), two parallax rows of water-surface tiles scrolled in whole-pixel steps (the way a DMG
+// across), slanted dithered light rays, two parallax rows of water-surface tiles scrolled in whole-pixel steps (the way a DMG
 // game scrolls scanlines), and a 64x14-tile seabed with rocks and swaying kelp.
 //
-// Cost: ~35 static tile rows + 3 images; one shared 8 Hz tick advances the scroll offsets and the
+// Cost: ~35 static tile rows + 4 images; one shared 8 Hz tick advances the scroll offsets and the
 // kelp frame. The tick stops while `paused`.
 Item {
     id: root
@@ -41,6 +41,19 @@ Item {
             source: root.atlas
             sourceClipRect: Qt.rect(_r[0], _r[1], _r[2], _r[3])
         }
+    }
+
+    // light rays: one slanted, dithered tile drifting sideways a pixel at a time
+    Image {
+        readonly property var _r: A.BG.rays
+        x: -(Math.floor(root.beat / 6) % 256)
+        y: 2 * T.TILE
+        width: root.width + 256
+        height: _r[3]
+        fillMode: Image.TileHorizontally
+        smooth: false
+        source: root.atlas
+        sourceClipRect: Qt.rect(_r[0], _r[1], _r[2], _r[3])
     }
 
     // surface: two rows of wave tiles scrolling in opposite directions
