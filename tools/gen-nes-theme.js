@@ -269,22 +269,24 @@ function jellySprite(frame) {
 }
 
 // ── WORM ─────────────────────────────────────────────────────
+// A short squiggle, 3x3 virtual pixels (about 0.3 of a fish), in the 8x8 tile. Two wiggle frames.
+const WORM = [
+    ['.hb', '.ab', 'ba.'],
+    ['h..', 'ba.', '.ab']
+];
 function wormSprite(frame) {
-    const g = mk(8, 8), ph = frame * Math.PI;
-    for (let y = 0; y < 8; y++) {
-        const x = 2 + Math.round(Math.sin(y * 0.95 + ph) * 1.3), seg = (y >> 1) % 2;
-        if (y === 0) { put(g, x, y, 'a'); put(g, x + 1, y, 'h'); put(g, x + 2, y, 'a'); continue; }     // head
-        put(g, x, y, 'a'); put(g, x + 1, y, seg ? 'b' : 'h'); if (y < 7) put(g, x + 2, y, seg ? 'h' : 'b');
-    }
+    const g = mk(8, 8);
+    WORM[frame].forEach((r, y) => [...r].forEach((ch, x) => put(g, 2 + x, 2 + y, ch)));
     return single(toIdx(g, { h: 3, a: 1, b: 2 }, 'worm'), ['gold']);
 }
 
 // ── BUBBLES ──────────────────────────────────────────────────
+// 8x8 tiles with the bubble in the middle: s 2x2 (8 px), m and l 3x3 rings (12 px); l has a highlight.
 const num = rows => rows.map(r => [...r].map(c => c === '.' ? 0 : Number(c)));
 const BUBBLES = {
-    s: num(['........', '........', '........', '...3....', '..3.3...', '...3....', '........', '........']),
-    m: num(['........', '...33...', '..3..3..', '..3.23..', '..3..3..', '...33...', '........', '........']),
-    l: num(['..3333..', '.3....3.', '3..22..3', '3.2....3', '3......3', '3......3', '.3....3.', '..3333..'])
+    s: num(['........', '........', '........', '..33....', '..33....', '........', '........', '........']),
+    m: num(['........', '........', '...3....', '..3.3...', '...3....', '........', '........', '........']),
+    l: num(['........', '........', '..33....', '..3.2...', '..33....', '........', '........', '........'])
 };
 // newborn sparkle (two frames)
 const SPARKLE = [
@@ -367,7 +369,7 @@ const GROUND = 64;
 function seabedPlane(frame) {
     const W = T.SEABED.cols * 8, H = T.SEABED.rows * 8, p = new Plane(W, H), TAU = Math.PI * 2;
     // plants claim whole 16-px columns, so the dunes and rocks keep out of them (attribute areas)
-    const KELP = [[16, 26, 2], [96, 56, 0], [112, 40, 1], [160, 64, 2], [336, 48, 1], [352, 62, 0], [400, 34, 2], [448, 54, 1]];
+    const KELP = [[16, 26, 2], [96, 50, 0], [112, 40, 1], [160, 52, 2], [336, 48, 1], [352, 46, 0], [400, 34, 2], [448, 44, 1]];   // tallest 52 px: under 20 % of a 270-line screen
     const GRASS = [[192, 20], [240, 24], [304, 18], [384, 22], [464, 20]];
     const claimed = new Set();
     for (const [x0] of KELP) claimed.add(x0 / 16);
