@@ -85,9 +85,8 @@ function sliceInto(bank, idxGrid, w, h) {
 // ── sprites: metasprites ─────────────────────────────────────
 // A texture = a list of parts {idx (2-bit grid, multiple of 8), x, y, pal [name, state]}; every part
 // is cut into 8x8 tiles that all share that part's palette. Index 0 is transparent.
-function palColors(pal) {
-    const [name, st] = pal;
-    return name === 'alarm' ? T.ALARM_STATES[st || 0] : T.SPR_PAL[name];
+function palColors(pal) {                          // ['coral'] or ['coral', alarmState]
+    return pal.length > 1 ? T.ALARM_STATES[pal[1]] : T.SPR_PAL[pal[0]];
 }
 function renderSprite(W, H, parts) {
     const px = Buffer.alloc(W * H * 4);
@@ -150,16 +149,16 @@ const FISH_S = [
 const FISH_S_TAIL = [[[1, 3], [0, 4], [1, 4], [1, 5]], [[0, 3], [1, 3], [1, 4], [0, 5], [1, 5]]];   // two beat frames
 // colour roles -> index per variant: [palette, {role: index 1..3}]
 const FISH_ROLES = {
-    aqua:    [['sea'],    { o: 1, b: 2, l: 3, f: 2, e: 1, g: 1, p: 3 }],
-    orchid:  [['violet'], { o: 1, b: 2, l: 3, f: 2, e: 1, g: 1, p: 3 }],
-    amber:   [['sun'],    { o: 1, b: 2, l: 3, f: 1, e: 1, g: 1, p: 1 }],
-    coral:   [['sun'],    { o: 1, b: 1, l: 3, f: 2, e: 3, g: 2, p: 2 }],
-    lemon:   [['sun'],    { o: 2, b: 3, l: 3, f: 2, e: 1, g: 2, p: 2 }],
-    'alarm-a': [['alarm', 0], { o: 1, b: 2, l: 3, f: 2, e: 3, g: 1, p: 3 }],
-    'alarm-b': [['alarm', 1], { o: 1, b: 2, l: 3, f: 2, e: 3, g: 1, p: 3 }]
+    aqua:    [['teal'],    { o: 1, b: 2, l: 3, f: 2, e: 1, g: 1, p: 3 }],
+    orchid:  [['pink'],    { o: 1, b: 2, l: 3, f: 2, e: 1, g: 1, p: 3 }],
+    amber:   [['gold'],    { o: 1, b: 2, l: 3, f: 2, e: 1, g: 1, p: 1 }],
+    coral:   [['coral'],   { o: 1, b: 2, l: 3, f: 2, e: 1, g: 1, p: 3 }],
+    lemon:   [['gold'],    { o: 1, b: 3, l: 2, f: 2, e: 1, g: 2, p: 1 }],
+    'alarm-a': [['coral', 0], { o: 1, b: 2, l: 3, f: 2, e: 1, g: 1, p: 3 }],
+    'alarm-b': [['coral', 1], { o: 1, b: 2, l: 3, f: 2, e: 1, g: 1, p: 3 }]
 };
 function fishSprite(cls, variant, frame) {
-    const base = variant.startsWith('alarm') ? 'coral' : variant;
+    const base = variant.startsWith('alarm') ? 'coral' : variant;     // markings of the coral fish
     const [pal, map] = FISH_ROLES[variant];
     let g;
     if (cls === 'm') {
@@ -204,7 +203,7 @@ function orcaSprite(frame) {
     for (const [x, y0, y1] of fluke) for (let y = y0; y <= y1; y++) put(g, x, y + fdy + (x === 0 ? fdy : 0), 'K');
     pts(g, 'K', [[4, 8], [4, 9], [4, 10]]);
     pts(g, 'S', [[0, 3 + dy], [1, 4 + fdy], [1, 5 + fdy]]);
-    return single(toIdx(g, { K: 1, S: 2, W: 3 }, 'orca'), ['sea']);
+    return single(toIdx(g, { K: 1, S: 2, W: 3 }, 'orca'), ['teal']);
 }
 
 // ── ANGLER ───────────────────────────────────────────────────
@@ -244,8 +243,8 @@ function lureTile(level) {
 }
 function anglerSprite(frame, lure) {
     return renderSprite(16, 24, [
-        { idx: toIdx(anglerBody(frame), { B: 1, L: 2, T: 3 }, 'angler'), x: 0, y: 8, pal: ['violet'] },
-        { idx: lureTile(lure), x: 8, y: 0, pal: ['sun'] }
+        { idx: toIdx(anglerBody(frame), { B: 2, L: 1, T: 3 }, 'angler'), x: 0, y: 8, pal: ['pink'] },
+        { idx: lureTile(lure), x: 8, y: 0, pal: ['gold'] }
     ]);
 }
 
@@ -264,7 +263,7 @@ function jellySprite(frame) {
             put(g, Math.max(0, Math.min(7, x)), 6 + j, j % 3 === 2 ? 'u' : 't');
         }
     });
-    return single(toIdx(g, { B: 3, s: 2, d: 1, t: 2, u: 3 }, 'jelly'), ['violet']);
+    return single(toIdx(g, { B: 2, s: 1, d: 1, t: 3, u: 2 }, 'jelly'), ['pink']);
 }
 
 // ── WORM ─────────────────────────────────────────────────────
@@ -275,7 +274,7 @@ function wormSprite(frame) {
         if (y === 0) { put(g, x, y, 'a'); put(g, x + 1, y, 'h'); put(g, x + 2, y, 'a'); continue; }     // head
         put(g, x, y, 'a'); put(g, x + 1, y, seg ? 'b' : 'h'); if (y < 7) put(g, x + 2, y, seg ? 'h' : 'b');
     }
-    return single(toIdx(g, { h: 3, a: 1, b: 2 }, 'worm'), ['sun']);
+    return single(toIdx(g, { h: 3, a: 1, b: 2 }, 'worm'), ['gold']);
 }
 
 // ── BUBBLES ──────────────────────────────────────────────────
@@ -323,14 +322,13 @@ class Plane {
 }
 const BAYER2 = [[0, 2], [3, 1]];
 
-// water transition strips: 2 tile rows of ordered dither between two shades of BG palette 0
-const SHADES = [1, 2, 3, 0];                        // water shade k -> colour index in palette 0
-function ditherPlane(k) {
-    const W = T.STRIP_COLS * 8, p = new Plane(W, 16), a = SHADES[k], b = SHADES[k + 1];
-    for (let y = 0; y < 16; y++) for (let x = 0; x < W; x++) {
-        const useB = y < 8 ? (x % 2 === 0 && y % 2 === 0) : !(x % 2 === 1 && y % 2 === 1);
-        p.set(x, y, 0, useB ? b : a);
-    }
+// water seams: ONE row of ordered dither (checkerboard) between two neighbouring water shades. Shade k
+// is palette 0 colour k+1 (shade 3 is the universal colour). Only row 0 of the 8x8 tile is used, so the
+// PNG is 8x1; the QML repeats it along the water boundary.
+function seamPlane(k) {
+    const p = new Plane(8, 8), a = k + 1, b = k + 2;           // colour index of shade k and k+1
+    const upper = a <= 3 ? a : 0, lower = b <= 3 ? b : 0;
+    for (let x = 0; x < 8; x++) p.set(x, 0, 0, x % 2 === 0 ? upper : lower);
     return p;
 }
 
@@ -461,15 +459,15 @@ function allImages() {
         out[T.spriteFile('worm', 'm', '', f)] = wormSprite(f);
         for (let l = 0; l < 3; l++) out[T.spriteFile('angler', 'm', '', f, l)] = anglerSprite(f, l);
     }
-    for (const c of ['s', 'm', 'l']) out[T.spriteFile('bubble', c)] = single(BUBBLES[c], ['sea']);
-    SPARKLE.forEach((idx, f) => { out['sparkle-' + f + '.png'] = single(idx, ['sea']); });
+    for (const c of ['s', 'm', 'l']) out[T.spriteFile('bubble', c)] = single(BUBBLES[c], ['teal']);
+    SPARKLE.forEach((idx, f) => { out['sparkle-' + f + '.png'] = single(idx, ['teal']); });
     const sPlane = surfacePlane(); sPlane.attributes('surface', BG_CHR);
-    const dPlanes = [0, 1, 2].map(ditherPlane); dPlanes.forEach((d, k) => d.attributes('dither ' + k, BG_CHR));
+    const dPlanes = [0, 1, 2].map(seamPlane); dPlanes.forEach((d, k) => d.attributes('seam ' + k, BG_CHR));
     const gPlanes = [0, 1].map(glintPlane); gPlanes.forEach((g, f) => g.attributes('glint ' + f, BG_CHR));
     const bPlanes = [0, 1].map(seabedPlane);
     for (const st of T.BG_STATES) {
         out[T.surfaceFile(st)] = sPlane.render(st, true);
-        dPlanes.forEach((d, k) => { out[T.ditherFile(st, k)] = d.render(st, true); });
+        dPlanes.forEach((d, k) => { const im = d.render(st, true), W = im.W; out[T.seamFile(st, k)] = { W: W, H: 1, px: im.px.subarray(0, W * 4) }; });
         bPlanes.forEach((b, f) => { out[T.seabedFile(st, f)] = b.render(st, false); });
         gPlanes.forEach((g, f) => { out[T.glintFile(st, f)] = g.render(st, false); });
     }
@@ -521,7 +519,7 @@ function sheet(imgs, file) {
 }
 function bgSheet(imgs, file) {
     const S = 2, GAP = 12, parts = [];
-    for (const st of T.BG_STATES) { parts.push(imgs[T.surfaceFile(st)]); for (let f = 0; f < 2; f++) parts.push(imgs[T.seabedFile(st, f)]); for (let k = 0; k < 3; k++) { const d = imgs[T.ditherFile(st, k)]; parts.push({ W: 512, H: 16, px: d.px.subarray(0, 512 * 16 * 4) }); } }
+    for (const st of T.BG_STATES) { parts.push(imgs[T.surfaceFile(st)]); for (let f = 0; f < 2; f++) parts.push(imgs[T.seabedFile(st, f)]); for (let k = 0; k < 3; k++) parts.push(imgs[T.seamFile(st, k)]); }
     const SW = 512 * S, SH = parts.reduce((a, p) => a + p.H * S + GAP, 0), px = Buffer.alloc(SW * SH * 4);
     for (let i = 0; i < SW * SH; i++) { px[i * 4] = 40; px[i * 4 + 1] = 40; px[i * 4 + 2] = 40; px[i * 4 + 3] = 255; }
     let oy = 0;

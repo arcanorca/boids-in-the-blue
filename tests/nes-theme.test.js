@@ -38,7 +38,7 @@ test('every nes frame the renderer requests exists, in every palette state', () 
     for (const f of ['sparkle-0.png', 'sparkle-1.png']) assert.ok(exists(f), f);
     for (const st of T.BG_STATES) {
         assert.ok(exists(T.surfaceFile(st)));
-        for (let k = 0; k < 3; k++) assert.ok(exists(T.ditherFile(st, k)));
+        for (let k = 0; k < 3; k++) assert.ok(exists(T.seamFile(st, k)));
         for (let f = 0; f < 2; f++) assert.ok(exists(T.seabedFile(st, f)) && exists(T.glintFile(st, f)));
     }
     for (const f of ['NesSprite.qml', 'EntityLayer.qml', 'Ambient.qml', 'Scene.qml', 'sync.js', 'README.md', 'preview.png']) assert.ok(fs.existsSync(path.join(DIR, f)), f);
@@ -69,14 +69,14 @@ test('nes art obeys the hardware: master palette, 3-colour palettes, 4+4 palette
             const pal = sprPal(v.startsWith('alarm') ? T.ALARM_STATES[st] : T.SPR_PAL[T.FISH_PALETTE[v]]);
             for (const c of cs) assert.ok(pal.has(c), f + ': ' + c + ' is not in the ' + T.FISH_PALETTE[v] + ' palette');
         } else if (f.startsWith('angler-')) {
-            const pal = new Set([...sprPal(T.SPR_PAL.violet), ...sprPal(T.SPR_PAL.sun)]);
+            const pal = new Set([...sprPal(T.SPR_PAL.pink), ...sprPal(T.SPR_PAL.gold)]);
             for (const c of cs) assert.ok(pal.has(c), f + ' ' + c);
         } else if (/^(orca|bubble|sparkle)-/.test(f)) {
-            for (const c of cs) assert.ok(sprPal(T.SPR_PAL.sea).has(c), f + ' ' + c);
+            for (const c of cs) assert.ok(sprPal(T.SPR_PAL.teal).has(c), f + ' ' + c);
         } else if (/^jelly-/.test(f)) {
-            for (const c of cs) assert.ok(sprPal(T.SPR_PAL.violet).has(c), f + ' ' + c);
+            for (const c of cs) assert.ok(sprPal(T.SPR_PAL.pink).has(c), f + ' ' + c);
         } else if (/^worm-/.test(f)) {
-            for (const c of cs) assert.ok(sprPal(T.SPR_PAL.sun).has(c), f + ' ' + c);
+            for (const c of cs) assert.ok(sprPal(T.SPR_PAL.gold).has(c), f + ' ' + c);
         } else {                                          // background: only that state's 4 palettes + universal colour
             const st = /-(day|dusk|night)[-.]/.exec(f)[1], S = T.BG[st];
             const allowed = new Set([T.NES[S.u]]); S.pal.forEach(p => p.forEach(i => allowed.add(T.NES[i])));
@@ -94,10 +94,16 @@ test('nes: palette state follows daylight, and the integer pixel scale grows wit
     assert.strictEqual(T.bgState(1), 'day'); assert.strictEqual(T.bgState(0.5), 'dusk'); assert.strictEqual(T.bgState(0), 'night');
     assert.strictEqual(T.pxFor(1080), 4); assert.strictEqual(T.pxFor(1440), 6); assert.strictEqual(T.pxFor(2160), 9); assert.strictEqual(T.pxFor(360), 2);
     for (const h of [300, 480, 720, 1080, 1440, 2160]) { const p = T.pxFor(h); assert.strictEqual(p % 1, 0); assert.ok(h / p >= 240 || p === 2); }
-    for (const rows of [30, 34, 45]) {
-        const L = T.waterLayout(rows);
-        assert.strictEqual(L.bands.length, 3); assert.strictEqual(L.trans.length, 3);
-        assert.ok(L.end <= rows - T.SEABED.rows + 1, 'water ends above the seabed');
+    for (const vh of [240, 270, 360]) {
+        const L = T.waterLayout(vh);
+        assert.strictEqual(L.bands.length, 4); assert.strictEqual(L.seams.length, 3);
+        // bands and seams tile the screen top to bottom, each seam is one row between two bands
+        let y = 0;
+        L.bands.forEach((b, i) => {
+            assert.strictEqual(b.y0, y); assert.ok(b.y1 > b.y0 + 8, 'band is more than a few rows'); y = b.y1;
+            if (i < 3) { assert.strictEqual(L.seams[i].y, b.y1); assert.strictEqual(L.seams[i].k, i); y = b.y1 + 1; }
+        });
+        assert.strictEqual(y, vh, 'bands end at the bottom of the screen');
     }
 });
 

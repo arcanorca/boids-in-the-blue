@@ -29,30 +29,34 @@ var NES = [
 ];
 
 // ── sprite palettes (OAM attribute 0..3), colours 1..3; colour 0 is transparent ──
-// Shared by every creature: sea = orca, aqua fish, bubbles; sun = coral/amber/lemon fish, worm,
-// angler lure; alarm = the stress palette (only fish ever use it); violet = orchid fish, angler, jelly.
+// One palette per colour family, shared by the creatures (see FISH_PALETTE and the generator):
+// coral = coral fish, and the stress palette (alarm-a / alarm-b are its two states);
+// teal = aqua fish, the orca (dark slate body, white belly), bubbles and sparkles;
+// gold = amber and lemon fish, worms, the angler's lure;
+// pink = orchid fish, the angler's body and the jelly.
 var SPR_PAL = {
-    sea:    [0x0F, 0x21, 0x30],
-    sun:    [0x16, 0x27, 0x38],
-    alarm:  [0x0F, 0x15, 0x35],
-    violet: [0x03, 0x23, 0x33]
+    coral: [0x06, 0x26, 0x37],
+    teal:  [0x0C, 0x2C, 0x30],
+    gold:  [0x08, 0x28, 0x38],
+    pink:  [0x14, 0x24, 0x34]
 };
-var SPR_PAL_ORDER = ["sea", "sun", "alarm", "violet"];
-// palette cycling of the alarm palette above stress 1.2: it alternates between its two states
-var ALARM_STATES = [[0x0F, 0x15, 0x35], [0x0F, 0x06, 0x16]];
+var SPR_PAL_ORDER = ["coral", "teal", "gold", "pink"];
+// stress: fish switch to the coral slot's alarm state A (its own colours) and, above stress 1.2, cycle
+// between state A and state B (the same slot, so only the stressed sprites change)
+var ALARM_STATES = [SPR_PAL.coral, [0x06, 0x16, 0x37]];
 var ALARM_PERIOD_MS = 400;                         // one state lasts 400 ms: 1.25 Hz, well under 2 Hz
 
 // ── background palettes (attribute table, per 16x16 area) ──
 // u = the universal backdrop colour ($3F00); pal[n] = BG palette n colours 1..3.
-//   0 water   the three water shades (top .. deep); the deepest shade is the universal colour
-//   1 sand    sand, rocks
+//   0 water   the water shades top .. deep (the deepest shade is the universal colour); all water
+//             uses this one palette, so the bands may change height on any row
+//   1 sand    sand, rocks, boulders
 //   2 kelp    weed
 //   3 surface foam of the waterline (colour 1 = the top water shade so it joins seamlessly)
-function _fade(c) { return c >= 0x10 ? c - 0x10 : 0x0F; }          // the classic NES fade step
-var BG_DAY = { u: 0x02, pal: [[0x21, 0x11, 0x12], [0x18, 0x27, 0x37], [0x0A, 0x1A, 0x2A], [0x21, 0x31, 0x30]] };
-// dusk: the water palette rotates one shade deeper, the others take the NES brightness fade
-var BG_DUSK = { u: 0x02, pal: [[0x11, 0x12, 0x02], BG_DAY.pal[1].map(_fade), BG_DAY.pal[2].map(_fade), BG_DAY.pal[3].map(_fade)] };
-var BG_NIGHT = { u: 0x02, pal: [[0x02, 0x02, 0x02], [0x0F, 0x08, 0x18], [0x0F, 0x0B, 0x0A], [0x02, 0x12, 0x21]] };
+function _fade(c) { return c >= 0x10 ? c - 0x10 : 0x0F; }          // the classic NES fade step (unused now)
+var BG_DAY = { u: 0x0F, pal: [[0x2C, 0x1C, 0x0C], [0x08, 0x18, 0x36], [0x0A, 0x1A, 0x2A], [0x2C, 0x3B, 0x30]] };
+var BG_DUSK = { u: 0x0F, pal: [[0x1C, 0x0C, 0x0D], [0x08, 0x07, 0x18], [0x0A, 0x0A, 0x1A], [0x1C, 0x2C, 0x3B]] };
+var BG_NIGHT = { u: 0x0F, pal: [[0x0C, 0x0C, 0x0D], [0x08, 0x07, 0x0D], [0x0A, 0x0B, 0x0A], [0x0C, 0x1C, 0x2C]] };
 var BG = { day: BG_DAY, dusk: BG_DUSK, night: BG_NIGHT };
 var BG_STATES = ["day", "dusk", "night"];
 // daylight (0 night .. 1 day) -> palette state
@@ -82,7 +86,7 @@ var FISH_VARIANT = {
 var FISH_VARIANTS = ["coral", "amber", "lemon", "aqua", "orchid"];
 function fishVariant(color) { return FISH_VARIANT[String(color).toUpperCase()] || "aqua"; }
 // sprite palette of each fish variant (OAM attribute); stress swaps it to the alarm palette
-var FISH_PALETTE = { coral: "sun", amber: "sun", lemon: "sun", aqua: "sea", orchid: "violet", "alarm-a": "alarm", "alarm-b": "alarm" };
+var FISH_PALETTE = { coral: "coral", amber: "gold", lemon: "gold", aqua: "teal", orchid: "pink", "alarm-a": "coral", "alarm-b": "coral" };
 // adult fish are 16x8, fry (babies and the smallest adults) a single 8x8 tile
 function fishClass(ent) { return (ent.isBaby || ent.sizeVariation < -0.45) ? "s" : "m"; }
 function bubbleClass(scale) { return scale < 2.0 ? "s" : (scale < 2.5 ? "m" : "l"); }
@@ -111,28 +115,30 @@ function spriteFile(kind, cls, variant, frame, extra) {
 var TILE = 8;
 var SEABED = { cols: 64, rows: 10 };               // seabed nametable (2 screens wide), bottom aligned
 var SURFACE = { cols: 32, rows: 2 };               // waterline nametable, scrolls horizontally
-var STRIP_COLS = 128;                              // water transition strips are this many tiles wide
+var SEAM_COLS = 8;                                 // one seam texture = 8 virtual px wide, repeated along the boundary
 
 function seabedFile(state, frame) { return "seabed-" + state + "-" + frame + ".png"; }
 function surfaceFile(state) { return "surface-" + state + ".png"; }
 function glintFile(state, f) { return "glint-" + state + "-" + f + ".png"; }
-function ditherFile(state, k) { return "dither-" + state + "-" + k + ".png"; }   // k = 0..2
+function seamFile(state, k) { return "seam-" + state + "-" + k + ".png"; }   // k = 0..2: 1-row dither seam
 
-// ── water bands (in tile rows) ──
-// Three water shades separated by two-row dither transitions, ending right above the seabed.
-// rows = total tile rows of the screen. Returns [{row, rows, shade}] bands and [{row, k}] transitions.
-function waterLayout(rows) {
-    var top = SURFACE.rows, bottom = rows - SEABED.rows;
-    var span = Math.max(8, bottom - top), trans = 2 * 3, free = Math.max(3, span - trans);
-    var b0 = Math.round(free * 0.26), b1 = Math.round(free * 0.34), b2 = Math.max(1, free - b0 - b1);
-    var r = top, bands = [], tr = [];
-    bands.push({ row: r, rows: b0, shade: 0 }); r += b0;
-    tr.push({ row: r, k: 0 }); r += 2;
-    bands.push({ row: r, rows: b1, shade: 1 }); r += b1;
-    tr.push({ row: r, k: 1 }); r += 2;
-    bands.push({ row: r, rows: b2, shade: 2 }); r += b2;
-    tr.push({ row: r, k: 2 }); r += 2;
-    return { bands: bands, trans: tr, end: r };
+// ── water bands (in virtual rows, top to bottom) ──
+// Four water shades (palette 0 colours 1..3, then the universal colour) in bands. Each boundary is one
+// virtual row of ordered dither (a checkerboard of the two shades, seam-<state>-<k>.png), so the
+// gradient reads as smooth without a band per row. Boundaries are fractions of the screen height and
+// may fall on any row: every band uses the same BG palette, so the attribute table has nothing to split.
+// Returns bands [{y0, y1, shade}] (rows [y0, y1), shade 0..3) and seams [{y, k}] (one row each).
+var WATER_SPLITS = [0.11, 0.37, 0.66];
+function waterLayout(vh) {
+    var s = WATER_SPLITS.map(function (f) { return Math.round(f * vh); });
+    var bands = [], seams = [], y0 = 0;
+    for (var k = 0; k < 4; k++) {
+        var y1 = k < 3 ? s[k] : vh;
+        bands.push({ y0: y0, y1: y1, shade: k });
+        if (k < 3) seams.push({ y: s[k], k: k });
+        y0 = y1 + 1;
+    }
+    return { bands: bands, seams: seams };
 }
 
 // ambient bubbles rising from the seabed: [tile column of the 64-tile bed, speed class]

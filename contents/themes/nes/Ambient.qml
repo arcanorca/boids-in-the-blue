@@ -18,15 +18,15 @@ Item {
     readonly property int ps: T.pxFor(height)                   // screen px per virtual px
     readonly property int vw: Math.ceil(width / ps)
     readonly property int vh: Math.ceil(height / ps)
-    readonly property int rows: Math.ceil(vh / 8)
     readonly property string state: T.bgState(daylight)
     readonly property var pal: T.BG[state]
-    readonly property var lay: T.waterLayout(rows)
+    readonly property var lay: T.waterLayout(vh)
 
     property int tick: 0
     readonly property int kelpFrame: (tick >> 3) & 1            // kelp sways every 8 ticks (1 s)
     readonly property int scroll: tick % (T.SURFACE.cols * 8)   // waterline scroll, 1 virtual px per tick (8 px/s)
     readonly property int groundV: vh - (T.SEABED.rows * 8 - 64)
+    function shadeColor(shade) { return T.hexOf(shade < 3 ? pal.pal[0][shade] : pal.u); }
 
     clip: true
 
@@ -37,38 +37,36 @@ Item {
         onTriggered: root.tick++
     }
 
-    // universal backdrop colour (deepest water, shows through the seabed's transparent pixels)
-    Rectangle { anchors.fill: parent; color: T.hexOf(root.pal.u) }
-
-    // water rows: solid bands of palette 0 shades 1..3
+    // water: four shades in solid bands (palette 0 + the universal colour), each boundary one row of
+    // ordered dither (static)
     Repeater {
         model: root.lay.bands
         delegate: Rectangle {
             x: 0
-            y: modelData.row * 8 * root.ps
+            y: modelData.y0 * root.ps
             width: root.width
-            height: modelData.rows * 8 * root.ps
-            color: T.hexOf(root.pal.pal[0][modelData.shade])
+            height: (modelData.y1 - modelData.y0) * root.ps
+            color: root.shadeColor(modelData.shade)
         }
     }
-    // dither rows between the bands: 2 tile rows each, strips of 128 tiles
     Repeater {
-        model: root.lay.trans
+        model: root.lay.seams
         delegate: Item {
-            readonly property int stripW: T.STRIP_COLS * 8 * root.ps
+            readonly property int seamW: T.SEAM_COLS * root.ps
             readonly property int k: modelData.k
             x: 0
-            y: modelData.row * 8 * root.ps
+            y: modelData.y * root.ps
             width: root.width
-            height: 16 * root.ps
+            height: root.ps
+            clip: true
             Repeater {
-                model: Math.ceil(root.width / parent.stripW)
+                model: Math.ceil(root.width / parent.seamW)
                 delegate: Image {
-                    x: index * parent.stripW
-                    width: parent.stripW
-                    height: 16 * root.ps
+                    x: index * parent.seamW
+                    width: parent.seamW
+                    height: root.ps
                     smooth: false
-                    source: T.DIR + T.ditherFile(root.state, parent.k)
+                    source: T.DIR + T.seamFile(root.state, parent.k)
                 }
             }
         }
