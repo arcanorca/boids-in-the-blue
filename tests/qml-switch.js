@@ -30,7 +30,7 @@ if (!occLines.some(l => /OCC ok\s+finished/.test(l))) { fail++; console.log('occ
 else console.log('ok   Occluder.qml loads and reports "not covered" without windows');
 const load = n => png.decode(fs.readFileSync(path.join(outDir, n + '.png')));
 const same = (a, b) => a.W === b.W && a.H === b.H && Buffer.compare(Buffer.from(a.px), Buffer.from(b.px)) === 0;
-for (const th of ['pixel', 'classic', 'biolum']) {
+for (const th of ['pixel', 'classic', 'biolum', 'nes']) {
     const frozen = same(load(th + '-paused0'), load(th + '-paused1'));
     const moving = !same(load(th + '-run0'), load(th + '-run1'));
     console.log((frozen && moving ? 'ok   ' : 'FAIL ') + th + ': covered -> frozen ' + frozen + ', running -> changing ' + moving);

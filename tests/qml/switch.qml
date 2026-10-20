@@ -19,13 +19,13 @@ Window {
     color: "black"
 
     readonly property string outDir: Qt.application.arguments[Qt.application.arguments.length - 1]
-    property var order: ["pixel", "classic", "biolum", "pixel", "bogus", "classic", "illustrated", "biolum", ""]
+    property var order: ["pixel", "classic", "biolum", "nes", "pixel", "bogus", "nes", "classic", "biolum", ""]
     property int idx: -1
     property var firstSim: null
     property var oldDelegates: []
     property string phaseTheme: ""
     property int phase: 0
-    property var pauseOrder: ["pixel", "classic", "biolum"]
+    property var pauseOrder: ["pixel", "classic", "biolum", "nes"]
     property int pidx: -1
 
     QtObject {
