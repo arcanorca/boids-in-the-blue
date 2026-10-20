@@ -49,6 +49,13 @@ var THEMES = [
         description: "8-bit console look: the 2C02 palette, tile-built sprites, palette-swapped day and night and a scrolling waterline.",
         usesDayNight: true,
         usesWaterColors: false
+    },
+    {
+        id: "amiga",
+        name: "Amiga",
+        description: "Late-80s Commodore Amiga look: 12-bit palette, copper-list water gradients, dithered DPaint sprites and parallax.",
+        usesDayNight: true,
+        usesWaterColors: false
     }
 ];
 
