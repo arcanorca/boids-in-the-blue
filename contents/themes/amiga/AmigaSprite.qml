@@ -84,15 +84,14 @@ Item {
         smooth: false
         source: visible ? T.DIR + "lure-" + root.lure + ".png" : ""
     }
-    // newborn sparkle (shares the lure star texture)
+    // newborn sparkle: a four-point star above the head
     Image {
         visible: root.sparkle > 0
-        opacity: root.sparkle === 1 ? 1 : 0.6
-        x: root._ox + Math.floor(root._w / 2 / root.cell) * root.cell - root.cell
-        y: root._oy - 4 * root.cell
-        width: T.LURE_SIZE * root.cell
+        x: root._ox + Math.floor(root._w / 2 / root.cell) * root.cell - Math.floor(T.SPARK_SIZE / 2) * root.cell
+        y: root._oy - (T.SPARK_SIZE + (root.sparkle === 1 ? 0 : 1)) * root.cell
+        width: T.SPARK_SIZE * root.cell
         height: width
         smooth: false
-        source: visible ? T.DIR + "lure-2.png" : ""
+        source: visible ? T.DIR + "spark.png" : ""
     }
 }

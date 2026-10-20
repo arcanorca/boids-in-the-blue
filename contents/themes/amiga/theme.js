@@ -36,7 +36,7 @@ var kinds = {
         { cols: 4, rows: 4, below: 2.0 },
         { cols: 6, rows: 6, below: 2.5 },
         { cols: 8, rows: 8, below: 1e9 }] },
-    worm:   { type: 6, frames: 4, layer: 3, classes: [{ cols: 5, rows: 11, below: 1e9 }] }
+    worm:   { type: 6, frames: 4, layer: 3, classes: [{ cols: 7, rows: 13, below: 1e9 }] }
 };
 function classFor(kind, size) {
     var cl = kinds[kind].classes;
@@ -47,6 +47,7 @@ function classFor(kind, size) {
 // Angler lure: bulb centre per body frame (texels, unflipped, from the sprite's top-left).
 var LURE = [{ x: 12, y: 2 }, { x: 12, y: 3 }, { x: 12, y: 2 }, { x: 12, y: 1 }];
 var LURE_SIZE = 3;
+var SPARK_SIZE = 5;
 var GLOW_SIZE = 17;                                // glow.png: stippled disc, centred on the lure
 
 // Fish: the simulation's classic palette colour -> this theme's ramp.

@@ -44,7 +44,7 @@ Item {
         anchors.fill: parent
         z: 3
         color: "#002"
-        opacity: 0.42 * (1 - T.smooth(0.0, 0.5, scene.daylight))
+        opacity: 0.3 * (1 - T.smooth(0.0, 0.5, scene.daylight))
         visible: opacity > 0.001
     }
 }

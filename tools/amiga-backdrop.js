@@ -12,7 +12,7 @@ module.exports = function (H) {
     // stops: [scanline, '#rgb']. Between stops the colour is interpolated per scanline in 4-bit
     // channel space and then ordered-dithered to the neighbouring 12-bit levels (the "fine steps").
     const COPPER = {
-        night: [[0, '#26a'], [3, '#259'], [14, '#148'], [60, '#137'], [130, '#025'], [210, '#014'], [320, '#003']],
+        night: [[0, '#48c'], [3, '#37b'], [14, '#26a'], [60, '#259'], [130, '#148'], [210, '#036'], [320, '#025']],
         dusk:  [[0, '#fc8'], [3, '#f96'], [14, '#e68'], [50, '#b6a'], [100, '#76b'], [160, '#349'], [230, '#127'], [320, '#015']],
         day:   [[0, '#cff'], [3, '#8ff'], [14, '#5de'], [50, '#3bd'], [110, '#19b'], [190, '#07a'], [250, '#058'], [320, '#036']],
         stress:[[0, '#f96'], [3, '#f74'], [14, '#e53'], [60, '#c32'], [130, '#a12'], [210, '#712'], [320, '#401']]
@@ -59,7 +59,7 @@ module.exports = function (H) {
             if (y < wave - 1) s = Math.max(s, 1.5);
             else if (y < wave + 1) s = Math.max(s, 1.1);
             else if (y < wave + 5) s = Math.max(s, 0.5 * (1 - (y - wave - 1) / 4));
-            if (s * 0.62 > bay(x, y)) {
+            if (s * 0.42 > bay(x, y)) {
                 const o = (y * W + x) * 4;
                 px.set(C(s > 1.3 ? '#fff' : s > 0.8 ? '#cff' : s > 0.45 ? '#9ef' : '#7df'), o);
             }
@@ -81,23 +81,30 @@ module.exports = function (H) {
         for (const [x, y, c] of add) g[y][x] = c;
     }
 
-    // far rocks: hazy silhouettes, lit rim on top, dithered fade into the water
+    // far rocks: hazy rounded mesas and pillars (superellipse bumps), lit rim on top, dithered fade into the water
     {
         const W = T.FAR.tw, Hh = T.FAR.h, g = mk(W, Hh);
-        const hgt = x => 34 + 14 * Math.sin(TAU * 2 * x / W + 0.6) + 9 * Math.sin(TAU * 5 * x / W + 2.2) + 5 * Math.sin(TAU * 11 * x / W + 1.1);
-        const spire = (x, cx, w, h) => { const d = Math.min(Math.abs(x - cx), W - Math.abs(x - cx)); return d < w ? h * Math.pow(1 - d / w, 1.35) : 0; };
+        const FORM = [[60, 54, 58], [142, 26, 40], [214, 62, 48], [300, 30, 72], [382, 50, 54], [455, 38, 66], [506, 24, 36]];
+        const hgt = x => {
+            let m = 16 + 3 * Math.sin(TAU * 3 * x / W + 0.6) + 2 * Math.sin(TAU * 9 * x / W + 1.3);
+            for (const [cx, hw, h] of FORM) {
+                const d = Math.min(Math.abs(x - cx), W - Math.abs(x - cx)) / hw;
+                if (d < 1) m = Math.max(m, h * Math.pow(1 - Math.pow(d, 2.6), 1 / 2.6) + 2 * Math.sin(x * 0.9) * 0.5);
+            }
+            return m;
+        };
         const top = [];
         for (let x = 0; x < W; x++) {
-            const hh = Math.max(hgt(x), 18 + spire(x, 70, 30, 52) + 8 * Math.sin(x * 0.7) * 0, 22 + spire(x, 190, 38, 36), 20 + spire(x, 330, 26, 58), 20 + spire(x, 440, 44, 40));
-            top[x] = Hh - Math.round(hh);
+            top[x] = Hh - Math.round(hgt(x));
             for (let y = top[x]; y < Hh; y++) {
                 const d = y - top[x];
-                g[y][x] = d === 0 ? 'a' : d === 1 ? (chk(x, y) ? 'a' : 'b') : d < 4 ? 'b' : d < 7 ? (chk(x, y) ? 'b' : 'c') : (y > Hh - 26 && chk(x + (y >> 1), y)) ? 'e' : 'c';
+                g[y][x] = d === 0 ? 'a' : d === 1 ? (chk(x, y) ? 'a' : 'b') : d < 4 ? 'b' : d < 8 ? (chk(x, y) ? 'b' : 'c') : (y > Hh - 24 && chk(x + (y >> 1), y)) ? 'e' : 'c';
             }
         }
-        // cracks and ledges: short darker strokes
-        for (let k = 0; k < 90; k++) { const x = (k * 97 + 13) % W, y = top[x] + 6 + (k * 53) % 40; for (let i = 0; i < 2 + k % 4; i++) if (get(g, wx(g, x), y + i) === 'c') putw(g, x + (i > 1 ? 1 : 0), y + i, 'e'); }
-        out['far.png'] = render(g, mkPal({ a: '#39b', b: '#27a', c: '#169', e: '#157' }));
+        // strata and cracks: short darker strokes + a few lit ledges
+        for (let k = 0; k < 120; k++) { const x = (k * 97 + 13) % W, y = top[x] + 5 + (k * 53) % 44; for (let i = 0; i < 3 + k % 4; i++) if (get(g, wx(g, x + i), y) === 'c') putw(g, x + i, y, 'e'); }
+        for (let k = 0; k < 40; k++) { const x = (k * 131 + 29) % W, y = top[x] + 9 + (k * 37) % 30; for (let i = 0; i < 3; i++) if (get(g, wx(g, x + i), y) === 'c') putw(g, x + i, y, 'b'); }
+        out['far.png'] = render(g, mkPal({ a: '#3ac', b: '#28b', c: '#179', e: '#168' }));
     }
 
     // ground: sand dunes with pebbles, shells and two small rocks. Static, full opacity.
@@ -118,24 +125,42 @@ module.exports = function (H) {
         out['ground.png'] = render(g, mkPal({ a: '#fe9', b: '#ec7', c: '#ca6', d: '#a85', e: '#864', p: '#fff', P: '#fdb', S: '#fca', s: '#fff', m: '#468', r: '#69b', R: '#9cd' }));
     }
 
-    // kelp forest + corals: transparent strip, N sway frames (frame f rotates every stalk's phase by a quarter turn)
+    // kelp forest + corals + sea-grass: transparent strip, N sway frames. Two depths: thin hazy stalks
+    // behind (lower-case palette), brighter stalks in front.
     {
-        const W = T.KELP.tw, Hh = T.KELP.h, N = T.KELP.frames;
-        const PALK = mkPal({ o: '#021', q: '#042', D: '#063', B: '#0a6', L: '#3c7', H: '#8e9', Y: '#6b3', y: '#9d4', c: '#a3a', C: '#d6d', Z: '#fac', u: '#e63', U: '#fa4', V: '#fd8' });
-        const stalks = [];     // [x, height, width, phase, kind]
-        for (let k = 0; k < 17; k++) stalks.push([14 + k * 30 + ((k * 37) % 13), 38 + ((k * 53) % 62), 3 + (k % 3 === 0 ? 1 : 0), (k * 1.7) % TAU, k % 5 === 2 ? 'y' : 'g']);
+        const W = T.KELP.tw, Hh = T.KELP.h, N = T.KELP.frames, ground = Hh - 17;
+        const PALK = mkPal({ o: '#021', q: '#032', D: '#063', B: '#0a6', L: '#3c7', H: '#8e9', Y: '#6b3', y: '#9d4', d: '#053', b: '#086', l: '#2a7',
+                             c: '#a3a', C: '#d6d', Z: '#fac', u: '#e63', U: '#fa4', V: '#fd8', t: '#f86', n: '#7a3' });
+        const FRONT = [[18, 52], [27, 30], [34, 64], [88, 40], [97, 58], [104, 26], [158, 34], [166, 62], [175, 44], [236, 48], [244, 28], [252, 56],
+                       [304, 36], [311, 60], [318, 30], [378, 54], [387, 40], [447, 46], [455, 66], [462, 28], [497, 38]];
+        const BACK = [[8, 62], [46, 74], [72, 52], [124, 70], [141, 48], [192, 78], [212, 56], [268, 72], [290, 50], [346, 68], [362, 54], [410, 76], [430, 52], [480, 70]];
         const frameImg = f => {
-            const g = mk(W, Hh), base = Hh - 7;
-            // coral heads (static) behind the kelp
-            const brain = (cx, cy, r, col) => { for (let y = -r; y <= 0; y++) for (let x = -r; x <= r; x++) if (x * x + y * y * 1.4 <= r * r) putw(g, cx + x, cy + y, (chk(x, y) && y < -r / 2) ? 'Z' : (x > r / 3 ? (col === 'c' ? 'c' : 'u') : (col === 'c' ? 'C' : 'U'))); };
-            brain(96, base, 9, 'c'); brain(104, base, 6, 'c'); brain(300, base, 11, 'u'); brain(311, base, 6, 'u'); brain(452, base, 8, 'c');
-            for (const [cx, hh] of [[218, 22], [222, 28], [227, 18], [412, 24], [417, 17]]) for (let j = 0; j < hh; j++) { putw(g, cx + (j > hh * 0.7 ? (cx % 2 ? 1 : -1) : 0), base - j, j % 4 === 3 ? 'V' : 'U'); putw(g, cx + 1 + (j > hh * 0.7 ? (cx % 2 ? 1 : -1) : 0), base - j, 'u'); }
-            for (const [x, h, w, ph, kind] of stalks) {
+            const g = mk(W, Hh), base = ground;
+            const stalk = (x, h, back, k) => {
+                const ph = (k * 1.7) % TAU, kind = k % 5 === 2 && !back ? 'y' : 'g';
                 for (let i = 0; i < h; i++) {
-                    const t = i / h, dx = 4.2 * Math.pow(t, 1.3) * Math.sin(TAU * f / N - i * 0.075 + ph), cx = x + dx, ww = Math.max(2, Math.round(w * (1 - 0.45 * t)));
-                    for (let k = 0; k < ww; k++) putw(g, cx - ww / 2 + k + 0.5, base - i, k === 0 ? 'D' : (k === ww - 1 ? (kind === 'y' ? 'y' : 'L') : (kind === 'y' ? 'Y' : 'B')));
-                    if (i % 11 === 6 && i > 8 && i < h - 3) { const side = (i / 11 | 0) % 2 ? 1 : -1; for (let k = 1; k <= 3; k++) putw(g, cx + side * (ww / 2 + k - 0.5), base - i - (k >> 1), k === 3 ? (kind === 'y' ? 'y' : 'H') : (kind === 'y' ? 'Y' : 'B')); }
+                    const t = i / h, dx = (back ? 3 : 4.2) * Math.pow(t, 1.3) * Math.sin(TAU * f / N - i * 0.075 + ph), cx = x + dx;
+                    const ww = back ? 2 : Math.max(2, Math.round(3 * (1 - 0.4 * t)) + (k % 4 === 0 ? 1 : 0));
+                    for (let q = 0; q < ww; q++) putw(g, cx - ww / 2 + q + 0.5, base - i, back ? (q === 0 ? 'd' : 'b') : (q === 0 ? 'D' : (q === ww - 1 ? (kind === 'y' ? 'y' : 'L') : (kind === 'y' ? 'Y' : 'B'))));
+                    if (i % 10 === 5 && i > 6 && i < h - 2) {          // leaf: a short curved blade, alternating sides
+                        const side = (i / 10 | 0) % 2 ? 1 : -1, len = back ? 3 : 4 + (k % 2);
+                        for (let q = 1; q <= len; q++) for (let r = 0; r < (q < len ? 2 : 1); r++) putw(g, cx + side * (ww / 2 + q - 0.5), base - i - ((q * q) >> 2) - r + 1, back ? (r ? 'b' : 'l') : (r ? (kind === 'y' ? 'Y' : 'B') : (kind === 'y' ? 'y' : (q === len ? 'H' : 'L'))));
+                    }
                 }
+            };
+            BACK.forEach(([x, h], k) => stalk(x, h, true, k));
+            // coral heads and tubes, standing on the sand line
+            const brain = (cx, cy, r, col) => { for (let y = -r; y <= 0; y++) for (let x = -r; x <= r; x++) if (x * x + y * y * 1.5 <= r * r) putw(g, cx + x, cy + y, (chk(x, y) && y < -r / 2) ? 'Z' : (x > r / 3 ? (col === 'c' ? 'c' : 'u') : (col === 'c' ? 'C' : 'U'))); };
+            brain(124, ground - 1, 13, 'c'); brain(138, ground, 8, 'c'); brain(300, ground - 1, 15, 'u'); brain(316, ground, 9, 'u'); brain(452, ground - 1, 11, 'c');
+            for (const [cx, hh] of [[212, 26], [217, 34], [223, 22], [400, 30], [406, 21], [411, 27]]) for (let j = 0; j < hh; j++) {
+                const bend = j > hh * 0.7 ? (cx % 2 ? 1 : -1) : 0;
+                putw(g, cx + bend, ground + 6 - j, j % 4 === 3 ? 'V' : 'U'); putw(g, cx + 1 + bend, ground + 6 - j, 't');
+            }
+            FRONT.forEach(([x, h], k) => stalk(x, h, false, k));
+            // sea-grass fans
+            for (let k = 0; k < 22; k++) {
+                const gx = (k * 47 + 20) % W, len = 9 + (k * 5) % 9;
+                for (let b2 = -2; b2 <= 2; b2++) for (let j = 0; j < len - Math.abs(b2) * 2; j++) putw(g, gx + b2 + Math.round((b2 * 0.5 + Math.sin(TAU * f / N + k) * 1.3) * j / len * 2), ground + 3 - j, j > len - 4 ? 'n' : 'Y');
             }
             outlineWrap(g, 'o', 'q');
             return render(g, PALK);

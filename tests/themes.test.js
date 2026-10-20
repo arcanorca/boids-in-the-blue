@@ -9,9 +9,9 @@ const ROOT = path.join(__dirname, '..');
 const read = (...p) => fs.readFileSync(path.join(ROOT, ...p), 'utf8');
 const T = loadScript(path.join(ROOT, 'contents', 'ui', 'code', 'themes.js'));
 
-test('registry: pixel is the default, all four themes are listed with a Scene.qml', () => {
+test('registry: pixel is the default, all themes are listed with a Scene.qml', () => {
     assert.strictEqual(T.DEFAULT_THEME, 'pixel');
-    assert.deepStrictEqual(Array.from(T.THEMES, t => t.id), ['pixel', 'classic', 'biolum', 'illustrated']);
+    assert.deepStrictEqual(Array.from(T.THEMES, t => t.id), ['pixel', 'classic', 'biolum', 'illustrated', 'amiga']);
     for (const t of T.THEMES) {
         assert.ok(t.name && t.description, t.id);
         assert.ok(fs.existsSync(path.join(ROOT, 'contents', 'themes', t.id, 'Scene.qml')), t.id + ' Scene.qml');

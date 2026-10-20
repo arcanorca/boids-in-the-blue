@@ -263,6 +263,12 @@ function lureImg(level) {
     const pal = [{ o: C('#a60'), c: C('#fc4') }, { o: C('#fb2'), c: C('#ffb') }, { o: C('#fd4'), c: C('#fff'), h: C('#fe9') }][level];
     return render(g, pal);
 }
+// newborn sparkle (5x5 four-point star)
+function sparkImg() {
+    const g = mk(5, 5);
+    ascii(g, ['..y..', '.yWy.', 'yWWWy', '.yWy.', '..y..']);
+    return render(g, mkPal({ y: '#fd6', W: '#fff' }));
+}
 // stippled glow (17x17): concentric 1-bit-alpha dither rings, like an HAM-free Amiga glow
 function glowImg() {
     const S = T.GLOW_SIZE, c = (S - 1) / 2, px = Buffer.alloc(S * S * 4);
@@ -320,20 +326,19 @@ function jellyFrame(cls, frame) {
 }
 
 // ── WORM ─────────────────────────────────────────────────────
-const WORM_PAL = mkPal({ b: '#f89', l: '#fbb', d: '#c56', n: '#fac', k: '#412', o: '#623', q: '#913' });
+const WORM_PAL = mkPal({ b: '#f78', l: '#fba', d: '#b45', n: '#fcb', k: '#201', o: '#412', q: '#823' });
 function wormFrame(frame) {
-    const W = 3, H = 9, g = mk(W + 2, H + 2), ph = frame * Math.PI / 2;
-    const px = (x, y, ch) => put(g, x + 1, y + 1, ch);
+    const W = 5, H = 11, g = mk(W + 2, H + 2), ph = frame * Math.PI / 2;
+    // two-pixel wide body wriggling down the sprite: ringed segments, lit left edge, bulb head on top
     for (let y = 0; y < H; y++) {
-        const amp = 0.4 + Math.min(1.1, y * 0.2);
-        const x = 1 + Math.round(Math.sin(y * 0.7 + ph) * amp * 0.9);
+        const amp = 0.5 + Math.min(1.0, y * 0.16), x = 2 + Math.round(Math.sin(y * 0.75 + ph) * amp);
         const seg = (y >> 1) % 2;
-        px(x, y, seg ? 'd' : 'b');
-        if (!(y === H - 1)) px(x - (seg ? 0 : 1) + (seg ? 0 : 0) + 1, y, seg ? 'b' : 'l');
+        put(g, x + 1, y + 1, seg ? 'd' : 'l'); put(g, x + 2, y + 1, seg ? 'd' : 'b');
+        if (y > 1 && y < H - 2) put(g, x + 3, y + 1, 'd');
     }
-    // head cap + eye
     const hx = [...g[1]].findIndex(c => c !== '.');
-    put(g, hx, 1, 'n');
+    put(g, hx, 1, 'n'); put(g, hx + 1, 1, 'n'); put(g, hx, 2, 'n');
+    put(g, hx + 1, 2, 'k');
     outline(g, () => true);
     return render(g, WORM_PAL);
 }
@@ -364,6 +369,7 @@ function allImages() {
     }
     for (let l = 0; l < 3; l++) out['lure-' + l + '.png'] = lureImg(l);
     out['glow.png'] = glowImg();
+    out['spark.png'] = sparkImg();
     for (let c = 0; c < T.kinds.bubble.classes.length; c++) out[T.frameFile('bubble', c, '', 0)] = bubbleImg(c);
     Object.assign(out, require('./amiga-backdrop')({ C, mk, put, get, pts, ascii, render, mkPal, chk, BAYER4, T, encodeRGB, outline, to12 }));
     for (const k in T.kinds) {                            // descriptor sizes must match the art
@@ -390,7 +396,7 @@ function sheet(imgs, file) {
         rows.push([0, 1, 2, 3].map(f => T.frameFile('fish', cls, v, f)));
     }
     rows.push([0, 1, 2, 3].map(f => 'orca-' + f + '.png'));
-    rows.push([0, 1, 2, 3].map(f => 'angler-' + f + '.png').concat(['lure-0.png', 'lure-1.png', 'lure-2.png', 'glow.png']));
+    rows.push([0, 1, 2, 3].map(f => 'angler-' + f + '.png').concat(['lure-0.png', 'lure-1.png', 'lure-2.png', 'spark.png', 'glow.png']));
     rows.push([0, 1, 2, 3].map(f => T.frameFile('jelly', 0, '', f)).concat([0, 1, 2, 3].map(f => T.frameFile('jelly', 1, '', f))));
     rows.push([0, 1, 2, 3].map(f => 'worm-' + f + '.png').concat([0, 1, 2].map(c => T.frameFile('bubble', c, '', 0))));
     const dims = rows.map(r => ({ w: r.reduce((a, n) => a + imgs[n].W * S + PAD * S, PAD * S), h: Math.max(...r.map(n => imgs[n].H * S)) + 2 * PAD * S }));

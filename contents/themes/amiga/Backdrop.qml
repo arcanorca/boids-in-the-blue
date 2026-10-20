@@ -64,4 +64,11 @@ Item {
         offset: Math.floor(root.tick * T.DRIFT.mid / 5)
         source: T.DIR + "ground.png"
     }
+    // stress palette swap of the playfield colours (rocks, kelp, sand) towards hot reds, in the same steps as the copper
+    Rectangle {
+        anchors.fill: parent
+        color: "#c13"
+        opacity: root.stress * 0.32
+        visible: opacity > 0.002
+    }
 }
