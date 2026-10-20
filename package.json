@@ -14,6 +14,8 @@
     "render:compare": "node tests/qml-render.js compare",
     "render:smoke": "node tests/qml-render.js smoke",
     "render:previews": "node tests/qml-render.js previews",
+    "gen:previews": "node tools/gen-previews.js",
+    "flock": "node tests/flock-eval.js",
     "test:config": "node tests/qml-config.js",
     "test:switch": "node tests/qml-switch.js && node tests/qml-config.js"
   }

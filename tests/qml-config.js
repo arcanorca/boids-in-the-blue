@@ -1,7 +1,7 @@
-// Settings page harness (needs qml6; exit 77 = unavailable). Stages contents/ui/{config,NumberInput,
-// ValueSlider,HelpSlot}.qml + code/themes.js into a temp dir with the shell's i18n* globals replaced by a
+// Settings page harness (needs qml6; exit 77 = unavailable). Stages contents/ui/{config,ThemeCard,
+// ValueSlider,HelpSlot}.qml + code/{themes,presets}.js + theme previews into a temp dir with the shell's i18n* globals replaced by a
 // stub, and the main.xml defaults/ranges as JS, then runs tests/qml/config.qml offscreen.
-// Usage: node tests/qml-config.js [outDir] [width]    -> <outDir>/settings-collapsed.png, settings-expanded.png
+// Usage: node tests/qml-config.js [outDir] [width]    -> <outDir>/<tab>.png for every tab (+ behavior-advanced.png)
 const { spawnSync } = require('child_process');
 const fs = require('fs');
 const os = require('os');
@@ -30,17 +30,23 @@ function i18n(s) { return _f(s, Array.prototype.slice.call(arguments, 1)); }
 function i18nc(c, s) { return _f(s, Array.prototype.slice.call(arguments, 2)); }
 function i18nd(d, s) { return _f(s, Array.prototype.slice.call(arguments, 2)); }
 `);
-fs.mkdirSync(path.join(stage, 'code'));
-fs.copyFileSync(path.join(ROOT, 'contents', 'ui', 'code', 'themes.js'), path.join(stage, 'code', 'themes.js'));
-for (const f of ['config.qml', 'NumberInput.qml', 'ValueSlider.qml', 'HelpSlot.qml']) {
+fs.mkdirSync(path.join(stage, 'ui', 'code'), { recursive: true });
+fs.renameSync(path.join(stage, 'defaults.js'), path.join(stage, 'ui', 'defaults.js'));
+fs.renameSync(path.join(stage, 'L.js'), path.join(stage, 'ui', 'L.js'));
+for (const f of ['themes.js', 'presets.js']) fs.copyFileSync(path.join(ROOT, 'contents', 'ui', 'code', f), path.join(stage, 'ui', 'code', f));
+for (const f of ['config.qml', 'ThemeCard.qml', 'ValueSlider.qml', 'HelpSlot.qml']) {
     let s = fs.readFileSync(path.join(ROOT, 'contents', 'ui', f), 'utf8');
     s = s.replace(/\bi18n(c|p|d|cp)?\(/g, 'L.i18n$1(').replace(/^import QtQuick$/m, 'import QtQuick\nimport "L.js" as L');
     s = s.replace(/L\.i18np\(/g, 'L.i18n(').replace(/L\.i18ncp\(/g, 'L.i18nc(');
-    fs.writeFileSync(path.join(stage, f), s);
+    fs.writeFileSync(path.join(stage, 'ui', f), s);
 }
-fs.copyFileSync(path.join(__dirname, 'qml', 'config.qml'), path.join(stage, 'harness.qml'));
-const a = path.join(outDir, 'settings-collapsed.png'), b = path.join(outDir, 'settings-expanded.png');
-const r = spawnSync('qml6', [path.join(stage, 'harness.qml'), '--', a, b, width], {
+// theme previews live next to the page (../themes/<id>/preview.png)
+for (const id of fs.readdirSync(path.join(ROOT, 'contents', 'themes'))) {
+    const p = path.join(ROOT, 'contents', 'themes', id, 'preview.png');
+    if (fs.existsSync(p)) { fs.mkdirSync(path.join(stage, 'themes', id), { recursive: true }); fs.copyFileSync(p, path.join(stage, 'themes', id, 'preview.png')); }
+}
+fs.copyFileSync(path.join(__dirname, 'qml', 'config.qml'), path.join(stage, 'ui', 'harness.qml'));
+const r = spawnSync('qml6', [path.join(stage, 'ui', 'harness.qml'), '--', outDir, width], {
     env: Object.assign({}, process.env, { QT_QPA_PLATFORM: 'offscreen', QT_FORCE_STDERR_LOGGING: '1' }),
     encoding: 'utf8', timeout: 180000 });
 if (r.error) { console.error('qml6 not available: ' + r.error.message); process.exit(77); }

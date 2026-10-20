@@ -1,17 +1,21 @@
 // Loads the settings page (staged copy, see tests/qml-config.js) and checks it like the shell would
 // use it: every cfg_ alias resolves and round-trips, the main.xml ranges are reachable, presets set
-// the right values, Reset restores the defaults, theme-dependent controls follow the theme.
-// Prints "CONFIG ok|FAIL ..." lines. Args: <collapsedPng> <expandedPng> [width]
+// the right values, Reset restores the defaults, theme-dependent controls follow the theme, the
+// five tabs show their own content. Screenshots every tab.
+// Prints "CONFIG ok|FAIL ..." lines. Args: <outDir> [width]
 import QtQuick
 import QtQuick.Window
 import org.kde.kirigami as Kirigami
 import "L.js" as L
 import "defaults.js" as D
+import "code/presets.js" as Presets
 
 Window {
     id: win
     readonly property var args: Qt.application.arguments
-    readonly property int pageWidth: args.length > 3 && Number(args[args.length - 1]) > 0 ? Number(args[args.length - 1]) : 600
+    readonly property bool hasWidth: args.length > 2 && Number(args[args.length - 1]) > 0
+    readonly property int pageWidth: hasWidth ? Number(args[args.length - 1]) : 600
+    readonly property string outDir: args[args.length - (hasWidth ? 2 : 1)]
     width: pageWidth
     height: 3000
     visible: true
@@ -37,6 +41,7 @@ Window {
     function say(ok, what) { console.log("CONFIG " + (ok ? "ok   " : "FAIL ") + what); }
     function near(a, b) { return typeof b === "string" ? String(a).toLowerCase() === b.toLowerCase() : Math.abs(Number(a) - Number(b)) < 1e-6; }
     function setDefaults(p) { for (var k in D.DEFAULTS) p["cfg_" + k + "Default"] = D.DEFAULTS[k]; }
+    readonly property var flockKeys: Presets.KEYS
 
     function run() {
         var p = ld.item;
@@ -52,6 +57,7 @@ Window {
             if (p["cfg_" + k + "Default"] === undefined) bad.push("cfg_" + k + "Default");
         }
         say(bad.length === 0, keys.length + " main.xml keys all have cfg_ and cfg_Default properties" + (bad.length ? ": missing " + bad.join(", ") : ""));
+        say(Array.isArray(p.formLayout) && p.formLayout.length === 4, "formLayout offers the four form pages for the shell's twinning");
 
         // 2. Reset restores the defaults; 3. a saved default value survives the controls unchanged
         p.resetToDefaults();
@@ -59,6 +65,7 @@ Window {
         for (i = 0; i < keys.length; i++) if (!near(p["cfg_" + keys[i]], D.DEFAULTS[keys[i]])) bad.push(keys[i] + "=" + p["cfg_" + keys[i]] + " (default " + D.DEFAULTS[keys[i]] + ")");
         say(bad.length === 0, "Reset to Defaults restores every key" + (bad.length ? ": " + bad.join(", ") : ""));
         say(p.cfg_theme === "pixel", "default theme is pixel");
+        say(p.cfg_pauseCoverage === 90 && p.cfg_pauseWhenCovered === true, "pause when covered: on, 90 % by default");
 
         // 4. every key's min and max (main.xml) is accepted by its control unchanged (no silent clamping)
         bad = [];
@@ -83,32 +90,58 @@ Window {
             if (p.presetIndex !== n) bad.push(names[n] + " presetIndex " + p.presetIndex);
         }
         say(bad.length === 0, "presets Calm/Default/Lively/Chaotic set their values and are recognised" + (bad.length ? ": " + bad.join(", ") : ""));
+        bad = [];
+        for (n = 0; n < 4; n++) for (var m = n + 1; m < 4; m++) {
+            p.applyPreset(n);
+            var a = p.currentValues(); p.applyPreset(m);
+            if (JSON.stringify(a) === JSON.stringify(p.currentValues())) bad.push(names[n] + "==" + names[m]);
+        }
+        say(bad.length === 0, "the four presets are pairwise different" + (bad.length ? ": " + bad.join(", ") : ""));
         p.applyPreset(1);
         var dflt = true;
-        for (i = 0; i < keys.length; i++) if (!near(p["cfg_" + keys[i]], D.DEFAULTS[keys[i]]) && ["fishMaxSpeed","fishMinSpeed","visualRange","separationDist","cohesionFactor","alignmentFactor","separationFactor","wanderFactor","turnFactor"].indexOf(keys[i]) >= 0) dflt = false;
+        for (i = 0; i < keys.length; i++) if (!near(p["cfg_" + keys[i]], D.DEFAULTS[keys[i]]) && flockKeys.indexOf(keys[i]) >= 0) dflt = false;
         say(dflt, "preset Default equals main.xml defaults for the flocking block");
-        p.applyPreset(2);
-        p.cfg_visualRange = 200;
-        say(p.presetIndex === -1, "editing one flocking value after a preset means Custom");
+        for (var f = 0; f < flockKeys.length; f++) {
+            p.applyPreset(2);
+            var rr = D.RANGES[flockKeys[f]], v0 = p["cfg_" + flockKeys[f]];
+            p["cfg_" + flockKeys[f]] = v0 + (rr[1] - rr[0]) * 0.02;
+            if (p.presetIndex !== -1) bad.push(flockKeys[f]);
+        }
+        say(bad.length === 0, "editing any one flocking value by 2 % of its range after a preset means Custom" + (bad.length ? ": " + bad.join(", ") : ""));
         p.applyPreset(0);
         say(p.cfg_orcaCount === D.DEFAULTS.orcaCount && p.cfg_fishCount === D.DEFAULTS.fishCount, "presets leave counts alone");
 
-        // 6. theme-dependent controls
+        // 6. theme-dependent controls: an archived/unknown saved theme falls back to the default
         p.resetToDefaults();
-        p.cfg_theme = "illustrated";   // archived theme: a saved value falls back to the default
+        p.cfg_theme = "illustrated";
         var gotIll = p.theme.id;
         p.cfg_theme = "bogus";
         var gotBogus = p.theme.id;
         p.cfg_theme = "classic";
-        say(gotIll === "pixel" && gotBogus === "pixel" && p.theme.id === "classic", "selected theme follows cfg_theme (unknown -> pixel)");
+        say(gotIll === "pixel" && gotBogus === "pixel" && p.theme.id === "classic", "selected theme follows cfg_theme (archived/unknown -> pixel)");
 
-        // 7. screenshots: collapsed, then expanded
+        // 7. tabs: one page visible at a time, none empty
+        var forms = p.formLayout, seen = [];
+        for (var t = 0; t < 5; t++) {
+            p.currentTab = t;
+            var vis = (t === 0 ? 1 : 0);
+            for (var q = 0; q < forms.length; q++) if (forms[q].visible) vis++;
+            seen.push(vis);
+        }
+        say(seen.every(function (x) { return x === 1; }), "each of the five tabs shows exactly one page");
+
+        // 8. screenshots of every tab
         p.resetToDefaults();
-        p.advancedVisible = false;
-        Qt.callLater(function () { shot(args[args.length - (args.length > 3 && Number(args[args.length - 1]) > 0 ? 3 : 2)], function () {
-            p.advancedVisible = true;
-            Qt.callLater(function () { shot(args[args.length - (args.length > 3 && Number(args[args.length - 1]) > 0 ? 2 : 1)], function () { say(true, "finished"); Qt.quit(); }); });
-        }); });
+        p.currentTab = 0;
+        var shots = [["appearance", 0, false], ["ocean", 1, false], ["behavior", 2, false], ["behavior-advanced", 2, true], ["environment", 3, false], ["system", 4, false]];
+        var idx = 0;
+        function nextShot() {
+            if (idx >= shots.length) { say(true, "finished"); Qt.quit(); return; }
+            var sh = shots[idx++];
+            p.currentTab = sh[1]; p.advancedVisible = sh[2];
+            Qt.callLater(function () { shot(outDir + "/" + sh[0] + ".png", nextShot); });
+        }
+        nextShot();
     }
     function shot(file, next) {
         shotTimer.file = file; shotTimer.next = next; shotTimer.restart();

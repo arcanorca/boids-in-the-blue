@@ -16,7 +16,7 @@ RowLayout {
     property alias to: slider.to
     property alias stepSize: slider.stepSize
     property var format: function (v) { return v.toFixed(1); }
-    property real valueLabelWidth: Kirigami.Units.gridUnit * 7   // same for every row so the sliders line up
+    property real valueLabelWidth: Kirigami.Units.gridUnit * 5.5   // same for every row so the sliders line up
     signal moved()
 
     Kirigami.FormData.label: label
