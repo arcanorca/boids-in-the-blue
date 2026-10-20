@@ -17,7 +17,8 @@ Window {
 
     readonly property var args: Qt.application.arguments
     readonly property string theme: args[args.length - 3]
-    readonly property string mode: args[args.length - 2]
+    readonly property string modeArg: args[args.length - 2]
+    readonly property string mode: modeArg.split(":")[0]
     readonly property string outDir: args[args.length - 1]
     property var sim: null
     property var cfg: ({ fishCount: 0, anglerCount: 0, orcaCount: 0, jellyCount: 0 })
@@ -116,7 +117,8 @@ Window {
         } else if (mode === "motion") {
             fish = sim.entities.fish[0];
             fish.x = 300; fish.y = 500; fish.vx = vx; fish.vy = 0; fish.facingRight = true;
-            vx = Number(args[args.length - 1]) > 0 ? vx : vx;
+            if (modeArg.indexOf(":") > 0) vx = Number(modeArg.split(":")[1]);
+            fish.vx = vx;
             motionT.start();
         } else {
             grab.start();

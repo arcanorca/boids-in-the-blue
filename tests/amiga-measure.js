@@ -60,23 +60,24 @@ function calm() {
 
 // ── B: smooth motion ─────────────────────────────────────────
 function motion() {
-    const out = run('motion', path.join(WORK, 'motion')), m = /MOTION (\{.*\})/.exec(out);
-    if (!m) { console.log(out.slice(-600)); report(false, 'B motion run failed'); return; }
-    const d = JSON.parse(m[1]), s = d.s;
-    // sample every ~100 ms: x increments, normalised to the elapsed time
-    const pick = [s[0]];
-    for (const p of s) if (p[0] - pick[pick.length - 1][0] >= 100) pick.push(p);
-    const v = d.vx / d.tick;                                  // px/ms of the entity
-    let worst = 0, mn = 1e9, mx = -1e9, zero = 0;
-    for (let i = 1; i < pick.length; i++) {
-        const dt = pick[i][0] - pick[i - 1][0], inc = pick[i][1] - pick[i - 1][1];
-        worst = Math.max(worst, Math.abs(inc - v * dt)); mn = Math.min(mn, inc); mx = Math.max(mx, inc); if (inc === 0) zero++;
+    for (const vx of [3, 0.6]) {
+        const out = run('motion:' + vx, path.join(WORK, 'motion-' + vx)), m = /MOTION (\{.*\})/.exec(out);
+        if (!m) { console.log(out.slice(-600)); report(false, 'B motion run failed'); return; }
+        const d = JSON.parse(m[1]), s = d.s;
+        // sample every ~100 ms: x increments, compared with the constant velocity of the entity
+        const pick = [s[0]];
+        for (const p of s) if (p[0] - pick[pick.length - 1][0] >= 100) pick.push(p);
+        const v = d.vx / d.tick;                                  // px/ms of the entity
+        let worst = 0, mn = 1e9, mx = -1e9;
+        for (let i = 1; i < pick.length; i++) {
+            const dt = pick[i][0] - pick[i - 1][0], inc = pick[i][1] - pick[i - 1][1];
+            worst = Math.max(worst, Math.abs(inc - v * dt)); mn = Math.min(mn, inc); mx = Math.max(mx, inc);
+        }
+        let smallest = 1e9, largest = 0;                          // every display frame
+        for (let i = 1; i < s.length; i++) { const dx = s[i][1] - s[i - 1][1]; smallest = Math.min(smallest, dx); largest = Math.max(largest, dx); }
+        console.log('B motion @' + (v * 1000).toFixed(1) + ' px/s: ' + s.length + ' display frames in 4 s; 100 ms increments ' + mn + '..' + mx + ' px (ideal ' + (v * 100).toFixed(2) + '), worst deviation ' + worst.toFixed(2) + ' px; per-frame step ' + smallest + '..' + largest + ' px');
+        report(worst <= 1.0 + 1e-9 && s.length > 100, 'B on-screen x increments uniform within +-1 px at ' + (v * 1000).toFixed(1) + ' px/s');
     }
-    // every display frame: step sizes
-    let smallest = 1e9, largest = 0, sum = 0, c = 0;
-    for (let i = 1; i < s.length; i++) { const dx = s[i][1] - s[i - 1][1]; smallest = Math.min(smallest, dx); largest = Math.max(largest, dx); sum += dx; c++; }
-    console.log('B motion: ' + s.length + ' display frames, entity ' + (v * 1000).toFixed(0) + ' px/s; 100 ms increments ' + mn + '..' + mx + ' px (expected ' + (v * 100).toFixed(1) + '), worst deviation ' + worst.toFixed(2) + ' px, per-frame step ' + smallest + '..' + largest + ' px');
-    report(worst <= 1.0 + 1e-9 && s.length > 100, 'B on-screen x increments uniform within +-1 px');
 }
 
 // ── D: proportions (rendered pixels) ─────────────────────────
