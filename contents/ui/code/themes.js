@@ -49,6 +49,13 @@ var THEMES = [
         description: "Soft vector illustration with depth fog, kelp and a sandy seabed. Grades itself for dawn and dusk.",
         usesDayNight: true,
         usesWaterColors: false
+    },
+    {
+        id: "gameboy",
+        name: "Game Boy",
+        description: "The sea on a 1989 handheld: four LCD greens, 8x8 tiles and sprites, stepped scrolling water.",
+        usesDayNight: true,
+        usesWaterColors: false
     }
 ];
 
