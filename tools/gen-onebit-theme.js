@@ -189,23 +189,21 @@ function lerpPoly(k, x) {
     return k[k.length - 1][1];
 }
 function orcaSprite(frame) {
-    const tl = 6, bw = 22, H = 15, g = mk(tl + bw, H);
-    const top = [[0, 7], [3, 6], [5, 4], [14, 4], [17, 5], [20, 6], [21, 7]], bot = [[0, 9], [3, 10], [5, 11], [14, 11], [17, 11], [20, 10], [21, 9]];
-    for (let x = 0; x < bw; x++) for (let y = Math.round(lerpPoly(top, x)); y <= Math.round(lerpPoly(bot, x)); y++) put(g, tl + x, y, 'k');
-    // dorsal fin, swept back
-    const fin = [[8], [8, 9], [8, 9, 10], [7, 8, 9, 10, 11, 12]];
-    fin.forEach((r, y) => r.forEach(x => put(g, tl + x, y, 'k')));
-    // pectoral flipper
-    [[10, 11, 12, 13], [10, 11, 12], [10, 11]].forEach((r, i) => r.forEach(x => put(g, tl + x, 12 + i, 'k')));
-    // flukes
-    const cols = [[3, 4, 12, 13], [4, 5, 11, 12], [5, 6, 10, 11], [6, 7, 8, 9, 10], [7, 8, 9], [7, 8, 9]];
+    const tl = 6, bw = 21, H = 16, g = mk(tl + bw, H);
+    // body: [start, end] columns per row (nose right); fin and flipper below
+    const span = { 5: [8, 16], 6: [6, 18], 7: [4, 19], 8: [2, 20], 9: [0, 20], 10: [2, 20], 11: [4, 19], 12: [6, 18], 13: [8, 16] };
+    for (const y in span) for (let x = span[y][0]; x <= span[y][1]; x++) put(g, tl + x, +y, 'k');
+    const fin = { 0: [10, 10], 1: [10, 11], 2: [9, 11], 3: [9, 12], 4: [8, 13] };
+    for (const y in fin) for (let x = fin[y][0]; x <= fin[y][1]; x++) put(g, tl + x, +y, 'k');
+    [[11, 12, 13], [11, 12]].forEach((r, i) => r.forEach(x => put(g, tl + x, 14 + i, 'k')));       // pectoral flipper
+    // flukes: far -> near, sheared by the frame
+    const cols = [[4, 5, 13, 14], [5, 6, 12, 13], [6, 7, 11, 12], [7, 8, 9, 10, 11], [8, 9, 10], [8, 9, 10]];
     const shear = [3, 2, 1, 0, 0, 0], dir = [0, -1, 0, 1][frame & 3];
-    cols.forEach((rows, k) => rows.forEach(y => put(g, k, y + dir * shear[k] + (frame === 2 ? (y < 8 ? -1 : 1) * (k < 3 ? 1 : 0) : 0), 'k')));
-    // paper: belly and chin, eye patch, dithered saddle
-    for (let x = 7; x < bw; x++) for (let y = 4; y <= 11; y++) if (get(g, tl + x, y) === 'k' && y >= 11 - Math.floor((x - 5) * 0.16 + 0.5)) put(g, tl + x, y, 'p');
-    pts(g, 'p', [[15, 6], [16, 6], [17, 6], [18, 6], [16, 7], [17, 7]].map(([x, y]) => [tl + x, y]));
-    for (let y = 5; y <= 6; y++) for (let x = 9; x <= 13; x++) if (dith(x, y, 0.45)) put(g, tl + x, y, 'p');
-    pts(g, 'k', [[tl + 17, 6]]);                                             // eye
+    cols.forEach((rows, k) => rows.forEach(y => put(g, k, y + dir * shear[k] + (frame === 2 && k < 3 ? (y < 9 ? -1 : 1) : 0), 'k')));
+    // paper: belly and chin (a line rising towards the nose), the eye patch
+    const belly = x => x < 6 ? 99 : x < 9 ? 12 : x < 15 ? 11 : x < 18 ? 10 : 9;
+    for (let x = 0; x < bw; x++) for (let y = 5; y <= 13; y++) if (get(g, tl + x, y) === 'k' && y >= belly(x)) put(g, tl + x, y, 'p');
+    pts(g, 'p', [[14, 6], [15, 6], [16, 6], [14, 7], [15, 7], [16, 7], [17, 7], [18, 7], [15, 8], [16, 8], [17, 8]].map(([x, y]) => [tl + x, y]));
     const out = pad(g, 1, 1, 1, 1); outline(out, 'p');
     return out;
 }

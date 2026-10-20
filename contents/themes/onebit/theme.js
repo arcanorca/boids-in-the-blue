@@ -47,7 +47,7 @@ function fishFile(cls, variant, frame, inverted) {
 }
 
 // ── the rest of the cast (cols x rows in texels, 4 frames unless noted) ──
-var ORCA = { cols: 30, rows: 17, frames: 4 };
+var ORCA = { cols: 29, rows: 18, frames: 4 };
 var ANGLER = { cols: 19, rows: 20, frames: 4 };
 var JELLY = [{ name: "s", cols: 13, rows: 19 }, { name: "l", cols: 15, rows: 24 }];
 var WORM = { cols: 7, rows: 13, frames: 4 };
