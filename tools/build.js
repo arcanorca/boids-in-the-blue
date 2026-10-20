@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 // Emits the per-target builds of core/boids-core.js:
 //   contents/ui/code/boids-core.js  KDE (.pragma library, imported by the adapter)
-//   core/dist/boids-core.esm.js     ESM (GNOME extension)        [later copied into the port]
-//   core/dist/boids-core.web.js     classic script -> window.BoidsCore [later copied into boids-web]
+//   core/dist/boids-core.esm.js     ESM (GNOME extension)        and boids-gnome-port/boids-core.js
+//   core/dist/boids-core.web.js     classic script -> window.BoidsCore and boids-web/boids-core.js
 // Usage: node tools/build.js [--check]   (--check exits 1 if a generated file is stale)
 const fs = require('fs');
 const path = require('path');
@@ -29,15 +29,17 @@ function targets() {
     const src = fs.readFileSync(SRC, 'utf8');
     const names = parseExports(src);
     const map = names.map(n => n + ': ' + n).join(', ');
+    const esm = HEADER + '\n' + src + '\nexport { ' + names.join(', ') + ' };\n';
+    const web = HEADER + '\n(function (root) {\n' + src +
+                '\nroot.BoidsCore = { ' + map + ' };\n' +
+                '})(typeof globalThis !== \'undefined\' ? globalThis : this);\n';
     return [
         { file: path.join(ROOT, 'contents', 'ui', 'code', 'boids-core.js'),
           text: '.pragma library\n\n' + HEADER + '\n' + src },
-        { file: path.join(ROOT, 'core', 'dist', 'boids-core.esm.js'),
-          text: HEADER + '\n' + src + '\nexport { ' + names.join(', ') + ' };\n' },
-        { file: path.join(ROOT, 'core', 'dist', 'boids-core.web.js'),
-          text: HEADER + '\n(function (root) {\n' + src +
-                '\nroot.BoidsCore = { ' + map + ' };\n' +
-                '})(typeof globalThis !== \'undefined\' ? globalThis : this);\n' }
+        { file: path.join(ROOT, 'core', 'dist', 'boids-core.esm.js'), text: esm },
+        { file: path.join(ROOT, 'boids-gnome-port', 'boids-core.js'), text: esm },
+        { file: path.join(ROOT, 'core', 'dist', 'boids-core.web.js'), text: web },
+        { file: path.join(ROOT, 'boids-web', 'boids-core.js'), text: web }
     ];
 }
 

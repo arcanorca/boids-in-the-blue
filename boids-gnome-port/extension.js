@@ -1,438 +1,128 @@
-/* extension.js - Boids Gnome Port (GNOME Port V8 Physics) */
+/* extension.js - Boids Gnome Port
+ *
+ * The simulation (boids, predators, worms, bubbles, breeding ...) lives in
+ * boids-core.js, a generated copy of core/boids-core.js shared with the KDE
+ * wallpaper and the web port (regenerate with `npm run build`). This file only
+ * owns the GNOME-specific parts: lifecycle, the St.DrawingArea and its Cairo painter.
+ */
 
 import { Extension } from 'resource:///org/gnome/shell/extensions/extension.js';
 import St from 'gi://St';
 import Clutter from 'gi://Clutter';
 import GLib from 'gi://GLib';
 import Gio from 'gi://Gio';
-import Meta from 'gi://Meta';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import Cairo from 'gi://cairo';
 
-/* -------------------- SETTINGS (BOIDS TUNING) -------------------- */
+import * as Core from './boids-core.js';
 
-const FISH_COUNT = 30; // Slightly reduced for chill vibes
-const JELLY_COUNT = 5;
-const ANGLER_COUNT = 4;
-const ORCA_COUNT = 2;
+/* -------------------- SETTINGS -------------------- */
 
-const FISH_SIZE = 6;
-const ANGLER_SIZE = 8;
-const ORCA_SIZE = 9;
+// Passed to the core as its configuration object (same keys as the KDE settings).
+// Anything left out uses the core default. Edit here to tweak.
+const CONFIG = {
+    fishCount: 30,
+    jellyCount: 5,
+    anglerCount: 4,
+    orcaCount: 2,
+    fishSize: 6,
+    anglerSize: 8,
+    orcaSize: 9,
+    jellySize: 5,
+};
 
-// Slowed down max speed for "Zen" feel
-const MAX_SPEED = 1.2;
-const TURN_FACTOR = 0.2; // Smooth turning
-
-// Increased ranges for better flocking awareness
-const VISUAL_RANGE = 180;
-const VISUAL_RANGE_SQ = VISUAL_RANGE * VISUAL_RANGE;
-
-const PANIC_RANGE = 200;
-const PANIC_RANGE_SQ = PANIC_RANGE * PANIC_RANGE;
-const ORCA_PANIC_RANGE = 250;
-const ORCA_PANIC_RANGE_SQ = ORCA_PANIC_RANGE * ORCA_PANIC_RANGE;
-const MARGIN = 100;
-
-// V8 Physics Weights
-const COHESION_FACTOR = 0.005;   // Low: hang loosely
-const ALIGNMENT_FACTOR = 0.05;   // Med: swim together
-const SEPARATION_FACTOR = 0.15;  // High: maintain personal space
-const SEPARATION_DIST = 60;      // Larger personal bubble
-const SEPARATION_DIST_SQ = SEPARATION_DIST * SEPARATION_DIST;
-
-const WANDER_FACTOR = 0.05;      // Smooth wander force
-const FEAR_FACTOR = 0.8;
-const ANGLER_FEAR_FACTOR = 1.2;
-
-const EPS = 1e-6;
-const TICK_MS = 33; // ~30 FPS
+const TICK_MS = 40; // 25 Hz, the same fixed simulation rate as the KDE plugin
 
 const WATER_TOP = [0.05, 0.1, 0.25];
 const WATER_BOTTOM = [0.02, 0.04, 0.12];
-const FISH_PALETTE = [
-    [1.0, 0.5, 0.5], [1.0, 0.7, 0.3], [0.9, 0.9, 0.4],
-    [0.3, 0.8, 0.9], [0.8, 0.6, 0.9],
-];
 
-/* -------------------- SPRITES -------------------- */
+/* -------------------- RENDERING -------------------- */
 
-const FISH_SPRITE = [
-    [0, 0, 0, 1, 1, 0, 0],
-    [0, 1, 1, 1, 1, 1, 0],
-    [1, 1, 1, 1, 1, 2, 0],
-    [1, 1, 1, 1, 1, 1, 0],
-    [0, 1, 1, 1, 0, 0, 0],
-    [0, 0, 1, 0, 0, 0, 0],
-];
+// Layer colours per species, matching the KDE BoidDelegate. null = layer not drawn;
+// 'body' = same colour as the entity's own colour.
+const LAYER2 = { fish: '#FFFFFF', angler: '#FFFF99', orca: '#E6E6E6', jelly: 'body' };
+const LAYER3 = { angler: '#FF3333' };
+const BODY_COLOR = { orca: '#4D6680', angler: '#403359', jelly: '#8B7BB5' };
 
-const ANGLER_SPRITE = [
-    [0, 0, 0, 0, 0, 0, 2, 2, 0, 0],
-    [0, 0, 0, 0, 0, 0, 1, 1, 0, 0],
-    [0, 0, 0, 1, 1, 1, 1, 1, 0, 0],
-    [0, 0, 1, 1, 1, 1, 1, 1, 1, 0],
-    [0, 1, 1, 1, 1, 3, 3, 1, 1, 1],
-    [1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-    [1, 1, 1, 1, 1, 1, 1, 1, 1, 0],
-    [0, 1, 1, 1, 1, 1, 1, 0, 0, 0],
-    [0, 0, 1, 0, 0, 1, 0, 0, 0, 0],
-];
-
-const ORCA_SPRITE = [
-    [0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0],
-    [0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0],
-    [0, 0, 1, 1, 1, 1, 1, 1, 0, 0, 0],
-    [0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0],
-    [1, 1, 2, 1, 1, 1, 1, 1, 1, 1, 1],
-    [1, 1, 1, 2, 2, 2, 1, 0, 1, 0, 1],
-    [0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0],
-];
-
-const JELLY_SPRITE = [
-    [0, 1, 1, 1, 0],
-    [1, 1, 1, 1, 1],
-    [1, 1, 1, 1, 1],
-    [2, 0, 2, 0, 2],
-    [2, 0, 2, 0, 2],
-    [0, 0, 2, 0, 0],
-];
-
-/* -------------------- ENTITIES -------------------- */
-
-class Orca {
-    constructor(width, height) {
-        this.x = Math.random() * width;
-        this.y = Math.random() * height;
-        this.vx = 0.8;
-        this.vy = 0.3;
-        this.scale = ORCA_SIZE;
-        this.angle = Math.random() * Math.PI * 2;
+const _rgbCache = new Map();
+// Accepts #RRGGBB and rgba(r, g, b, a); returns [r, g, b, a] in 0..1
+function parseColor(str) {
+    let c = _rgbCache.get(str);
+    if (c) return c;
+    c = [1, 1, 1, 1];
+    const hex = /^#([0-9a-f]{6})$/i.exec(str || '');
+    const rgba = /^rgba?\(\s*([\d.]+)\s*,\s*([\d.]+)\s*,\s*([\d.]+)\s*(?:,\s*([\d.]+)\s*)?\)$/i.exec(str || '');
+    if (hex) {
+        const n = parseInt(hex[1], 16);
+        c = [(n >> 16 & 255) / 255, (n >> 8 & 255) / 255, (n & 255) / 255, 1];
+    } else if (rgba) {
+        c = [rgba[1] / 255, rgba[2] / 255, rgba[3] / 255, rgba[4] !== undefined ? Number(rgba[4]) : 1];
     }
+    _rgbCache.set(str, c);
+    return c;
+}
 
-    update(width, height) {
-        this.angle += 0.005; // Slower rotation
-        this.vx = Math.cos(this.angle) * 1.0;
-        this.vy = Math.sin(this.angle * 0.8) * 0.5;
-        this.x += this.vx;
-        this.y += this.vy;
-
-        if (this.x < -150) this.x = width + 150;
-        if (this.x > width + 150) this.x = -150;
-        if (this.y < -150) this.y = height + 150;
-        if (this.y > height + 150) this.y = -150;
-    }
-
-    draw(cr) {
-        if (!Number.isFinite(this.x) || !Number.isFinite(this.y)) return;
-        const facingRight = this.vx >= 0;
-
-        for (let r = 0; r < ORCA_SPRITE.length; r++) {
-            for (let c = 0; c < ORCA_SPRITE[r].length; c++) {
-                const val = ORCA_SPRITE[r][c];
-                if (!val) continue;
-
-                // ORIGINAL COLORS
-                if (val === 1) cr.setSourceRGB(0.3, 0.4, 0.5); // Dark Blue/Grey
-                else if (val === 2) cr.setSourceRGB(0.9, 0.9, 0.9); // White Belly
-
-                const drawC = facingRight ? c : (ORCA_SPRITE[r].length - 1 - c);
-                cr.rectangle(
-                    this.x + (drawC * this.scale),
-                    this.y + (r * this.scale),
-                    this.scale,
-                    this.scale
-                );
-                cr.fill();
+// One fill per colour layer (not per cell), like the KDE delegate.
+function drawSprite(cr, sprite, x, y, size, flip, body, layer2, layer3, alpha) {
+    const rows = sprite.length, cols = sprite[0].length;
+    const w = size + 1, h = size + 1;
+    const left = x + 0.5 - cols * size / 2;
+    const top = y + 0.5 - rows * size / 2;
+    for (let layer = 1; layer <= 3; layer++) {
+        const col = layer === 1 ? body : layer === 2 ? layer2 : layer3;
+        if (!col) continue;
+        let has = false;
+        for (let r = 0; r < rows; r++) {
+            const row = sprite[r];
+            for (let c = 0; c < cols; c++) {
+                if (row[c] !== layer) continue;
+                cr.rectangle(left + (flip ? cols - 1 - c : c) * size, top + r * size, w, h);
+                has = true;
             }
+        }
+        if (has) {
+            const p = parseColor(col);
+            cr.setSourceRGBA(p[0], p[1], p[2], p[3] * alpha);
+            cr.fill();
         }
     }
 }
 
-class Jellyfish {
-    constructor(width, height) {
-        this.x = Math.random() * width;
-        this.y = Math.random() * height;
-        this.speed = 0.2 + Math.random() * 0.2;
-        this.scale = 5 + Math.random() * 2;
-        this.direction = Math.random() > 0.5 ? 1 : -1;
-        this.wobblePhase = Math.random() * Math.PI * 2;
-    }
-
-    update(width, height) {
-        this.y += this.speed * this.direction;
-        this.wobblePhase += 0.05;
-        this.x += Math.sin(this.wobblePhase) * 0.5;
-
-        if (this.y < -50) this.y = height + 50;
-        if (this.y > height + 50) this.y = -50;
-    }
-
-    draw(cr) {
-        if (!Number.isFinite(this.x) || !Number.isFinite(this.y)) return;
-
-        cr.setSourceRGBA(0.8, 0.7, 1.0, 0.3);
-        for (let r = 0; r < JELLY_SPRITE.length; r++) {
-            for (let c = 0; c < JELLY_SPRITE[r].length; c++) {
-                if (JELLY_SPRITE[r][c]) {
-                    cr.rectangle(
-                        this.x + (c * this.scale),
-                        this.y + (r * this.scale),
-                        this.scale,
-                        this.scale
-                    );
-                }
-            }
-        }
-        cr.fill();
+function drawEntity(cr, sim, ent) {
+    if (!Number.isFinite(ent.x) || !Number.isFinite(ent.y)) return;
+    if (ent.x < -60 || ent.x > sim.width + 60 || ent.y < -60 || ent.y > sim.height + 60) return;
+    const cc = sim._c;
+    const S = Core.SPRITES;
+    const flip = !ent.facingRight;
+    switch (ent.kind) {
+    case 'fish':
+        drawSprite(cr, S.FISH, ent.x, ent.y, cc.fishSize + ent.sizeVariation, flip,
+            ent.color || '#FFFFFF', LAYER2.fish, null, 1);
+        break;
+    case 'angler':
+        drawSprite(cr, S.ANGLER, ent.x, ent.y, cc.anglerSize, flip,
+            BODY_COLOR.angler, LAYER2.angler, LAYER3.angler, 1);
+        break;
+    case 'orca':
+        drawSprite(cr, S.ORCA, ent.x, ent.y, cc.orcaSize, flip,
+            BODY_COLOR.orca, LAYER2.orca, null, 1);
+        break;
+    case 'jelly':
+        drawSprite(cr, S.JELLY, ent.x, ent.y, cc.jellySize + ent.sizeVariation, false,
+            BODY_COLOR.jelly, BODY_COLOR.jelly, null, 0.25);
+        break;
+    case 'worm':
+        drawSprite(cr, S.WORM, ent.x, ent.y, cc.wormSize, false,
+            Core.WORM_COLOR, null, null, Math.max(0, Math.min(1, ent.life)));
+        break;
+    case 'bubble':
+        drawSprite(cr, S.BUBBLE, ent.x, ent.y, ent.scale, false,
+            Core.BUBBLE_COLOR, null, null, 1);
+        break;
     }
 }
 
-class Angler {
-    constructor(width, height) {
-        this.x = Math.random() * width;
-        this.y = Math.random() * height;
-        this.vx = (Math.random() - 0.5);
-        this.vy = (Math.random() - 0.5);
-        this.scale = ANGLER_SIZE;
-        this.color = [0.25, 0.2, 0.35]; // ORIGINAL COLOR
-    }
-
-    update(width, height, orcas) {
-        let panic = false;
-
-        for (const orca of orcas) {
-            const pdx = this.x - orca.x;
-            const pdy = this.y - orca.y;
-            const distSq = pdx * pdx + pdy * pdy;
-
-            if (distSq < ORCA_PANIC_RANGE_SQ) {
-                if (distSq < EPS) continue;
-                panic = true;
-
-                const pdist = Math.sqrt(distSq);
-                const urgency = (ORCA_PANIC_RANGE - pdist) / ORCA_PANIC_RANGE;
-
-                // Stronger repulsion for angler
-                this.vx += (pdx / pdist) * ANGLER_FEAR_FACTOR * (0.8 + urgency);
-                this.vy += (pdy / pdist) * ANGLER_FEAR_FACTOR * (0.8 + urgency);
-            }
-        }
-
-        this.x += this.vx;
-        this.y += this.vy;
-
-        // Friction for drift feel
-        this.vx *= 0.99;
-        this.vy *= 0.99;
-
-        // Random drift impulse
-        this.vx += (Math.random() - 0.5) * 0.05;
-        this.vy += (Math.random() - 0.5) * 0.05;
-
-        const speedSq = this.vx * this.vx + this.vy * this.vy;
-        const limit = panic ? MAX_SPEED * 1.5 : 1.0;
-        if (speedSq > limit * limit) {
-            const speed = Math.sqrt(speedSq);
-            if (speed > EPS) {
-                this.vx = (this.vx / speed) * limit;
-                this.vy = (this.vy / speed) * limit;
-            }
-        }
-
-        if (panic) {
-            if (this.x < -50) this.x = width + 50;
-            if (this.x > width + 50) this.x = -50;
-            if (this.y < -50) this.y = height + 50;
-            if (this.y > height + 50) this.y = -50;
-        } else {
-            // Soft boundaries
-            if (this.x < MARGIN) this.vx += 0.05;
-            if (this.x > width - MARGIN) this.vx -= 0.05;
-            if (this.y < MARGIN) this.vy += 0.05;
-            if (this.y > height - MARGIN) this.vy -= 0.05;
-        }
-    }
-
-    draw(cr) {
-        if (!Number.isFinite(this.x) || !Number.isFinite(this.y)) return;
-
-        const facingRight = this.vx >= 0;
-        for (let r = 0; r < ANGLER_SPRITE.length; r++) {
-            for (let c = 0; c < ANGLER_SPRITE[r].length; c++) {
-                const val = ANGLER_SPRITE[r][c];
-                if (!val) continue;
-
-                // ORIGINAL COLORS
-                if (val === 1) cr.setSourceRGB(...this.color); // Dark Purple
-                else if (val === 2) cr.setSourceRGB(1.0, 1.0, 0.6); // Yellow Bulb
-                else if (val === 3) cr.setSourceRGB(1.0, 0.2, 0.2); // Red Mouth
-
-                const drawC = facingRight ? c : (ANGLER_SPRITE[r].length - 1 - c);
-                cr.rectangle(
-                    this.x + (drawC * this.scale),
-                    this.y + (r * this.scale),
-                    this.scale,
-                    this.scale
-                );
-                cr.fill();
-            }
-        }
-    }
-}
-
-class Fish {
-    constructor(width, height) {
-        this.x = Math.random() * width;
-        this.y = Math.random() * height;
-        this.personality = 0.8 + Math.random() * 0.4;
-
-        // Random starting angle for rotation
-        const angle = Math.random() * Math.PI * 2;
-        this.vx = Math.cos(angle) * (MAX_SPEED * 0.5);
-        this.vy = Math.sin(angle) * (MAX_SPEED * 0.5);
-
-        this.color = FISH_PALETTE[Math.floor(Math.random() * FISH_PALETTE.length)];
-        this.scale = FISH_SIZE + (Math.random() * 2 - 1);
-
-        // V8: Rotational Wander State
-        this.wanderTheta = Math.random() * Math.PI * 2;
-    }
-
-    update(width, height, allFish, anglers) {
-        let closeDx = 0, closeDy = 0;
-        let xVelAvg = 0, yVelAvg = 0;
-        let xPosAvg = 0, yPosAvg = 0;
-        let neighbors = 0;
-        let panic = false;
-
-        // 1. PREDATOR AVOIDANCE
-        for (const angler of anglers) {
-            const pdx = this.x - angler.x;
-            const pdy = this.y - angler.y;
-            const distSq = pdx * pdx + pdy * pdy;
-
-            if (distSq < PANIC_RANGE_SQ) {
-                if (distSq < EPS) continue;
-                panic = true;
-
-                const pdist = Math.sqrt(distSq);
-                const urgency = (PANIC_RANGE - pdist) / PANIC_RANGE;
-
-                const scatterX = (Math.random() - 0.5) * 2;
-                const scatterY = (Math.random() - 0.5) * 2;
-
-                this.vx += (pdx / pdist) * FEAR_FACTOR * (0.8 + urgency) + scatterX;
-                this.vy += (pdy / pdist) * FEAR_FACTOR * (0.8 + urgency) + scatterY;
-            }
-        }
-
-        // 2. BOIDS FLOCKING (Individualist Style)
-        if (!panic) {
-            for (const other of allFish) {
-                if (other === this) continue;
-
-                const dx = this.x - other.x;
-                const dy = this.y - other.y;
-
-                if (Math.abs(dx) > VISUAL_RANGE || Math.abs(dy) > VISUAL_RANGE) continue;
-
-                const distSq = dx * dx + dy * dy;
-                if (distSq < VISUAL_RANGE_SQ) {
-                    xVelAvg += other.vx;
-                    yVelAvg += other.vy;
-                    xPosAvg += other.x;
-                    yPosAvg += other.y;
-
-                    // Stronger separation for "closeness" but not stacking
-                    if (distSq < SEPARATION_DIST_SQ) {
-                        const dist = Math.sqrt(distSq);
-                        // Weight inversely proportional to distance
-                        if (dist > EPS) {
-                            closeDx += (this.x - other.x) / dist;
-                            closeDy += (this.y - other.y) / dist;
-                        }
-                    }
-                    neighbors++;
-                }
-            }
-        }
-
-        if (neighbors > 0 && !panic) {
-            xVelAvg /= neighbors;
-            yVelAvg /= neighbors;
-            xPosAvg /= neighbors;
-            yPosAvg /= neighbors;
-
-            this.vx += (xVelAvg - this.vx) * ALIGNMENT_FACTOR;
-            this.vy += (yVelAvg - this.vy) * ALIGNMENT_FACTOR;
-
-            this.vx += (xPosAvg - this.x) * COHESION_FACTOR;
-            this.vy += (yPosAvg - this.y) * COHESION_FACTOR;
-        }
-
-        // Apply Strong Separation
-        this.vx += closeDx * SEPARATION_FACTOR;
-        this.vy += closeDy * SEPARATION_FACTOR;
-
-        // 3. WANDER (Rotational - Natural Curves)
-        if (!panic) {
-            this.wanderTheta += (Math.random() - 0.5) * 0.4; // Slowly turn
-            this.vx += Math.cos(this.wanderTheta) * WANDER_FACTOR;
-            this.vy += Math.sin(this.wanderTheta) * WANDER_FACTOR;
-        }
-
-        // 4. BOUNDARIES (Soft turn)
-        if (this.x < MARGIN) this.vx += TURN_FACTOR;
-        if (this.x > width - MARGIN) this.vx -= TURN_FACTOR;
-        if (this.y < MARGIN) this.vy += TURN_FACTOR;
-        if (this.y > height - MARGIN) this.vy -= TURN_FACTOR;
-
-        // 5. SPEED LIMIT
-        const speedSq = this.vx * this.vx + this.vy * this.vy;
-        const currentMax = panic ? MAX_SPEED * 1.5 : MAX_SPEED * this.personality;
-
-        if (speedSq > currentMax * currentMax) {
-            const speed = Math.sqrt(speedSq);
-            if (speed > EPS) {
-                this.vx = (this.vx / speed) * currentMax;
-                this.vy = (this.vy / speed) * currentMax;
-            }
-        }
-
-        // Min speed to prevent stalling
-        if (speedSq < 0.1) {
-            this.vx += (Math.random() - 0.5) * 0.5;
-            this.vy += (Math.random() - 0.5) * 0.5;
-        }
-
-        this.x += this.vx;
-        this.y += this.vy;
-    }
-
-    draw(cr) {
-        if (!Number.isFinite(this.x) || !Number.isFinite(this.y)) return;
-
-        const facingRight = this.vx >= 0;
-        for (let r = 0; r < FISH_SPRITE.length; r++) {
-            for (let c = 0; c < FISH_SPRITE[r].length; c++) {
-                const val = FISH_SPRITE[r][c];
-                if (!val) continue;
-
-                if (val === 1) cr.setSourceRGB(...this.color);
-                else if (val === 2) cr.setSourceRGB(1, 1, 1);
-
-                const drawC = facingRight ? c : (FISH_SPRITE[r].length - 1 - c);
-                cr.rectangle(
-                    this.x + (drawC * this.scale),
-                    this.y + (r * this.scale),
-                    this.scale,
-                    this.scale
-                );
-                cr.fill();
-            }
-        }
-    }
-}
+/* -------------------- EXTENSION -------------------- */
 
 /* -------------------- EXTENSION -------------------- */
 
@@ -448,10 +138,9 @@ export default class BoidsGnomeExtension extends Extension {
         this._lastWidth = 0;
         this._lastHeight = 0;
 
-        this._fishSchool = [];
-        this._jellies = [];
-        this._anglers = [];
-        this._orcas = [];
+        // The simulation survives actor rebuilds (monitors-changed etc.); only disable() drops it
+        this._sim = null;
+        this._errorsSeen = new Set();
 
         this._globalSigs = [];
         this._areaSigs = [];
@@ -467,6 +156,7 @@ export default class BoidsGnomeExtension extends Extension {
 
         // Boot / attach watchdog (fix: login blank, dpms blank)
         this._bootSource = 0;
+        this._bootIdle = 0;
         this._bootTries = 0;
 
         this._enableIdle = GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, () => {
@@ -544,23 +234,21 @@ export default class BoidsGnomeExtension extends Extension {
     _bootAfterFirstRedraw() {
         if (this._inCleanup) return;
 
-        // 1) First safe time: BEFORE_REDRAW
-        try {
-            Meta.later_add(Meta.LaterType.BEFORE_REDRAW, () => {
-                if (this._inCleanup) return GLib.SOURCE_REMOVE;
-                this._ensureAttached(true);
-                this._scheduleSync(0);
-                return GLib.SOURCE_REMOVE;
-            });
-        } catch (e) {
-            // fallback
-            GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, () => {
-                if (this._inCleanup) return GLib.SOURCE_REMOVE;
-                this._ensureAttached(true);
-                this._scheduleSync(0);
-                return GLib.SOURCE_REMOVE;
-            });
+        // 1) First safe time: an idle callback. Meta.later_add() is deprecated
+        // (replaced by Meta.Laters via global.compositor.get_laters() in newer
+        // shells, and gone from the API surface across 45-55), so use a plain GLib
+        // idle source: it works identically on every supported version and is
+        // removable on disable(). The 1 s watchdog below covers a late background group.
+        if (this._bootIdle) {
+            try { GLib.Source.remove(this._bootIdle); } catch (e) { }
         }
+        this._bootIdle = GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, () => {
+            this._bootIdle = 0;
+            if (this._inCleanup) return GLib.SOURCE_REMOVE;
+            this._ensureAttached(true);
+            this._scheduleSync(0);
+            return GLib.SOURCE_REMOVE;
+        });
 
         // 2) retry watchdog: backgroundGroup sometimes appears late on login / dpms
         if (this._bootSource) {
@@ -645,11 +333,12 @@ export default class BoidsGnomeExtension extends Extension {
                 this._lastWidth = width;
                 this._lastHeight = height;
 
-                if (this._fishSchool.length === 0) {
-                    for (let i = 0; i < FISH_COUNT; i++) this._fishSchool.push(new Fish(width, height));
-                    for (let i = 0; i < JELLY_COUNT; i++) this._jellies.push(new Jellyfish(width, height));
-                    for (let i = 0; i < ANGLER_COUNT; i++) this._anglers.push(new Angler(width, height));
-                    for (let i = 0; i < ORCA_COUNT; i++) this._orcas.push(new Orca(width, height));
+                if (!this._sim) {
+                    this._sim = Core.createSimulation(width, height, 1, CONFIG);
+                    // populate the per-config cache the painter reads
+                    Core.step(this._sim, 1, CONFIG);
+                } else if (this._sim.width !== width || this._sim.height !== height) {
+                    Core.resize(this._sim, width, height, 1);
                 }
             }
         } catch (e) { }
@@ -816,10 +505,7 @@ export default class BoidsGnomeExtension extends Extension {
         this._area = null;
         this._constraint = null;
 
-        this._fishSchool = [];
-        this._jellies = [];
-        this._anglers = [];
-        this._orcas = [];
+        // NOTE: this._sim is deliberately kept; it is re-sized when the new actor reports its size.
 
         this._lastWidth = 0;
         this._lastHeight = 0;
@@ -868,15 +554,14 @@ export default class BoidsGnomeExtension extends Extension {
             // Make sure actor is still properly attached (covers bgGroup rebuild)
             this._ensureAttached(false);
 
+            // A failing step must never kill the timer: log it once and keep going
             try {
                 this._step();
-                this._area.queue_repaint();
-                return GLib.SOURCE_CONTINUE;
             } catch (e) {
-                console.error('BoidsGnome tick error: ' + e);
-                this._stopSimulation();
-                return GLib.SOURCE_REMOVE;
+                this._logOnce('tick', e);
             }
+            try { this._area.queue_repaint(); } catch (e) { this._logOnce('repaint-queue', e); }
+            return GLib.SOURCE_CONTINUE;
         });
     }
 
@@ -906,26 +591,33 @@ export default class BoidsGnomeExtension extends Extension {
             this._bootSource = 0;
         }
 
+        if (this._bootIdle) {
+            try { GLib.Source.remove(this._bootIdle); } catch (e) { }
+            this._bootIdle = 0;
+        }
+
         this._stopSimulation();
         this._uninstallScreenSaverHook();
         this._uninstallLogindHook();
         this._disconnectList(this._globalSigs);
         this._destroyAreaNow();
+        this._sim = null;
 
         this._inCleanup = false;
     }
 
     /* ---------- sim step & draw ---------- */
 
-    _step() {
-        const w = this._lastWidth;
-        const h = this._lastHeight;
-        if (!w || !h) return;
+    _logOnce(where, e) {
+        const key = where + ': ' + (e && e.message ? e.message : e);
+        if (this._errorsSeen.has(key)) return;
+        this._errorsSeen.add(key);
+        console.error('BoidsGnome ' + key);
+    }
 
-        for (const orca of this._orcas) orca.update(w, h);
-        for (const angler of this._anglers) angler.update(w, h, this._orcas);
-        for (const jelly of this._jellies) jelly.update(w, h);
-        for (const fish of this._fishSchool) fish.update(w, h, this._fishSchool, this._anglers);
+    _step() {
+        if (!this._sim || !this._lastWidth || !this._lastHeight) return;
+        Core.step(this._sim, 1, CONFIG);
     }
 
     _safeRepaint(area) {
@@ -952,15 +644,19 @@ export default class BoidsGnomeExtension extends Extension {
             cr.setSource(pat);
             cr.paint();
 
-            for (const j of this._jellies) j.draw(cr);
-            for (const o of this._orcas) o.draw(cr);
-            for (const a of this._anglers) a.draw(cr);
-            for (const f of this._fishSchool) f.draw(cr);
+            const sim = this._sim;
+            if (sim && sim._c) {
+                for (const list of sim.allLists) {
+                    for (let i = 0; i < list.length; i++) {
+                        try { drawEntity(cr, sim, list[i]); } catch (e) { this._logOnce('draw', e); }
+                    }
+                }
+            }
 
             // best-effort dispose (prevents GJS wrapper leaks on some setups)
             try { if (cr.$dispose) cr.$dispose(); } catch (e) { }
         } catch (e) {
-            console.error('BoidsGnome repaint error: ' + e);
+            this._logOnce('repaint', e);
         }
     }
 }

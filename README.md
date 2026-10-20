@@ -87,16 +87,18 @@ v1.2 changed the plugin id (`org.kde.plasma.boidsaquarium11` -> `com.github.arca
 
 ## // OTHER VERSIONS
 
+Both ports run the same simulation core as the KDE plugin (`core/boids-core.js`), so they share its behaviour (worms, bubbles, breeding, predators, cursor fear, NaN safety). Each port only has its own renderer, input and lifecycle code. The copies `boids-gnome-port/boids-core.js` and `boids-web/boids-core.js` are generated: after changing the core run `npm run build` (`npm test` fails if they are stale).
+
 ### 1. Gnome Shell Port
 A lightweight port for Gnome Desktop users is included in the `boids-gnome-port` folder.
-*   **Tested On**: Fedora 43 (Other distributions are likely compatible but unverified).
-*   **Install**: Copy `boids-gnome-port` to `~/.local/share/gnome-shell/extensions/boids-gnome-port@arcanorca` and restart session.
-    **Configuration**: No GUI yet. You can manually tweak visual parameters (count, speed, colors) by editing the constants in extension.js.
+*   **Tested On**: Fedora 43 (Other distributions are likely compatible but unverified). The latest core-based rewrite has only been syntax/logic checked outside a GNOME session.
+*   **Install**: Copy the whole `boids-gnome-port` folder (it must include `boids-core.js`) to `~/.local/share/gnome-shell/extensions/boids-gnome-port@arcanorca` and restart session.
+*   **Configuration**: No GUI yet. You can tweak counts and sizes in the `CONFIG` object at the top of `extension.js` (same keys as the KDE settings). There is no pointer interaction on GNOME.
 
 ### 2. Web / HTML5 Port
 A standalone HTML5 version is available in the `boids-web` folder.
-*   **Usage**: Simply open `boids-web/index.html` in any modern web browser.
-*   **Configuration**: You can customize the simulation behavior by modifying the variables directly inside the index.html file.
+*   **Usage**: Open `boids-web/index.html` in any modern web browser (works from `file://`; keep `boids-core.js` next to it). Left-click drops a worm, right-click bursts bubbles, the cursor scares the fish.
+*   **Configuration**: Edit the `CONFIG` object inside `index.html` (same keys as the KDE settings).
 
 ## // CONTROLS & CONFIG
 
