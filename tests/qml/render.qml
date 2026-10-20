@@ -1,3 +1,5 @@
+// Themes: mode "illustrated" renders the same scenario with contents/themes/illustrated (Stage.qml);
+// scenarios may carry an "hour" (forces the day/night cycle on at that hour; else full day).
 // Renders one scenario with either the ORIGINAL per-entity Canvas renderer
 // ("legacy": tests/qml/legacy/BoidDelegate.qml + Canvas gradient, as main.qml had it) or
 // the new one ("new": EntityLayer + Rectangle gradient), then saves a PNG.
@@ -10,6 +12,7 @@ import "../../contents/ui" as UI
 import "../../contents/ui/code/boids.js" as Boids
 import "render-scenarios.js" as RS
 import "legacy" as Legacy
+import "../../contents/themes/illustrated" as Illustrated
 
 Window {
     id: win
@@ -69,10 +72,34 @@ Window {
             UI.EntityLayer { id: ent; anchors.fill: parent; z: 1 }
         }
     }
+    property real sceneHour: 12
+    property bool sceneDayNight: false
+    Component {
+        id: illustratedScene
+        Item {
+            property alias stage: st
+            Illustrated.Stage {
+                id: st
+                anchors.fill: parent
+                dpr: 1
+                hour: win.sceneHour
+                dayNight: win.sceneDayNight
+            }
+        }
+    }
     Loader {
         id: scene
         anchors.fill: parent
-        sourceComponent: win.mode === "legacy" ? legacyScene : newScene
+        sourceComponent: win.mode === "legacy" ? legacyScene : (win.mode === "illustrated" ? illustratedScene : newScene)
+    }
+    // one sim -> sprites step for whichever renderer is active
+    function doSync() {
+        if (win.mode === "illustrated") {
+            scene.item.stage.nowOverride = win.clockMs;
+            scene.item.stage.sync(win.sim);
+        } else {
+            Boids.sync(win.sim, scene.item.ents, scene.item.factory);
+        }
     }
 
     // ── deterministic driver ────────────────────────────────
@@ -91,7 +118,7 @@ Window {
         if (act) act(sim, cfg, Boids);
         clockMs = step * 40;
         Boids.step(sim, 1, cfg);
-        Boids.sync(sim, scene.item.ents, scene.item.factory);
+        doSync();
     }
     function setup(name, cfgOverride) {
         scenario = null;
@@ -103,6 +130,7 @@ Window {
         for (var k in scenario.cfg) cfg[k] = scenario.cfg[k];
         for (var k2 in cfgOverride) cfg[k2] = cfgOverride[k2];
         sim = Boids.createSimulation(scenario.w, scenario.h, 1, cfg);
+        if (scenario.hour !== undefined) { sceneHour = scenario.hour; sceneDayNight = true; }
         step = 0;
         return true;
     }
@@ -146,7 +174,7 @@ Window {
             Boids.step(win.sim, 1, win.cfg);
             win.clockMs += 40;
             var t1 = Date.now();
-            Boids.sync(win.sim, scene.item.ents, scene.item.factory);
+            win.doSync();
             win.stepMs += t1 - t0;
             win.syncMs += Date.now() - t1;
             win.ticks++;
@@ -180,7 +208,7 @@ Window {
         if (isBench) {
             scenario.actions = {};
             if (stressV >= 0) { sim.cpuStress = stressV; sim.speedMultiplier = 1 + stressV * 0.4; }
-            for (var w = 0; w < 100; w++) { Boids.step(sim, 1, cfg); clockMs += 40; Boids.sync(sim, scene.item.ents, scene.item.factory); }
+            for (var w = 0; w < 100; w++) { Boids.step(sim, 1, cfg); clockMs += 40; doSync(); }
             loop.start();
             benchEnd.start();
         } else {

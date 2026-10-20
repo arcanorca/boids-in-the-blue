@@ -73,4 +73,7 @@ function mockComponent() {
     return c;
 }
 
-module.exports = { loadBoids, loadScript, mockComponent, mulberry32 };
+// Load any QML `.pragma library` file (with its .import chain) into a vm context
+function loadLibrary(file, opts) { return loadLib(file, makeEnv(opts)); }
+
+module.exports = { loadBoids, loadScript, loadLibrary, mockComponent, mulberry32 };

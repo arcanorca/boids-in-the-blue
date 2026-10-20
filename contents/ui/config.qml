@@ -49,6 +49,9 @@ Kirigami.FormLayout {
     property alias cfg_wanderFactor: wanderInput.value
     property alias cfg_turnFactor: turnInput.value
 
+    // Theme (string id; the combo below maps index <-> id)
+    property string cfg_theme
+
     // Colors
     property alias cfg_dayNightCycle: dayNightSwitch.checked
     property alias cfg_waterTop: colorTop.color
@@ -88,6 +91,7 @@ Kirigami.FormLayout {
     property double cfg_wanderFactorDefault
     property double cfg_turnFactorDefault
     property bool cfg_dayNightCycleDefault
+    property string cfg_themeDefault
     property string cfg_waterTopDefault
     property string cfg_waterBottomDefault
     property string cfg_sensorIdDefault
@@ -310,6 +314,26 @@ Kirigami.FormLayout {
     // ─── ENVIRONMENT ──────────────────────────────────────────
     Kirigami.Separator { Kirigami.FormData.label: i18n("Environment"); Kirigami.FormData.isSection: true }
 
+    ComboBox {
+        id: themeCombo
+        Kirigami.FormData.label: i18n("Theme")
+        readonly property var ids: ["classic", "illustrated"]
+        model: [i18n("Classic (pixel art)"), i18n("Soft Illustrated")]
+        currentIndex: Math.max(0, ids.indexOf(root.cfg_theme))
+        onActivated: root.cfg_theme = ids[currentIndex]
+        Layout.fillWidth: true
+    }
+    Label {
+        visible: themeCombo.currentIndex !== 0
+        text: i18n("Themed scenes use their own water palette; the surface/deep colours below apply to the Classic theme only.")
+        wrapMode: Text.WordWrap
+        Layout.fillWidth: true
+        Layout.maximumWidth: 420
+        Kirigami.FormData.label: " "
+        font.pointSize: Kirigami.Theme.smallFont.pointSize
+        opacity: 0.6
+    }
+
     CheckBox {
         id: dayNightSwitch
         Kirigami.FormData.label: i18n("Day/Night Cycle")
@@ -320,15 +344,15 @@ Kirigami.FormLayout {
         id: colorTop
         Kirigami.FormData.label: i18n("Water Surface")
         showAlphaChannel: false
-        enabled: !dayNightSwitch.checked
-        opacity: dayNightSwitch.checked ? 0.4 : 1.0
+        enabled: !dayNightSwitch.checked && themeCombo.currentIndex === 0
+        opacity: enabled ? 1.0 : 0.4
     }
     KQControls.ColorButton {
         id: colorBottom
         Kirigami.FormData.label: i18n("Water Deep")
         showAlphaChannel: false
-        enabled: !dayNightSwitch.checked
-        opacity: dayNightSwitch.checked ? 0.4 : 1.0
+        enabled: !dayNightSwitch.checked && themeCombo.currentIndex === 0
+        opacity: enabled ? 1.0 : 0.4
     }
 
     // ─── SYSTEM REACTIVITY ────────────────────────────────────
@@ -428,6 +452,7 @@ Kirigami.FormLayout {
             root.cfg_wanderFactor = root.cfg_wanderFactorDefault;
             root.cfg_turnFactor = root.cfg_turnFactorDefault;
             root.cfg_dayNightCycle = root.cfg_dayNightCycleDefault;
+            root.cfg_theme = root.cfg_themeDefault;
             root.cfg_waterTop = root.cfg_waterTopDefault;
             root.cfg_waterBottom = root.cfg_waterBottomDefault;
             root.cfg_sensorId = root.cfg_sensorIdDefault;

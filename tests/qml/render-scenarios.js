@@ -39,3 +39,28 @@ add('worms-bubbles', { fishCount: 38 }, 200, { 100: function (sim, cfg, B) { spa
     add('babies', { fishCount: 120, anglerCount: 0, orcaCount: 0, jellyCount: 0 }, 345, acts);
 })();
 add('orca-angler-jelly', { fishCount: 10, anglerCount: 10, orcaCount: 10, jellyCount: 14 }, 300);
+
+// ── theme preview scenes (not part of the classic-vs-new regression: tests/qml-render.js only reads add(...)) ──
+// hour: forces the theme's day/night grading at that hour (0 = night, 12 = day, 6.5/18.5 = dawn/dusk)
+function addT(name, cfg, steps, actions, hour) {
+    add(name, cfg, steps, actions);
+    SCENARIOS[SCENARIOS.length - 1].hour = hour;
+}
+addT('night', {}, 300, {}, 0);
+addT('dusk', {}, 300, {}, 18.5);
+(function () {
+    // worms + bubbles + babies: worms land next to fish (eaten -> babies, one every 10th worm)
+    var acts = {};
+    for (var s = 5; s < 320; s += 10) (function (s) {
+        acts[s] = function (sim, cfg, B) {
+            var f = sim.entities.fish[s % sim.entities.fish.length];
+            if (s % 20 === 5) sim.totalWormsEaten = sim.totalWormsEaten - (sim.totalWormsEaten % 10) + 9;
+            B.forceSpawnWorm(sim, f.x, f.y);
+        };
+    })(s);
+    acts[330] = function (sim, cfg, B) {
+        for (var i = 0; i < 24; i++) B.forceSpawnWorm(sim, 120 + (i * 151) % 1700, 80 + (i * 173) % 900);
+        for (var j = 0; j < 60; j++) B.forceSpawnBubble(sim, 50 + (j * 131) % 1800, 100 + (j * 53) % 900);
+    };
+    addT('feeding', { fishCount: 70, anglerCount: 2, orcaCount: 1, jellyCount: 4 }, 345, acts, undefined);
+})();

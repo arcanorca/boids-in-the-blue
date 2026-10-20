@@ -10,6 +10,11 @@
       <default>true</default>
     </entry>
 
+    <entry name="theme" type="String">
+      <label>Visual theme (classic, illustrated)</label>
+      <default>classic</default>
+    </entry>
+
     <entry name="dayNightCycle" type="Bool">
       <label>Enable day/night cycle</label>
       <default>false</default>

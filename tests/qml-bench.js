@@ -2,7 +2,7 @@
 // QML engine (offscreen, see the backend line) with the ORIGINAL Canvas-per-entity renderer
 // ("legacy") and the new EntityLayer, and prints process CPU time (user+sys, includes ~0.5 s
 // startup) and, if available, QSG_RENDER_TIMING output.
-// Usage: node tests/qml-bench.js [legacy|new ...]       (takes ~20 s per run)
+// Usage: node tests/qml-bench.js [legacy|new|illustrated ...]   (takes ~20 s per run; "illustrated" = contents/themes/illustrated)
 const { spawnSync } = require('child_process');
 const path = require('path');
 const modes = process.argv.slice(2).length ? process.argv.slice(2) : ['legacy', 'new'];

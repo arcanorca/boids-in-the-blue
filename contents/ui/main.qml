@@ -32,6 +32,29 @@ WallpaperItem {
     property int _dnTick: 0
     property real glimmerLevel: 0.0
 
+    // ── Theme ──
+    // "classic" = the legacy-geometry renderer below. Any other id loads
+    // contents/themes/<id>/Stage.qml (see contents/themes/illustrated/theme.js for the contract).
+    readonly property var _knownThemes: ["illustrated"]
+    readonly property string theme: (wallpaper.configuration && wallpaper.configuration.theme
+                                     && _knownThemes.indexOf(wallpaper.configuration.theme) >= 0)
+                                    ? wallpaper.configuration.theme : "classic"
+    readonly property bool _themed: theme !== "classic"
+    property real _hour: 12
+
+    // Entities keep their sprites in the active renderer: hand them back before it changes
+    // (the simulation itself carries on untouched; the new renderer creates fresh sprites).
+    onThemeChanged: {
+        if (!sim) return;
+        for (var l = 0; l < sim.allLists.length; l++) {
+            var list = sim.allLists[l];
+            for (var i = 0; i < list.length; i++) {
+                var d = list[i].delegate;
+                if (d) { try { d.release(); } catch (e) {} list[i].delegate = null; }
+            }
+        }
+    }
+
     function getDayNightColors(h) {
         var b = (Math.cos((h - 12) * Math.PI / 12) + 1) / 2;
         var nR1=5,nG1=26,nB1=46, nR2=2,nG2=13,nB2=24;
@@ -53,6 +76,7 @@ WallpaperItem {
     Rectangle {
         id: background
         anchors.fill: parent
+        visible: !wallpaper._themed
 
         property string _waterTop: {
             if (wallpaper.configuration && !!wallpaper.configuration.dayNightCycle)
@@ -98,7 +122,8 @@ WallpaperItem {
             }
             Boids.step(sim, 1, wallpaper.configuration);
             // The entity layer doubles as the (pooling) delegate factory
-            Boids.sync(sim, entityLayer, entityLayer);
+            if (!wallpaper._themed) Boids.sync(sim, entityLayer, entityLayer);
+            else if (themeStage.item) themeStage.item.sync(sim);
 
             // Smoothed stress
             var intensity = (wallpaper.configuration &&
@@ -119,6 +144,7 @@ WallpaperItem {
                 && wallpaper._dnTick % 75 === 1) {
                 var now = new Date();
                 var h = now.getHours() + now.getMinutes() / 60.0;
+                wallpaper._hour = h;
                 var dnC = wallpaper.getDayNightColors(h);
                 if (wallpaper._dnTop !== dnC.top) wallpaper._dnTop = dnC.top;
                 if (wallpaper._dnBottom !== dnC.bottom) wallpaper._dnBottom = dnC.bottom;
@@ -138,7 +164,22 @@ WallpaperItem {
         anchors.fill: parent
         z: 1
         enabled: false
+        visible: !wallpaper._themed
     }
+
+    // ── Themed scene (background, ambient, entities): only loaded for non-classic themes ──
+    Loader {
+        id: themeStage
+        anchors.fill: parent
+        z: 1
+        active: wallpaper._themed
+        source: wallpaper._themed ? Qt.resolvedUrl("../themes/" + wallpaper.theme + "/Stage.qml") : ""
+    }
+    Binding { target: themeStage.item; property: "paused"; value: wallpaper.paused; when: themeStage.item !== null }
+    Binding { target: themeStage.item; property: "dayNight"
+              value: !!(wallpaper.configuration && wallpaper.configuration.dayNightCycle); when: themeStage.item !== null }
+    Binding { target: themeStage.item; property: "hour"; value: wallpaper._hour; when: themeStage.item !== null }
+    Binding { target: themeStage.item; property: "dpr"; value: Screen.devicePixelRatio; when: themeStage.item !== null }
 
     // ── Surface Glimmer (golden shimmer at water surface during sunrise/sunset) ──
     Item {
@@ -148,7 +189,7 @@ WallpaperItem {
         anchors.top: parent.top
         height: parent.height * 0.10
         z: 2
-        visible: wallpaper.glimmerLevel > 0.01 && !wallpaper.paused
+        visible: wallpaper.glimmerLevel > 0.01 && !wallpaper.paused && !wallpaper._themed
         opacity: wallpaper.glimmerLevel * 0.8
 
         Rectangle {
