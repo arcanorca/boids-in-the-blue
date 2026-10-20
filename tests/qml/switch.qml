@@ -32,6 +32,7 @@ Window {
         id: cfg
         property string theme: "pixel"
         property bool pauseWhenCovered: true
+        property int pauseCoverage: 90
         property bool dayNightCycle: false
         property string waterTop: "#0f4c75"
         property string waterBottom: "#051e36"
@@ -105,8 +106,8 @@ Window {
             if (phase === 0) {            // pick the next theme, running
                 pidx++;
                 if (pidx >= pauseOrder.length) {
-                    say(true, "finished");
-                    Qt.quit();
+                    ld.item._covered = false;
+                    startFrames();
                     return;
                 }
                 ld.item._covered = false;
@@ -124,6 +125,49 @@ Window {
                 grab(pauseOrder[pidx] + "-paused0", function () { phase = 4; pauseStep.interval = 500; pauseStep.restart(); });
             } else if (phase === 4) {
                 grab(pauseOrder[pidx] + "-paused1", function () { phase = 0; pauseStep.interval = 100; pauseStep.restart(); });
+            }
+        }
+    }
+
+    // ── frame-driven simulation ──
+    // 1. rate: ~25 simulation steps per second (the tick counter of main.qml), whatever the frame rate
+    // 2. frames stop (FrameAnimation paused = what a compositor that stops presenting does):
+    //    the simulation stops, the watchdog flags idle after 2 s and the scene's animations stop
+    // 3. frames return: simulation and scene resume at once, no burst of catch-up steps
+    property int t0: 0
+    property double tMs: 0
+    function startFrames() {
+        cfg.theme = "pixel";
+        say(ld.item._frameDriven === true && ld.item._frameAnim !== null, "FrameAnimation drives the simulation");
+        framePhase = 0; frameStep.interval = 800; frameStep.start();
+    }
+    property int framePhase: 0
+    Timer {
+        id: frameStep
+        onTriggered: {
+            var it = ld.item;
+            if (framePhase === 0) { t0 = it._dnTick; tMs = Date.now(); framePhase = 1; frameStep.interval = 2000; frameStep.restart(); }
+            else if (framePhase === 1) {
+                var steps = it._dnTick - t0, rate = steps / ((Date.now() - tMs) / 1000);
+                say(rate > 20 && rate < 30, "simulation rate " + rate.toFixed(1) + " steps/s (want ~25)");
+                say(!it.renderIdle && !it._scene.paused, "frames arriving: not idle");
+                it._frameAnim.paused = true;                       // frames stop
+                t0 = it._dnTick; framePhase = 2; frameStep.interval = 1200; frameStep.restart();
+            } else if (framePhase === 2) {
+                say(it._dnTick === t0, "no frames -> no simulation steps (" + (it._dnTick - t0) + ")");
+                say(!it.renderIdle, "not yet idle after 1.2 s");
+                framePhase = 3; frameStep.interval = 2200; frameStep.restart();
+            } else if (framePhase === 3) {
+                say(it.renderIdle && it.suspended && !it.paused && it._scene.paused === true, "idle after >2 s without frames: scene animations suspended");
+                var before = it._dnTick;
+                it._frameAnim.paused = false;                      // frames return
+                t0 = before; framePhase = 4; frameStep.interval = 400; frameStep.restart();
+            } else if (framePhase === 4) {
+                var n = it._dnTick - t0;
+                say(!it.renderIdle && it._scene.paused === false, "frames back: idle cleared, scene running");
+                say(n >= 1 && n <= 14, "no catch-up burst after the gap (" + n + " steps in 0.4 s)");
+                say(true, "finished");
+                Qt.quit();
             }
         }
     }

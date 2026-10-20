@@ -11,8 +11,15 @@
     </entry>
 
     <entry name="pauseWhenCovered" type="Bool">
-      <label>Pause when a maximized or fullscreen window covers the desktop</label>
+      <label>Pause when windows cover the desktop</label>
       <default>true</default>
+    </entry>
+
+    <entry name="pauseCoverage" type="Int">
+      <label>Pause when windows cover at least this percent of the screen</label>
+      <default>90</default>
+      <min>50</min>
+      <max>100</max>
     </entry>
 
     <entry name="dayNightCycle" type="Bool">

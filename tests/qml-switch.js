@@ -21,6 +21,13 @@ for (const l of lines) if (/SWITCH FAIL/.test(l)) { fail++; console.log(l); }
 const bad = lines.filter(l => /warn|error|Cannot|TypeError|ReferenceError|\[boids\]|Unable|not a function/i.test(l) && !/SWITCH/.test(l));
 if (bad.length) { fail++; console.log('QML warnings/errors:\n  ' + bad.slice(0, 8).join('\n  ')); }
 if (!lines.some(l => /SWITCH ok finished/.test(l))) { fail++; console.log('switch test did not finish:\n' + (r.stdout + r.stderr).slice(-600)); }
+// the real Occluder.qml (system org.kde.taskmanager) must load and idle sanely offscreen
+const occ = spawnSync('qml6', [path.join(__dirname, 'qml', 'occluder.qml')], {
+    env: Object.assign({}, process.env, { QT_QPA_PLATFORM: 'offscreen', QT_FORCE_STDERR_LOGGING: '1' }), encoding: 'utf8', timeout: 60000 });
+const occLines = (occ.stdout + occ.stderr).split('\n');
+for (const l of occLines) if (/OCC FAIL/.test(l)) { fail++; console.log(l); }
+if (!occLines.some(l => /OCC ok\s+finished/.test(l))) { fail++; console.log('occluder test did not finish:\n' + (occ.stdout + occ.stderr).slice(-400)); }
+else console.log('ok   Occluder.qml loads and reports "not covered" without windows');
 const load = n => png.decode(fs.readFileSync(path.join(outDir, n + '.png')));
 const same = (a, b) => a.W === b.W && a.H === b.H && Buffer.compare(Buffer.from(a.px), Buffer.from(b.px)) === 0;
 for (const th of ['pixel', 'classic', 'biolum']) {

@@ -5,6 +5,7 @@ import org.kde.ksysguard.sensors 1.0 as Sensors
 
 import "code/boids.js" as Boids
 import "code/themes.js" as Themes
+import "code/ticker.js" as Ticker
 
 WallpaperItem {
     id: wallpaper
@@ -25,6 +26,19 @@ WallpaperItem {
     // plugins too, and windows behind the lock screen must not freeze its wallpaper.
     property bool _inShell: Qt.application.name === "plasmashell"   // writable only so tests/qml/switch.qml can pose as the shell
     readonly property bool paused: _inShell && _pauseEnabled && (_covered || _hidden)
+    // ── Frame-driven simulation ──
+    // The simulation is stepped from the render loop (FrameAnimation + a fixed-step accumulator,
+    // code/ticker.js), so it stops by itself when the compositor stops presenting this screen
+    // (output off, lid-closed internal display, window not exposed); every screen has its own
+    // WallpaperItem, so an external monitor keeps running. `renderIdle` is set by a 1 Hz watchdog
+    // when no frame arrived for 2 s and switches off the sensors and the scene's ambient
+    // animations (`suspended`). If FrameAnimation is unavailable the old 40 ms Timer drives it.
+    property bool renderIdle: false
+    property bool _frameDriven: false          // true once the FrameAnimation exists
+    property double _lastFrameMs: 0
+    property var _ticker: Ticker.create()
+    property var _frameAnim: null
+    readonly property bool suspended: paused || renderIdle
     property var _occluder: null
     readonly property var _scene: sceneLoader.item       // the active theme's scene (tests)
 
@@ -95,7 +109,7 @@ WallpaperItem {
             item.sim = Qt.binding(function () { return wallpaper.sim; });
         }
     }
-    Binding { target: sceneLoader.item; property: "paused"; value: wallpaper.paused; when: sceneLoader.item !== null; restoreMode: Binding.RestoreNone }
+    Binding { target: sceneLoader.item; property: "paused"; value: wallpaper.suspended; when: sceneLoader.item !== null; restoreMode: Binding.RestoreNone }
     Binding { target: sceneLoader.item; property: "daylight"; value: wallpaper.daylight; when: sceneLoader.item !== null; restoreMode: Binding.RestoreNone }
     Binding { target: sceneLoader.item; property: "hour"; value: wallpaper._hour; when: sceneLoader.item !== null; restoreMode: Binding.RestoreNone }
     Binding { target: sceneLoader.item; property: "dayNight"; value: wallpaper._cycle; when: sceneLoader.item !== null; restoreMode: Binding.RestoreNone }
@@ -106,56 +120,110 @@ WallpaperItem {
     Binding { target: sceneLoader.item; property: "glimmerLevel"; value: wallpaper.glimmerLevel; when: sceneLoader.item !== null; restoreMode: Binding.RestoreNone }
 
     // ── Simulation loop ──
+    // One simulation step = 40 ms of simulated time (25 steps/s whatever the display rate).
+    // Returns false while there is no usable size yet.
+    function simStep() {
+        // Wait for a real size before creating the simulation
+        if (!sim) {
+            if (wallpaper.width <= 0 || wallpaper.height <= 0) return false;
+            sim = Boids.createSimulation(
+                wallpaper.width, wallpaper.height,
+                Screen.devicePixelRatio, wallpaper.configuration);
+        }
+        Boids.step(sim, 1, wallpaper.configuration);
+
+        // Smoothed stress
+        var intensity = (wallpaper.configuration &&
+                         wallpaper.configuration.reactivityIntensity !== undefined)
+                        ? wallpaper.configuration.reactivityIntensity : 1.0;
+        // Mode 4 = Disabled: sensors stop reporting, so don't keep the last reading
+        var sensorsOff = wallpaper.configuration && wallpaper.configuration.sensorMode === 4;
+        var targetStress = sensorsOff ? 0.0 : wallpaper.sensorStress * intensity;
+        sim.cpuStress += (targetStress - sim.cpuStress) * 0.1;
+        if (Math.abs(sim.cpuStress - targetStress) < 0.005) sim.cpuStress = targetStress;
+        var targetMul = 1.0 + (sim.cpuStress * 0.4);
+        sim.speedMultiplier += (targetMul - sim.speedMultiplier) * 0.1;
+        if (Math.abs(sim.speedMultiplier - targetMul) < 0.005) sim.speedMultiplier = targetMul;
+
+        // Day/night cycle
+        wallpaper._dnTick++;
+        if (wallpaper.configuration && !!wallpaper.configuration.dayNightCycle
+            && wallpaper._dnTick % 75 === 1) {
+            var now = new Date();
+            var h = now.getHours() + now.getMinutes() / 60.0;
+            var dnC = wallpaper.getDayNightColors(h);
+            wallpaper._hour = h;
+            if (Math.abs(wallpaper._hourDaylight - dnC.daylight) > 0.003)
+                wallpaper._hourDaylight = dnC.daylight;
+            if (wallpaper._dnTop !== dnC.top) wallpaper._dnTop = dnC.top;
+            if (wallpaper._dnBottom !== dnC.bottom) wallpaper._dnBottom = dnC.bottom;
+            var newGL = dnC.glimmer;
+            if (Math.abs(wallpaper.glimmerLevel - newGL) > 0.005)
+                wallpaper.glimmerLevel = newGL;
+        } else if (!(wallpaper.configuration && !!wallpaper.configuration.dayNightCycle)
+                   && wallpaper.glimmerLevel > 0) {
+            wallpaper.glimmerLevel = 0;
+        }
+        return true;
+    }
+
+    // One frame of the render loop; dtMs = time since the previous frame.
+    function onFrame(dtMs) {
+        wallpaper._lastFrameMs = Date.now();
+        if (wallpaper.renderIdle) wallpaper.renderIdle = false;
+        var n = Ticker.advance(wallpaper._ticker, dtMs);
+        if (!sim && n < 1) n = 1;                    // create the simulation without waiting a step
+        var stepped = false;
+        for (var i = 0; i < n; i++) {
+            if (!simStep()) break;
+            stepped = true;
+        }
+        if (stepped && sceneLoader.item) sceneLoader.item.sync(sim);   // draw once per frame, not per catch-up step
+    }
+
+    // Fallback driver, only while the FrameAnimation is unavailable
     Timer {
         id: physicsTimer
         interval: 40
-        running: !wallpaper.paused
+        running: !wallpaper.paused && !wallpaper._frameDriven
         repeat: true
         triggeredOnStart: true
-
         onTriggered: {
-            // Wait for a real size before creating the simulation
-            if (!sim) {
-                if (wallpaper.width <= 0 || wallpaper.height <= 0) return;
-                sim = Boids.createSimulation(
-                    wallpaper.width, wallpaper.height,
-                    Screen.devicePixelRatio, wallpaper.configuration);
-            }
-            Boids.step(sim, 1, wallpaper.configuration);
-            if (sceneLoader.item) sceneLoader.item.sync(sim);
+            if (wallpaper.simStep() && sceneLoader.item) sceneLoader.item.sync(sim);
+        }
+    }
 
-            // Smoothed stress
-            var intensity = (wallpaper.configuration &&
-                             wallpaper.configuration.reactivityIntensity !== undefined)
-                            ? wallpaper.configuration.reactivityIntensity : 1.0;
-            // Mode 4 = Disabled: sensors stop reporting, so don't keep the last reading
-            var sensorsOff = wallpaper.configuration && wallpaper.configuration.sensorMode === 4;
-            var targetStress = sensorsOff ? 0.0 : wallpaper.sensorStress * intensity;
-            sim.cpuStress += (targetStress - sim.cpuStress) * 0.1;
-            if (Math.abs(sim.cpuStress - targetStress) < 0.005) sim.cpuStress = targetStress;
-            var targetMul = 1.0 + (sim.cpuStress * 0.4);
-            sim.speedMultiplier += (targetMul - sim.speedMultiplier) * 0.1;
-            if (Math.abs(sim.speedMultiplier - targetMul) < 0.005) sim.speedMultiplier = targetMul;
+    // Created dynamically (Qt >= 6.4): a missing type just keeps the Timer above in charge.
+    // frameTime is in seconds. Not running while paused; the first frame after (re)starting
+    // begins with a clean accumulator.
+    function _startFrameLoop() {
+        try {
+            var fa = Qt.createQmlObject(
+                'import QtQuick\nFrameAnimation { }', wallpaper, "frameloop");
+            fa.running = Qt.binding(function () { return !wallpaper.paused; });
+            fa.triggered.connect(function () { wallpaper.onFrame(fa.frameTime * 1000); });
+            fa.runningChanged.connect(function () {
+                if (fa.running) { Ticker.reset(wallpaper._ticker); wallpaper._lastFrameMs = Date.now(); }
+            });
+            wallpaper._lastFrameMs = Date.now();
+            wallpaper._frameAnim = fa;
+            wallpaper._frameDriven = true;
+        } catch (e) {
+            console.warn("Boids: FrameAnimation unavailable, using a timer:", e);
+            wallpaper._frameAnim = null;
+            wallpaper._frameDriven = false;
+        }
+    }
 
-            // Day/night cycle
-            wallpaper._dnTick++;
-            if (wallpaper.configuration && !!wallpaper.configuration.dayNightCycle
-                && wallpaper._dnTick % 75 === 1) {
-                var now = new Date();
-                var h = now.getHours() + now.getMinutes() / 60.0;
-                var dnC = wallpaper.getDayNightColors(h);
-                wallpaper._hour = h;
-                if (Math.abs(wallpaper._hourDaylight - dnC.daylight) > 0.003)
-                    wallpaper._hourDaylight = dnC.daylight;
-                if (wallpaper._dnTop !== dnC.top) wallpaper._dnTop = dnC.top;
-                if (wallpaper._dnBottom !== dnC.bottom) wallpaper._dnBottom = dnC.bottom;
-                var newGL = dnC.glimmer;
-                if (Math.abs(wallpaper.glimmerLevel - newGL) > 0.005)
-                    wallpaper.glimmerLevel = newGL;
-            } else if (!(wallpaper.configuration && !!wallpaper.configuration.dayNightCycle)
-                       && wallpaper.glimmerLevel > 0) {
-                wallpaper.glimmerLevel = 0;
-            }
+    // Idle watchdog: no frame for 2 s while we expect them (frame-driven, not paused) = nobody is
+    // presenting this screen; stop the sensors and ambient animations until frames return.
+    Timer {
+        id: idleWatchdog
+        interval: 1000
+        repeat: true
+        running: wallpaper._frameDriven && !wallpaper.paused
+        onTriggered: {
+            if (!wallpaper.renderIdle && Date.now() - wallpaper._lastFrameMs > 2000) wallpaper.renderIdle = true;
         }
     }
 
@@ -259,7 +327,7 @@ WallpaperItem {
         sensorId: (mode === 3) ? (wallpaper.configuration.sensorId || "cpu/all/usage") :
                   (mode === 2) ? "gpu/all/usage" : "cpu/all/usage"
         updateRateLimit: 500
-        enabled: (mode !== 4) && !wallpaper.paused
+        enabled: (mode !== 4) && !wallpaper.suspended
         onValueChanged: updateStress()
     }
 
@@ -268,84 +336,38 @@ WallpaperItem {
         property int mode: wallpaper.configuration ? wallpaper.configuration.sensorMode : 0
         sensorId: (mode === 3) ? (wallpaper.configuration.sensorId2 || "") : "gpu/all/usage"
         updateRateLimit: 500
-        enabled: ((mode === 0) || (mode === 3 && sensorId !== "")) && !wallpaper.paused
+        enabled: ((mode === 0) || (mode === 3 && sensorId !== "")) && !wallpaper.suspended
         onValueChanged: updateStress()
     }
 
-    // ── Occlusion detection ─────────────────────────────────────
+    // ── Occlusion detection (Occluder.qml) ──
     // Created dynamically so a missing org.kde.taskmanager / kwindowsystem module (or any
-    // error) just leaves _occluder null and the wallpaper running as before.
-    // Covered = a non-minimized, non-hidden maximized/fullscreen window on this screen,
-    // current virtual desktop and current activity (and the desktop is not being "shown").
-    readonly property string _occluderSource: `
-import QtQuick
-import org.kde.taskmanager as TaskManager
-import org.kde.kwindowsystem
-
-Item {
-    id: occ
-    property rect screenRect: Qt.rect(0, 0, 0, 0)
-    property bool covered: false
-
-    TaskManager.VirtualDesktopInfo { id: vdInfo }
-    TaskManager.ActivityInfo { id: actInfo }
-
-    TaskManager.TasksModel {
-        id: tasks
-        filterByScreen: true
-        filterByCurrentVirtualDesktop: true
-        filterByActivity: true
-        filterHidden: true
-        filterMinimized: true
-        groupMode: TaskManager.TasksModel.GroupDisabled
-        screenGeometry: occ.screenRect
-        activity: actInfo.currentActivity
-    }
-
-    function recompute() {
-        var c = false;
-        if (screenRect.width > 0 && screenRect.height > 0 && !KWindowSystem.showingDesktop) {
-            for (var i = 0; i < tasks.count && !c; i++) {
-                var idx = tasks.index(i, 0);
-                if (tasks.data(idx, TaskManager.AbstractTasksModel.IsWindow) === true
-                    && (tasks.data(idx, TaskManager.AbstractTasksModel.IsMaximized) === true
-                        || tasks.data(idx, TaskManager.AbstractTasksModel.IsFullScreen) === true))
-                    c = true;
-            }
-        }
-        if (covered !== c) covered = c;
-    }
-    function schedule() { recomputeTimer.restart(); }
-
-    // Coalesce bursts of model signals into one recompute
-    Timer { id: recomputeTimer; interval: 50; onTriggered: occ.recompute() }
-
-    Connections { target: tasks; function onCountChanged() { occ.schedule(); } }
-    Connections { target: tasks; function onDataChanged() { occ.schedule(); } }
-    Connections { target: tasks; function onRowsInserted() { occ.schedule(); } }
-    Connections { target: tasks; function onRowsRemoved() { occ.schedule(); } }
-    Connections { target: tasks; function onModelReset() { occ.schedule(); } }
-    Connections { target: tasks; function onLayoutChanged() { occ.schedule(); } }
-    Connections { target: actInfo; function onCurrentActivityChanged() { occ.schedule(); } }
-    Connections { target: vdInfo; function onCurrentDesktopChanged() { occ.schedule(); } }
-    Connections { target: KWindowSystem; function onShowingDesktopChanged() { occ.schedule(); } }
-    onScreenRectChanged: schedule()
-    Component.onCompleted: recompute()
-}
-`
-
-    Component.onCompleted: {
-        if (!_inShell) return;
+    // error) just leaves _occluder null and the wallpaper running as before (fail-open).
+    // Covered = a maximized/fullscreen window, or visible windows hiding at least `pauseCoverage`
+    // percent of this screen, on the current virtual desktop and activity (desktop not "shown").
+    function _startOccluder() {
         try {
-            var occ = Qt.createQmlObject(_occluderSource, wallpaper, "occluder");
+            var comp = Qt.createComponent(Qt.resolvedUrl("Occluder.qml"), Component.PreferSynchronous);
+            if (comp.status !== Component.Ready) throw new Error(comp.errorString());
+            var occ = comp.createObject(wallpaper);
+            if (!occ) throw new Error("could not create the occluder");
             occ.screenRect = Qt.binding(function() {
                 return Qt.rect(Screen.virtualX, Screen.virtualY, Screen.width, Screen.height);
+            });
+            occ.pauseCoverage = Qt.binding(function() {
+                var v = wallpaper.configuration ? Number(wallpaper.configuration.pauseCoverage) : 90;
+                return (v >= 50 && v <= 100) ? Math.round(v) : 90;
             });
             _occluder = occ;
         } catch (e) {
             console.warn("Boids: occlusion detection unavailable, pause disabled:", e);
             _occluder = null;
         }
+    }
+
+    Component.onCompleted: {
+        _startFrameLoop();
+        if (_inShell) _startOccluder();
     }
     Connections {
         target: wallpaper._occluder
