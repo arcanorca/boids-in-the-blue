@@ -27,8 +27,13 @@ if ! command -v kpackagetool6 &> /dev/null; then
 fi
 
 # Function to install
+# Only metadata.json + contents/ belong in the installed package (not ports, tests, tools)
+STAGE_DIR="$(mktemp -d)"
+trap 'rm -rf "$STAGE_DIR"' EXIT
+cp -r "$PLUGIN_DIR/metadata.json" "$PLUGIN_DIR/contents" "$STAGE_DIR/"
+
 install_pkg() {
-    kpackagetool6 --type Plasma/Wallpaper --install "$PLUGIN_DIR"
+    kpackagetool6 --type Plasma/Wallpaper --install "$STAGE_DIR"
 }
 
 # Function to remove
@@ -165,7 +170,7 @@ echo "📦 Deploying package..."
 status=0
 if kpackagetool6 --type Plasma/Wallpaper --list | grep -qx "$PLUGIN_ID"; then
     echo "🔄 Found existing installation. Attempting upgrade..."
-    if ! kpackagetool6 --type Plasma/Wallpaper --upgrade "$PLUGIN_DIR"; then
+    if ! kpackagetool6 --type Plasma/Wallpaper --upgrade "$STAGE_DIR"; then
         echo "⚠️ Upgrade failed (possibly corrupted installation). Retrying with clean install..."
         remove_pkg
         install_pkg || status=1
