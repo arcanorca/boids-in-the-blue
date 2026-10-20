@@ -1,0 +1,3 @@
+module org.kde.plasma.plasmoid
+WallpaperItem 1.0 WallpaperItem.qml
+WallpaperItem 2.0 WallpaperItem.qml
