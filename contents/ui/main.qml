@@ -48,15 +48,10 @@ WallpaperItem {
         };
     }
 
-    // ── Background + Input Canvas ─────────────────────────────
-    // CRITICAL: This Canvas must have ZERO visual Item children.
-    // Original plugin: Canvas renders bg + entities, MouseAreas are children.
-    // Canvas = QQuickPaintedItem (has ItemHasContents flag).
-    // Having BoidDelegate (also QQuickPaintedItem) children inside Canvas
-    // causes Qt Quick hit-testing to route hover to delegates instead of MouseAreas.
-    // FIX: entityLayer is a SEPARATE sibling Item OUTSIDE Canvas.
-    Canvas {
-        id: mainCanvas
+    // ── Background: water gradient ──
+    // A plain Rectangle gradient (scene-graph geometry, no Canvas painting).
+    Rectangle {
+        id: background
         anchors.fill: parent
 
         property string _waterTop: {
@@ -71,82 +66,74 @@ WallpaperItem {
             return (wallpaper.configuration && wallpaper.configuration.waterBottom)
                     ? wallpaper.configuration.waterBottom : "#051e36";
         }
-        on_WaterTopChanged: requestPaint()
-        on_WaterBottomChanged: requestPaint()
 
-        onPaint: {
-            var ctx = getContext("2d");
-            ctx.setTransform(1, 0, 0, 1, 0, 0);
-            ctx.clearRect(0, 0, width, height);
-            var grad = ctx.createLinearGradient(0, 0, 0, height);
-            grad.addColorStop(0, _waterTop);
-            grad.addColorStop(1, _waterBottom);
-            ctx.fillStyle = grad;
-            ctx.fillRect(0, 0, width, height);
-        }
-
-        // Timer inside Canvas (matches original structure)
-        Timer {
-            id: physicsTimer
-            interval: 40
-            running: !wallpaper.paused
-            repeat: true
-            triggeredOnStart: true
-
-            onTriggered: {
-                // Wait for a real size before creating the simulation
-                if (!sim) {
-                    if (wallpaper.width <= 0 || wallpaper.height <= 0) return;
-                    sim = Boids.createSimulation(
-                        wallpaper.width, wallpaper.height,
-                        Screen.devicePixelRatio, wallpaper.configuration);
-                }
-                Boids.step(sim, 1, wallpaper.configuration);
-                Boids.sync(sim, entityLayer, boidComponent);
-
-                // Smoothed stress
-                var intensity = (wallpaper.configuration &&
-                                 wallpaper.configuration.reactivityIntensity !== undefined)
-                                ? wallpaper.configuration.reactivityIntensity : 1.0;
-                // Mode 4 = Disabled: sensors stop reporting, so don't keep the last reading
-                var sensorsOff = wallpaper.configuration && wallpaper.configuration.sensorMode === 4;
-                var targetStress = sensorsOff ? 0.0 : wallpaper.sensorStress * intensity;
-                sim.cpuStress += (targetStress - sim.cpuStress) * 0.1;
-                if (Math.abs(sim.cpuStress - targetStress) < 0.005) sim.cpuStress = targetStress;
-                var targetMul = 1.0 + (sim.cpuStress * 0.4);
-                sim.speedMultiplier += (targetMul - sim.speedMultiplier) * 0.1;
-                if (Math.abs(sim.speedMultiplier - targetMul) < 0.005) sim.speedMultiplier = targetMul;
-
-                // Day/night cycle
-                wallpaper._dnTick++;
-                if (wallpaper.configuration && !!wallpaper.configuration.dayNightCycle
-                    && wallpaper._dnTick % 75 === 1) {
-                    var now = new Date();
-                    var h = now.getHours() + now.getMinutes() / 60.0;
-                    var dnC = wallpaper.getDayNightColors(h);
-                    if (wallpaper._dnTop !== dnC.top) wallpaper._dnTop = dnC.top;
-                    if (wallpaper._dnBottom !== dnC.bottom) wallpaper._dnBottom = dnC.bottom;
-                    var newGL = dnC.glimmer;
-                    if (Math.abs(wallpaper.glimmerLevel - newGL) > 0.005)
-                        wallpaper.glimmerLevel = newGL;
-                } else if (!(wallpaper.configuration && !!wallpaper.configuration.dayNightCycle)
-                           && wallpaper.glimmerLevel > 0) {
-                    wallpaper.glimmerLevel = 0;
-                }
-            }
+        gradient: Gradient {
+            GradientStop { position: 0.0; color: background._waterTop }
+            GradientStop { position: 1.0; color: background._waterBottom }
         }
 
         // Width and height usually change together: coalesce into one resize
-        function applyResize() {
-            if (sim) Boids.resize(sim, width, height, Screen.devicePixelRatio);
-        }
+        onWidthChanged:  Qt.callLater(wallpaper.applyResize)
+        onHeightChanged: Qt.callLater(wallpaper.applyResize)
+    }
 
-        onWidthChanged:  { requestPaint(); Qt.callLater(applyResize); }
-        onHeightChanged: { requestPaint(); Qt.callLater(applyResize); }
+    function applyResize() {
+        if (sim) Boids.resize(sim, background.width, background.height, Screen.devicePixelRatio);
+    }
+
+    Timer {
+        id: physicsTimer
+        interval: 40
+        running: !wallpaper.paused
+        repeat: true
+        triggeredOnStart: true
+
+        onTriggered: {
+            // Wait for a real size before creating the simulation
+            if (!sim) {
+                if (wallpaper.width <= 0 || wallpaper.height <= 0) return;
+                sim = Boids.createSimulation(
+                    wallpaper.width, wallpaper.height,
+                    Screen.devicePixelRatio, wallpaper.configuration);
+            }
+            Boids.step(sim, 1, wallpaper.configuration);
+            // The entity layer doubles as the (pooling) delegate factory
+            Boids.sync(sim, entityLayer, entityLayer);
+
+            // Smoothed stress
+            var intensity = (wallpaper.configuration &&
+                             wallpaper.configuration.reactivityIntensity !== undefined)
+                            ? wallpaper.configuration.reactivityIntensity : 1.0;
+            // Mode 4 = Disabled: sensors stop reporting, so don't keep the last reading
+            var sensorsOff = wallpaper.configuration && wallpaper.configuration.sensorMode === 4;
+            var targetStress = sensorsOff ? 0.0 : wallpaper.sensorStress * intensity;
+            sim.cpuStress += (targetStress - sim.cpuStress) * 0.1;
+            if (Math.abs(sim.cpuStress - targetStress) < 0.005) sim.cpuStress = targetStress;
+            var targetMul = 1.0 + (sim.cpuStress * 0.4);
+            sim.speedMultiplier += (targetMul - sim.speedMultiplier) * 0.1;
+            if (Math.abs(sim.speedMultiplier - targetMul) < 0.005) sim.speedMultiplier = targetMul;
+
+            // Day/night cycle
+            wallpaper._dnTick++;
+            if (wallpaper.configuration && !!wallpaper.configuration.dayNightCycle
+                && wallpaper._dnTick % 75 === 1) {
+                var now = new Date();
+                var h = now.getHours() + now.getMinutes() / 60.0;
+                var dnC = wallpaper.getDayNightColors(h);
+                if (wallpaper._dnTop !== dnC.top) wallpaper._dnTop = dnC.top;
+                if (wallpaper._dnBottom !== dnC.bottom) wallpaper._dnBottom = dnC.bottom;
+                var newGL = dnC.glimmer;
+                if (Math.abs(wallpaper.glimmerLevel - newGL) > 0.005)
+                    wallpaper.glimmerLevel = newGL;
+            } else if (!(wallpaper.configuration && !!wallpaper.configuration.dayNightCycle)
+                       && wallpaper.glimmerLevel > 0) {
+                wallpaper.glimmerLevel = 0;
+            }
+        }
     }
 
     // ── Entity Layer ──
-    Item {
+    EntityLayer {
         id: entityLayer
         anchors.fill: parent
         z: 1
@@ -279,11 +266,6 @@ WallpaperItem {
                 moveCount = 0;
             }
         }
-    }
-
-    Component {
-        id: boidComponent
-        BoidDelegate {}
     }
 
     // ── Sensors ─────────────────────────────────────────────────

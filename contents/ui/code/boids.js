@@ -26,7 +26,12 @@ function _report(where, e) {
 
 // Core reports every entity it removes (dead, trimmed, non-finite); free its delegate
 function _releaseDelegate(ent) {
-    if (ent.delegate) { ent.delegate.destroy(); ent.delegate = null; }
+    var d = ent.delegate;
+    if (d) {
+        // pooled sprites (EntityLayer) are recycled; anything else is destroyed
+        if (typeof d.release === 'function') d.release(); else d.destroy();
+        ent.delegate = null;
+    }
 }
 
 // --- API ---
@@ -114,6 +119,14 @@ function _syncSim(sim, parent, component) {
                             // Quantised so the sprite is only repainted when the colour visibly changes
                             var col = Core.stressTint(ent.color, stress, pulse, sf);
                             if (dg.colorString !== col) dg.colorString = col;
+                            // same colour as a layer-1 overlay: base + tint at alpha == the blend
+                            // (stress > 1.2: red -> navy by pulse; else base -> #FF3333 by sf)
+                            var hot = stress > 1.2;
+                            var tc = hot ? "#000080" : "#FF3333", ta = hot ? pulse : sf;
+                            var bc = hot ? "#FF0000" : ent.color;
+                            if (dg.baseColor !== bc) dg.baseColor = bc;
+                            if (dg.tintColor !== tc) dg.tintColor = tc;
+                            if (dg.tintAlpha !== ta) dg.tintAlpha = ta;
                             if (stress > 0.5) {
                                 var shake = Core.stressShake(stress);
                                 dg.shakeX = (Core.random() - 0.5) * shake;
@@ -124,6 +137,8 @@ function _syncSim(sim, parent, component) {
                             }
                         } else {
                             if (dg.colorString !== ent.color) dg.colorString = ent.color;
+                            if (dg.baseColor !== ent.color) dg.baseColor = ent.color;
+                            if (dg.tintAlpha !== 0) dg.tintAlpha = 0;
                             if (dg.shakeX !== 0) dg.shakeX = 0;
                             if (dg.shakeY !== 0) dg.shakeY = 0;
                         }
