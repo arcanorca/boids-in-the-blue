@@ -190,9 +190,9 @@ function anglerFrame(fr) {
 }
 for (let f = 0; f < 3; f++) addSprite('ang-' + f, anglerFrame(f));
 const LURES = [
-    ['........', '........', '..oooo..', '..o11o..', '..o11o..', '..oooo..', '........', '........'],
-    ['........', '........', '..oooo..', '..o33o..', '..o33o..', '..oooo..', '........', '........'],
-    ['...33...', '...33...', '.3oooo3.', '33o33o33', '33o33o33', '.3oooo3.', '...33...', '...33...']
+    ['........', '........', '...oo...', '..o11o..', '..o11o..', '...oo...', '........', '........'],
+    ['........', '........', '...oo...', '..o33o..', '..o33o..', '...oo...', '........', '........'],
+    ['...33...', '...33...', '.3.oo.3.', '33o33o33', '33o33o33', '.3.oo.3.', '...33...', '...33...']
 ];
 LURES.forEach((r, i) => addSprite('lure-' + i, remap(parse(r), {})));
 
@@ -257,7 +257,7 @@ const WORMS = [
     ['...oo...', '..obbo..', '.obbho..', '..obbo..', '..ohho..', '...obbo.', '..obbo..', '...oo...']
 ];
 WORMS.forEach((r, i) => addSprite('worm-' + i, remap(parse(r), { o: 0, b: 1, h: 3 })));
-addSprite('bub-0', remap(parse(['........', '..oooo..', '.o....o.', '.o.h..o.', '.o....o.', '..oooo..', '........', '........']), { o: 0, h: 3 }));
+addSprite('bub-0', remap(parse(['........', '..oooo..', '.oh...o.', '.o....o.', '.o....o.', '..oooo..', '........', '........']), { o: 0, h: 3 }));
 addSprite('bub-1', remap(parse(['..oooo..', '.o....o.', 'o..hh..o', 'o.h....o', 'o......o', 'o......o', '.o....o.', '..oooo..']), { o: 0, h: 3 }));
 addSprite('spark-0', remap(parse(['........', '...oo...', '...33...', '.o3333o.', '.o3333o.', '...33...', '...oo...', '........']), {}));
 addSprite('spark-1', remap(parse(['........', '.o....o.', '..o33o..', '...33...', '...33...', '..o33o..', '.o....o.', '........']), {}));
@@ -320,8 +320,8 @@ T.floor = [ditherTile(0, 1, 8), ditherTile(0, 1, 6)];
 T.kelpA = tile(['..o11o..', '.o122o..', 'o11221o.', 'o1121o..', '.o11o...', '.o112o..', 'o11221o.', '.o121o..']);
 T.kelpB = tile(['.o121o..', 'o11221o.', '.o211o..', '..o11o..', '.o1121o.', 'o122110.', '.o122o..', '..o11o..']);
 T.kelpTop = tile(['...oo...', '..o11o..', '.o1221o.', 'o122211.', 'o112211.', '.o1111o.', '..o11o..', '..o11o..']);
-T.grassA = tile(['..o..o..', '.o1..1o.', '.o1.o1o.', 'o1o.o1o.', 'o1o1o1o.', 'o1o1o11o', 'o11o111o', 'o111o11o']);
-T.grassB = tile(['.o..o...', '.1o.1o..', 'o1o.1o..', 'o1o1o1o.', '.o1o1o1o', 'o11o1o1o', 'o111o11o', 'o111o11o']);
+T.grassA = tile(['.o....o.', 'o3o..o3o', 'o3o.o3o.', '.o3oo3o.', '..o33o..', '..o23o..', '..o33o..', '.oo33oo.']);
+T.grassB = tile(['..o..o..', '.o3o.o3o', '.o3oo3o.', '.o3oo3o.', '..o33o..', '..o32o..', '..o33o..', '.oo33oo.']);
 T.shell = tile(['........', '........', '........', '........', '..oooo..', '.o3333o.', '.o3o3oo.', '..oooo..']);
 // boulders: half-ellipse domes, lit from the upper left; their bottoms sink into the sand row
 function boulder(w, h, seed) {
