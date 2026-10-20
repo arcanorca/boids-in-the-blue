@@ -49,6 +49,13 @@ var THEMES = [
         description: "Soft vector illustration with depth fog, kelp and a sandy seabed. Grades itself for dawn and dusk.",
         usesDayNight: true,
         usesWaterColors: false
+    },
+    {
+        id: "onebit",
+        name: "1-Bit",
+        description: "Two colours only: warm paper and deep ink, ordered-dither water, patterned fish, inverted when stressed.",
+        usesDayNight: true,
+        usesWaterColors: false
     }
 ];
 
