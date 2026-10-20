@@ -79,12 +79,16 @@ function bubbleFile(scale) { return scale < 2.25 ? "bubble-s.png" : "bubble-b.pn
 // ── water: ordered-dither gradient ───────────────────────────
 // Density = share of PAPER texels, per daylight: [top, bottom] (0 = pure ink, 1 = pure paper).
 // Rendered with blue-noise tiles (see noiseFile) in 8-texel bands, so the stipple is continuous across bands.
-var WATER = { day: [0.88, 0.05], night: [0.30, 0.0], curve: 2.0 };
+var WATER = { day: [0.88, 0.04], night: [0.30, 0.0], mid: 0.30, width: 0.10 };
+// A logistic ramp (normalised to hit top and bottom exactly): the mid-tones, where blue noise is busiest
+// and flat sprites blend in, are crossed quickly, leaving calm bright and dark zones.
+function _ramp(p) { return 1 / (1 + Math.exp((p - WATER.mid) / WATER.width)); }
 function waterDensity(daylight, p) {
-    var L = Math.max(0, Math.min(1, daylight));
+    var L = Math.max(0, Math.min(1, daylight)), q = Math.max(0, Math.min(1, p));
     var top = WATER.night[0] + (WATER.day[0] - WATER.night[0]) * L;
     var bot = WATER.night[1] + (WATER.day[1] - WATER.night[1]) * L;
-    return bot + (top - bot) * Math.pow(1 - Math.max(0, Math.min(1, p)), WATER.curve);
+    var r0 = _ramp(0), r1 = _ramp(1);
+    return bot + (top - bot) * (_ramp(q) - r1) / (r0 - r1);
 }
 // noise-NN-h.png: 16x8 slice h (0 = matrix rows 0-7, 1 = rows 8-15) of the 16x16 blue-noise matrix at density NN/64
 function noiseFile(level, half) { return "noise-" + (level < 10 ? "0" : "") + level + "-" + half + ".png"; }

@@ -383,7 +383,7 @@ function kelpSprite(ci, frame) {
     for (let y = 0; y < h; y++) for (let x = 0; x < W - 1; x++) if (g[y][x] === 'p' && g[y][x + 1] === '.') o[y][x + 1] = 'k';   // ink shadow to the right
     return o;
 }
-const SHAFT = { cols: T.SHAFT.cols, rows: T.SHAFT.rows, peaks: [0.12, 0.22, 0.34, 0.5] };
+const SHAFT = { cols: T.SHAFT.cols, rows: T.SHAFT.rows, peaks: [0.16, 0.28, 0.42, 0.6] };
 function shaftSprite(level, dir) {
     const W = SHAFT.cols, H = SHAFT.rows, g = mk(W, H), peak = SHAFT.peaks[level];
     for (let y = 0; y < H; y++) {
