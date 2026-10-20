@@ -63,6 +63,13 @@ var THEMES = [
         description: "The sea on a 1989 handheld: four LCD greens, 8x8 tiles and sprites, stepped scrolling water.",
         usesDayNight: true,
         usesWaterColors: false
+    },
+    {
+        id: "onebit",
+        name: "1-Bit",
+        description: "Two colours only: warm paper and deep ink, ordered-dither water, patterned fish, inverted when stressed.",
+        usesDayNight: true,
+        usesWaterColors: false
     }
 ];
 
