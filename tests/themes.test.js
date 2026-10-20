@@ -77,12 +77,11 @@ test('theme folders carry no PNG size-class sprite pipeline', () => {
         assert.ok(!fs.existsSync(path.join(ROOT, f)), f);
 });
 
-test('theme previews for the settings cards: pixel, classic and biolum have a 480x270 preview.png; others fall back to a placeholder', () => {
-    const png = require('./png');
+test('theme previews for the settings cards: every theme has a 480x270 preview.png', () => {
     for (const t of T.THEMES) {
         const f = path.join(ROOT, 'contents', 'themes', t.id, 'preview.png');
-        if (!fs.existsSync(f)) { assert.ok(!['pixel', 'classic', 'biolum'].includes(t.id), t.id + ' preview.png'); continue; }
-        const img = png.decode(fs.readFileSync(f));
-        assert.deepStrictEqual([img.W, img.H], [480, 270], t.id);
+        assert.ok(fs.existsSync(f), t.id + ' preview.png');
+        const b = fs.readFileSync(f);   // IHDR width/height; any PNG colour type
+        assert.deepStrictEqual([b.readUInt32BE(16), b.readUInt32BE(20)], [480, 270], t.id);
     }
 });
