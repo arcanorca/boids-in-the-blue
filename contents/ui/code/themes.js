@@ -42,6 +42,13 @@ var THEMES = [
         description: "Glowing creatures in dark deep water, with marine snow, light shafts and sparkles.",
         usesDayNight: true,
         usesWaterColors: true
+    },
+    {
+        id: "nes",
+        name: "NES",
+        description: "8-bit console look: the 2C02 palette, tile-built sprites, palette-swapped day and night and a scrolling waterline.",
+        usesDayNight: true,
+        usesWaterColors: false
     }
 ];
 
