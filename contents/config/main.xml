@@ -5,6 +5,11 @@
   <kcfgfile name=""/>
 
   <group name="General">
+    <entry name="pauseWhenCovered" type="Bool">
+      <label>Pause when a maximized or fullscreen window covers the desktop</label>
+      <default>true</default>
+    </entry>
+
     <entry name="dayNightCycle" type="Bool">
       <label>Enable day/night cycle</label>
       <default>false</default>

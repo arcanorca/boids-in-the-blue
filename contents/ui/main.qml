@@ -11,6 +11,21 @@ WallpaperItem {
     property var sim: null
     property double sensorStress: 0.0
 
+    // ── Pause when nobody can see the simulation ──────────────
+    // _covered comes from the occluder (below); it stays false if that is unavailable (fail-open).
+    property bool _covered: false
+    readonly property bool _pauseEnabled: !wallpaper.configuration
+                                          || wallpaper.configuration.pauseWhenCovered !== false
+    readonly property bool _hidden: !wallpaper.visible
+                                    || (!!Window.window
+                                        && (Window.window.visibility === Window.Hidden
+                                            || Window.window.visibility === Window.Minimized))
+    // Only inside plasmashell: the lock screen greeter (kscreenlocker_greet) loads wallpaper
+    // plugins too, and windows behind the lock screen must not freeze its wallpaper.
+    readonly property bool _inShell: Qt.application.name === "plasmashell"
+    readonly property bool paused: _inShell && _pauseEnabled && (_covered || _hidden)
+    property var _occluder: null
+
     // Day/night cycle
     property string _dnTop: "#0f4c75"
     property string _dnBottom: "#051e36"
@@ -74,7 +89,7 @@ WallpaperItem {
         Timer {
             id: physicsTimer
             interval: 40
-            running: true
+            running: !wallpaper.paused
             repeat: true
             triggeredOnStart: true
 
@@ -146,7 +161,7 @@ WallpaperItem {
         anchors.top: parent.top
         height: parent.height * 0.10
         z: 2
-        visible: wallpaper.glimmerLevel > 0.01
+        visible: wallpaper.glimmerLevel > 0.01 && !wallpaper.paused
         opacity: wallpaper.glimmerLevel * 0.8
 
         Rectangle {
@@ -171,6 +186,7 @@ WallpaperItem {
                 y: ((index * 0.754878) % 1) * surfaceGlimmer.height * 0.7
                 SequentialAnimation on opacity {
                     loops: Animation.Infinite
+                    paused: wallpaper.paused
                     PauseAnimation { duration: 400 + (index * 731) % 3500 }
                     NumberAnimation { to: 0.25 + (index % 5) * 0.1; duration: 600 + (index % 4) * 200; easing.type: Easing.InOutSine }
                     NumberAnimation { to: 0; duration: 800 + (index % 3) * 300; easing.type: Easing.InOutSine }
@@ -277,7 +293,7 @@ WallpaperItem {
         sensorId: (mode === 3) ? (wallpaper.configuration.sensorId || "cpu/all/usage") :
                   (mode === 2) ? "gpu/all/usage" : "cpu/all/usage"
         updateRateLimit: 500
-        enabled: (mode !== 4)
+        enabled: (mode !== 4) && !wallpaper.paused
         onValueChanged: updateStress()
     }
 
@@ -286,8 +302,89 @@ WallpaperItem {
         property int mode: wallpaper.configuration ? wallpaper.configuration.sensorMode : 0
         sensorId: (mode === 3) ? (wallpaper.configuration.sensorId2 || "") : "gpu/all/usage"
         updateRateLimit: 500
-        enabled: (mode === 0) || (mode === 3 && sensorId !== "")
+        enabled: ((mode === 0) || (mode === 3 && sensorId !== "")) && !wallpaper.paused
         onValueChanged: updateStress()
+    }
+
+    // ── Occlusion detection ─────────────────────────────────────
+    // Created dynamically so a missing org.kde.taskmanager / kwindowsystem module (or any
+    // error) just leaves _occluder null and the wallpaper running as before.
+    // Covered = a non-minimized, non-hidden maximized/fullscreen window on this screen,
+    // current virtual desktop and current activity (and the desktop is not being "shown").
+    readonly property string _occluderSource: `
+import QtQuick
+import org.kde.taskmanager as TaskManager
+import org.kde.kwindowsystem
+
+Item {
+    id: occ
+    property rect screenRect: Qt.rect(0, 0, 0, 0)
+    property bool covered: false
+
+    TaskManager.VirtualDesktopInfo { id: vdInfo }
+    TaskManager.ActivityInfo { id: actInfo }
+
+    TaskManager.TasksModel {
+        id: tasks
+        filterByScreen: true
+        filterByCurrentVirtualDesktop: true
+        filterByActivity: true
+        filterHidden: true
+        filterMinimized: true
+        groupMode: TaskManager.TasksModel.GroupDisabled
+        screenGeometry: occ.screenRect
+        activity: actInfo.currentActivity
+    }
+
+    function recompute() {
+        var c = false;
+        if (screenRect.width > 0 && screenRect.height > 0 && !KWindowSystem.showingDesktop) {
+            for (var i = 0; i < tasks.count && !c; i++) {
+                var idx = tasks.index(i, 0);
+                if (tasks.data(idx, TaskManager.AbstractTasksModel.IsWindow) === true
+                    && (tasks.data(idx, TaskManager.AbstractTasksModel.IsMaximized) === true
+                        || tasks.data(idx, TaskManager.AbstractTasksModel.IsFullScreen) === true))
+                    c = true;
+            }
+        }
+        if (covered !== c) covered = c;
+    }
+    function schedule() { recomputeTimer.restart(); }
+
+    // Coalesce bursts of model signals into one recompute
+    Timer { id: recomputeTimer; interval: 50; onTriggered: occ.recompute() }
+
+    Connections { target: tasks; function onCountChanged() { occ.schedule(); } }
+    Connections { target: tasks; function onDataChanged() { occ.schedule(); } }
+    Connections { target: tasks; function onRowsInserted() { occ.schedule(); } }
+    Connections { target: tasks; function onRowsRemoved() { occ.schedule(); } }
+    Connections { target: tasks; function onModelReset() { occ.schedule(); } }
+    Connections { target: tasks; function onLayoutChanged() { occ.schedule(); } }
+    Connections { target: actInfo; function onCurrentActivityChanged() { occ.schedule(); } }
+    Connections { target: vdInfo; function onCurrentDesktopChanged() { occ.schedule(); } }
+    Connections { target: KWindowSystem; function onShowingDesktopChanged() { occ.schedule(); } }
+    onScreenRectChanged: schedule()
+    Component.onCompleted: recompute()
+}
+`
+
+    Component.onCompleted: {
+        if (!_inShell) return;
+        try {
+            var occ = Qt.createQmlObject(_occluderSource, wallpaper, "occluder");
+            occ.screenRect = Qt.binding(function() {
+                return Qt.rect(Screen.virtualX, Screen.virtualY, Screen.width, Screen.height);
+            });
+            _occluder = occ;
+        } catch (e) {
+            console.warn("Boids: occlusion detection unavailable, pause disabled:", e);
+            _occluder = null;
+        }
+    }
+    Connections {
+        target: wallpaper._occluder
+        ignoreUnknownSignals: true
+        function onCoveredChanged() { wallpaper._covered = wallpaper._occluder.covered; }
     }
 
     function updateStress() {

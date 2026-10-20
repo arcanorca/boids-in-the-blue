@@ -70,9 +70,20 @@ cd boids-in-the-blue
 # 2. Run install script
 ./install.sh
 
-# OR manual install (now supported from root):
+# OR manual install (plugin id: com.github.arcanorca.boidsintheblue):
 # kpackagetool6 --type Plasma/Wallpaper --install .
+# Update an existing install:
+# kpackagetool6 --type Plasma/Wallpaper --upgrade .
+# Uninstall:
+# kpackagetool6 --type Plasma/Wallpaper --remove com.github.arcanorca.boidsintheblue
 ```
+
+### Upgrading from 1.1
+
+v1.2 changed the plugin id (`org.kde.plasma.boidsaquarium11` -> `com.github.arcanorca.boidsintheblue`).
+
+*   **install.sh**: migrates your settings to the new id automatically, switches your desktops to the new plugin and then removes the old package. Plasma must be running; if it is not, the old package is kept and nothing is lost.
+*   **KDE Store**: after installing 1.2, select "Boids in the Blue" again in the Wallpaper settings and remove the old "Boids in the Blue v1.1" entry. Settings must be re-applied manually on this path.
 
 ## // OTHER VERSIONS
 
@@ -103,6 +114,11 @@ A standalone HTML5 version is available in the `boids-web` folder.
 *   **Predator Speed/Aggression**: Fine-tune orca and angler behavior.
 
 ## // CHANGELOG
+
+### v1.2
+- **Plugin id change**: now `com.github.arcanorca.boidsintheblue` (no version in id or name); `install.sh` migrates existing settings and removes the old package.
+- **Pause when covered**: the simulation pauses while a maximized/fullscreen window covers the wallpaper (not applied on the lock screen).
+- **Bug fixes**: (to be refined)
 
 ### v1.1
 - **Major Optimization**: Cached config per-step, removed redundant repaints. CPU thread usage reduced 80% compare to v1.0.

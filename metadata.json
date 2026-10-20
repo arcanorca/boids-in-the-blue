@@ -10,10 +10,10 @@
         "Category": "Abstract",
         "Description": "A lightweight, real-time Boids simulation. Relaxing, interactive, and performance-friendly.",
         "Icon": "preferences-desktop-wallpaper",
-        "Id": "org.kde.plasma.boidsaquarium11",
+        "Id": "com.github.arcanorca.boidsintheblue",
         "License": "GPL-3.0-or-later",
-        "Name": "Boids in the Blue v1.1",
-        "Version": "1.1",
+        "Name": "Boids in the Blue",
+        "Version": "1.2",
         "Website": "https://github.com/arcanorca/boids-in-the-blue"
     },
     "X-KDE-ParentApp": "org.kde.plasmashell"

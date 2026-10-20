@@ -59,6 +59,9 @@ Kirigami.FormLayout {
     property alias cfg_sensorId2: sensorIdInput2.text
     property alias cfg_reactivityIntensity: reactivitySlider.value
 
+    // Performance
+    property alias cfg_pauseWhenCovered: pauseCoveredCheck.checked
+
     // Defaults from main.xml, populated by the shell
     property int cfg_sensorModeDefault
     property int cfg_fishCountDefault
@@ -90,6 +93,7 @@ Kirigami.FormLayout {
     property string cfg_sensorIdDefault
     property string cfg_sensorId2Default
     property double cfg_reactivityIntensityDefault
+    property bool cfg_pauseWhenCoveredDefault
 
 
 
@@ -382,6 +386,15 @@ Kirigami.FormLayout {
         Layout.fillWidth: true
     }
 
+    // ─── PERFORMANCE ──────────────────────────────────────────
+    Kirigami.Separator { Kirigami.FormData.label: i18n("Performance"); Kirigami.FormData.isSection: true }
+
+    CheckBox {
+        id: pauseCoveredCheck
+        Kirigami.FormData.label: i18n("Power saving")
+        text: i18n("Pause when a maximized or fullscreen window covers the desktop")
+    }
+
     // ─── RESET ────────────────────────────────────────────────
     Kirigami.Separator { Kirigami.FormData.isSection: true }
 
@@ -420,6 +433,7 @@ Kirigami.FormLayout {
             root.cfg_sensorId = root.cfg_sensorIdDefault;
             root.cfg_sensorId2 = root.cfg_sensorId2Default;
             root.cfg_reactivityIntensity = root.cfg_reactivityIntensityDefault;
+            root.cfg_pauseWhenCovered = root.cfg_pauseWhenCoveredDefault;
         }
     }
 }
