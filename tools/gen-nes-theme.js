@@ -110,71 +110,72 @@ function renderSprite(W, H, parts) {
 const single = (idx, pal) => renderSprite(idx[0].length, idx.length, [{ idx, x: 0, y: 0, pal }]);
 
 // ── FISH ─────────────────────────────────────────────────────
-// Roles: b body, l belly, f fin/tail, e eye, g gill, p pattern; the outline (o) is added around the fill.
-// 16x8 adult (two tiles wide), faces right.
+// One colour family per fish: a 1-px outline (o, added by outline() in the family's dark shade), a
+// two-tone body (b body, l belly), one eye (e) and at most one marking (p). Adults are 10x7 art
+// centred in a 16x8 metasprite (two tiles), fry 6x5 art in one 8x8 tile. Faces right.
 const FISH_M = [
-    '................',
-    '.....ffff.......',
-    '.....bbbbbbb....',
-    '....bbbbbbbbbb..',
-    '....bbbbbbbbeb..',
-    '....llllllllll..',
-    '.....llllllll...',
-    '................'
+    '..........',
+    '....bbb...',
+    '...bbbbe..',
+    '...bbbbbb.',
+    '...lllll..',
+    '....lll...',
+    '..........'
 ];
-const FISH_M_TAIL = [          // cols 0..3, rows 1..6 (two beat frames)
-    ['f...', 'ff..', 'fff.', 'fff.', '.ff.', '.f..'],
-    ['.f..', '.ff.', 'fff.', 'fff.', 'ff..', 'f...']
+const FISH_M_TAIL = [          // tail fill, beat frame 0 (forked) and 1 (closed)
+    [[1, 1], [1, 2], [2, 2], [2, 3], [2, 4], [1, 4], [1, 5]],
+    [[1, 2], [1, 3], [2, 3], [1, 4]]
 ];
-const FISH_M_GILL = [[10, 4], [10, 5]];
-const FISH_M_PECT = [[7, 5], [8, 5], [7, 6]];      // pectoral fin, over the belly
-const FISH_M_MARK = {         // pattern pixels per variant (x, y)
-    coral:  [[7, 2], [7, 3], [8, 4], [8, 3]],
-    amber:  [[6, 3], [9, 4], [8, 2], [11, 3]],
-    lemon:  [[5, 4], [6, 4], [7, 4], [8, 4]],
-    aqua:   [[6, 3], [7, 3], [8, 3], [9, 3]],
-    orchid: [[6, 4], [8, 3], [9, 5], [7, 5]]
+// the single marking of each variant: [role, x, y] (coral back stripe, amber spot, aqua belly stripe)
+const FISH_M_MARK = {
+    coral:  [['p', 4, 2], ['p', 5, 2]],
+    amber:  [['p', 5, 3]],
+    lemon:  [],
+    aqua:   [['p', 4, 4], ['p', 5, 4], ['p', 6, 4]],
+    orchid: []                 // orchid: the tail (fins) is drawn in the pattern colour
 };
-// 8x8 fry (one tile)
+// fry: 8x8 tile, the art is 6x5 at x 1..6 (centred)
 const FISH_S = [
     '........',
     '........',
+    '...bbe..',
     '...bbb..',
-    '..bbbbb.',
-    '..bbbeb.',
-    '..lllll.',
     '...lll..',
+    '........',
+    '........',
     '........'
 ];
-const FISH_S_TAIL = [[[1, 3], [0, 4], [1, 4], [1, 5]], [[0, 3], [1, 3], [1, 4], [0, 5], [1, 5]]];   // two beat frames
-// colour roles -> index per variant: [palette, {role: index 1..3}]
+const FISH_S_TAIL = [[[2, 2], [2, 4]], [[2, 3]]];
+// colour roles -> palette index per variant: [palette, {role: index 1..3}]
 const FISH_ROLES = {
-    aqua:    [['teal'],    { o: 1, b: 2, l: 3, f: 2, e: 1, g: 1, p: 3 }],
-    orchid:  [['pink'],    { o: 1, b: 2, l: 3, f: 2, e: 1, g: 1, p: 3 }],
-    amber:   [['gold'],    { o: 1, b: 2, l: 3, f: 2, e: 1, g: 1, p: 1 }],
-    coral:   [['coral'],   { o: 1, b: 2, l: 3, f: 2, e: 1, g: 1, p: 3 }],
-    lemon:   [['gold'],    { o: 1, b: 3, l: 2, f: 2, e: 1, g: 2, p: 1 }],
-    'alarm-a': [['coral', 0], { o: 1, b: 2, l: 3, f: 2, e: 1, g: 1, p: 3 }],
-    'alarm-b': [['coral', 1], { o: 1, b: 2, l: 3, f: 2, e: 1, g: 1, p: 3 }]
+    aqua:    [['teal'],  { o: 1, b: 2, l: 3, f: 2, e: 1, p: 1 }],
+    orchid:  [['pink'],  { o: 1, b: 2, l: 3, f: 3, e: 1, p: 3 }],
+    amber:   [['gold'],  { o: 1, b: 2, l: 3, f: 2, e: 1, p: 1 }],
+    coral:   [['coral'], { o: 1, b: 2, l: 3, f: 2, e: 1, p: 3 }],
+    lemon:   [['gold'],  { o: 1, b: 3, l: 2, f: 3, e: 1, p: 1 }],
+    'alarm-a': [['coral', 0], { o: 1, b: 2, l: 3, f: 2, e: 1, p: 3 }],
+    'alarm-b': [['coral', 1], { o: 1, b: 2, l: 3, f: 2, e: 1, p: 3 }]
 };
 function fishSprite(cls, variant, frame) {
-    const base = variant.startsWith('alarm') ? 'coral' : variant;     // markings of the coral fish
     const [pal, map] = FISH_ROLES[variant];
-    let g;
+    const alarm = variant.startsWith('alarm');
+    const base = alarm ? 'coral' : variant;                          // alarm fish carry no marking
     if (cls === 'm') {
-        g = fromRows(FISH_M);
-        pts(g, 'g', FISH_M_GILL);
-        pts(g, 'f', FISH_M_PECT);
-        if (!variant.startsWith('alarm')) pts(g, 'p', FISH_M_MARK[base].filter(([x, y]) => get(g, x, y) === 'b'));
-        ascii(g, FISH_M_TAIL[frame], 0, 1);
-    } else {
-        g = fromRows(FISH_S);
-        pts(g, 'f', FISH_S_TAIL[frame]);
-        if (variant === 'lemon' || variant === 'orchid' || variant === 'aqua') pts(g, 'p', [[4, 3]]);
-        if (variant === 'amber' || variant === 'coral') pts(g, 'p', [[3, 4]]);
+        const art = fromRows(FISH_M);
+        const tail = FISH_M_TAIL[frame];
+        pts(art, 'f', tail);
+        if (!alarm) for (const [role, x, y] of FISH_M_MARK[base]) put(art, x, y, role);
+        if (variant === 'orchid') pts(art, 'p', tail);             // orchid: pale fins
+        outline(art);
+        const g = mk(16, 8);                                         // centre the 10x7 art in 16x8
+        art.forEach((r, y) => r.forEach((ch, x) => put(g, x + 3, y, ch)));
+        return single(toIdx(g, map, 'fish m ' + variant), pal);
     }
+    const g = fromRows(FISH_S);
+    pts(g, 'f', FISH_S_TAIL[frame]);
+    if (variant === 'orchid') pts(g, 'p', FISH_S_TAIL[frame]);
     outline(g);
-    return single(toIdx(g, map, 'fish ' + cls + ' ' + variant), pal);
+    return single(toIdx(g, map, 'fish s ' + variant), pal);
 }
 
 // ── ORCA ─────────────────────────────────────────────────────
@@ -249,21 +250,22 @@ function anglerSprite(frame, lure) {
 }
 
 // ── JELLY ────────────────────────────────────────────────────
-// 8x16 (1x2 tiles), palette 'violet': B bell, s shade, d gonad, t tentacle, u tentacle light
+// 8x16 (1x2 tiles), palette 'pink': B bell, s rim (dark), t tentacle (dark), u tentacle highlight.
+// Three tentacles; the bell pulses by one row between the two frames.
 function jellySprite(frame) {
     const g = mk(8, 16);
     ascii(g, frame === 0
-        ? ['..BBBB..', '.BBBBBB.', 'BBBddBBB', 'BBBddBBB', 'sBBBBBBs', '.s.ss.s.']
-        : ['........', '..BBBB..', '.BBBBBB.', '.BBddBB.', '.sBddBs.', '..ssss..']);
+        ? ['..BBBB..', '.BBBBBB.', 'BBBBBBBB', 'BBBBBBBB', 'ssssssss']
+        : ['........', '..BBBB..', '.BBBBBB.', 'BBBBBBBB', 'ssssssss']);
     const ph = frame * Math.PI;
-    [1, 3, 5, 6].forEach((x0, t) => {
+    [1, 4, 6].forEach((x0, t) => {
         const len = 9 + (t % 2);
         for (let j = 0; j < len; j++) {
             const x = x0 + Math.round(Math.sin(j * 0.7 + t * 1.3 + ph) * 0.9);
-            put(g, Math.max(0, Math.min(7, x)), 6 + j, j % 3 === 2 ? 'u' : 't');
+            put(g, Math.max(0, Math.min(7, x)), 5 + j, j % 3 === 2 ? 'u' : 't');
         }
     });
-    return single(toIdx(g, { B: 2, s: 1, d: 1, t: 3, u: 2 }, 'jelly'), ['pink']);
+    return single(toIdx(g, { B: 2, s: 1, t: 1, u: 3 }, 'jelly'), ['pink']);
 }
 
 // ── WORM ─────────────────────────────────────────────────────
