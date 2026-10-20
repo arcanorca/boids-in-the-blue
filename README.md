@@ -107,19 +107,21 @@ A standalone HTML5 version is available in the `boids-web` folder.
 *   **Left-click**: Drop food (Worms).
 *   **Left-click hold**: Cursor interaction fallback (fish flee + bubbles).
 
-**Settings Menu** (top to bottom, most used first):
+**Settings** (five tabs; **Reset to Defaults** is at the bottom):
 
-*   **Theme**: see below.
-*   **Ocean**: how many fish, jellyfish, anglerfish and orcas.
-*   **Behavior**: cursor reaction (Off to Panic), orca/angler aggression, and fish flocking presets (Calm, Default, Lively, Chaotic).
-*   **Environment**: day/night cycle and water colors (greyed out, with a note, when the theme does not use them).
-*   **System reactivity**: react to CPU, GPU, a custom sensor or nothing, and how strongly.
-*   **Performance**: pause while the desktop is covered.
-*   **Advanced** (collapsed): creature sizes, speeds and the raw flocking values. **Reset to Defaults** is at the bottom.
+*   **Appearance**: pick the visual theme from preview cards (switches live).
+*   **Ocean**: how many fish, jellyfish, anglerfish and orcas, and how big each is (and the worms you drop).
+*   **Behavior**: flocking style (Calm, Default, Lively, Chaotic), cursor reaction (Off to Panic), orca/angler aggression and speed. *Advanced flocking* (collapsed) has the raw values: speeds, vision range, personal space, attraction, alignment, repulsion, random drift, edge avoidance.
+*   **Environment**: day/night cycle and water colors with a preview (greyed out, with a note, when the theme does not use them).
+*   **System**: react to CPU, GPU, a custom sensor or nothing, and how strongly; pause the animation while the desktop is covered, and how much of the screen must be covered.
+
+**Power saving**: the simulation is driven by the rendered frames, so it stops by itself on a screen the compositor no longer presents (monitor off or in power saving, lid closed on a laptop whose internal display is disabled, covered). Each screen is independent: an external monitor keeps animating while the laptop panel sleeps. After two seconds without frames the sensors and ambient animations are switched off too. Windows covering at least 90 % of a screen (adjustable 50 to 100 %, for example three tiled terminals) pause it like a maximized window does.
+
+**Flocking presets** are measured, not guessed: `npm run flock` prints schooling, spacing, collision and turning metrics for each preset on the real simulation (`tests/flock-eval.js`).
 
 ## // THEMES
 
-Three looks share the same simulation. Open the wallpaper settings and pick one under **Theme** (it switches live):
+Three looks share the same simulation. Open the wallpaper settings and pick one on the **Appearance** tab (it switches live):
 
 *   **Refined Pixel** (default): crisp animated pixel-art sprites, smooth water gradient, light shafts, marine snow and a seabed.
 *   **Classic**: the original blocky sprites on a smooth gradient.
@@ -130,9 +132,12 @@ Three looks share the same simulation. Open the wallpaper settings and pick one 
 ### v1.2
 - **Soft Illustrated archived**: the theme was removed; it is preserved in the git tag `archive/illustrated`. A saved `illustrated` setting falls back to Refined Pixel.
 - **Plugin id change**: now `com.github.arcanorca.boidsintheblue` (no version in id or name); `install.sh` migrates existing settings and removes the old package.
-- **Pause when covered**: the simulation pauses while a maximized/fullscreen window covers the wallpaper (not applied on the lock screen).
+- **Pause when covered**: the simulation pauses while a maximized/fullscreen window, or windows covering at least 90 % of the screen (new setting, 50 to 100 %), hide the wallpaper (not applied on the lock screen).
+- **Frame-driven simulation**: stepping follows the rendered frames at a fixed 25 steps per second on any display rate, so it stops on screens that are off, closed or blanked while other monitors keep running; idle screens also switch off sensors and ambient animations.
+- **Smoother water**: Refined Pixel uses one smooth gradient instead of stepped bands.
+- **Flocking**: new defaults and presets that school smoothly (fish used to twitch from oversized separation kicks); the cohesion, alignment, repulsion, random drift and edge ranges were rescaled to span sane behaviour. Saved custom values stay; values outside the new ranges fall back to the defaults.
 - **Themes**: three selectable looks (Refined Pixel is the new default, Classic keeps the original rendering, plus Bioluminescent Deep); switching at runtime keeps the same school.
-- **Settings redesign**: grouped by Theme, Ocean, Behavior, Environment, System reactivity and Performance; flocking presets; plain-word levels instead of "Zen+"; help buttons; raw sizes, speeds and flocking values moved into a collapsed Advanced section. All saved settings keep working.
+- **Settings redesign**: five tabs (Appearance with theme preview cards, Ocean, Behavior, Environment, System); flocking presets; plain-word levels instead of "Zen+"; help buttons; advanced flocking values collapsed. All saved settings keep working.
 - **Bug fixes**: (to be refined)
 
 ### v1.1
