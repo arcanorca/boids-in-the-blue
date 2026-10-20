@@ -5,6 +5,11 @@
   <kcfgfile name=""/>
 
   <group name="General">
+    <entry name="theme" type="String">
+      <label>Visual theme (pixel, classic, biolum, illustrated)</label>
+      <default>pixel</default>
+    </entry>
+
     <entry name="pauseWhenCovered" type="Bool">
       <label>Pause when a maximized or fullscreen window covers the desktop</label>
       <default>true</default>

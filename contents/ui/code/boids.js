@@ -25,8 +25,21 @@ function _report(where, e) {
 }
 
 // Core reports every entity it removes (dead, trimmed, non-finite); free its delegate
+// Pooled delegates (theme entity layers) are recycled via release(); plain ones are destroyed.
 function _releaseDelegate(ent) {
-    if (ent.delegate) { ent.delegate.destroy(); ent.delegate = null; }
+    var d = ent.delegate;
+    if (!d) return;
+    ent.delegate = null;
+    try { if (typeof d.release === 'function') d.release(); else d.destroy(); }
+    catch (e) { _report('release', e); }
+}
+// Hand back every delegate of every entity (theme switch): the simulation itself is untouched.
+function releaseAll(sim) {
+    if (!sim) return;
+    for (var l = 0; l < sim.allLists.length; l++) {
+        var list = sim.allLists[l];
+        for (var i = 0; i < list.length; i++) _releaseDelegate(list[i]);
+    }
 }
 
 // --- API ---

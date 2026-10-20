@@ -4,6 +4,7 @@ import org.kde.plasma.plasmoid
 import org.kde.ksysguard.sensors 1.0 as Sensors
 
 import "code/boids.js" as Boids
+import "code/themes.js" as Themes
 
 WallpaperItem {
     id: wallpaper
@@ -22,15 +23,47 @@ WallpaperItem {
                                             || Window.window.visibility === Window.Minimized))
     // Only inside plasmashell: the lock screen greeter (kscreenlocker_greet) loads wallpaper
     // plugins too, and windows behind the lock screen must not freeze its wallpaper.
-    readonly property bool _inShell: Qt.application.name === "plasmashell"
+    property bool _inShell: Qt.application.name === "plasmashell"   // writable only so tests/qml/switch.qml can pose as the shell
     readonly property bool paused: _inShell && _pauseEnabled && (_covered || _hidden)
     property var _occluder: null
+    readonly property var _scene: sceneLoader.item       // the active theme's scene (tests)
 
     // Day/night cycle
     property string _dnTop: "#0f4c75"
     property string _dnBottom: "#051e36"
     property int _dnTick: 0
     property real glimmerLevel: 0.0
+    property real _hour: 12            // hour of day, refreshed while the cycle is on
+    property real _hourDaylight: 1.0   // 0 night .. 1 day for _hour
+
+    // ── Theme ──
+    // The configured id (unknown/empty -> default) and the one actually shown. They differ only
+    // for an instant: on a change every delegate of the old theme is released first, then the
+    // Loader below swaps the scene. The simulation object is never touched.
+    readonly property string themeId: Themes.resolve(wallpaper.configuration ? wallpaper.configuration.theme : "")
+    property string activeTheme: themeId
+    onThemeIdChanged: {
+        if (themeId === activeTheme) return;
+        Boids.releaseAll(sim);
+        activeTheme = themeId;
+    }
+    readonly property bool _cycle: !!wallpaper.configuration && !!wallpaper.configuration.dayNightCycle
+    readonly property real daylight: _cycle ? _hourDaylight : 1.0
+    readonly property string _waterTop: {
+        if (_cycle) return _dnTop;
+        return (wallpaper.configuration && wallpaper.configuration.waterTop)
+                ? wallpaper.configuration.waterTop : "#0f4c75";
+    }
+    readonly property string _waterBottom: {
+        if (_cycle) return _dnBottom;
+        return (wallpaper.configuration && wallpaper.configuration.waterBottom)
+                ? wallpaper.configuration.waterBottom : "#051e36";
+    }
+    // own water colours: cycle off and different from the defaults (themes keep their own palette otherwise)
+    readonly property bool _customWater: !_cycle && !!wallpaper.configuration
+        && !!wallpaper.configuration.waterTop && !!wallpaper.configuration.waterBottom
+        && (String(wallpaper.configuration.waterTop).toLowerCase() !== "#0f4c75"
+            || String(wallpaper.configuration.waterBottom).toLowerCase() !== "#051e36")
 
     function getDayNightColors(h) {
         var b = (Math.cos((h - 12) * Math.PI / 12) + 1) / 2;
@@ -44,159 +77,97 @@ WallpaperItem {
         return {
             top: "#" + ((1<<24)|(r1<<16)|(g1<<8)|b1).toString(16).slice(1),
             bottom: "#" + ((1<<24)|(r2<<16)|(g2<<8)|b2).toString(16).slice(1),
-            glimmer: Math.max(sunrise, sunset)
+            glimmer: Math.max(sunrise, sunset),
+            daylight: b
         };
     }
 
-    // ── Background + Input Canvas ─────────────────────────────
-    // CRITICAL: This Canvas must have ZERO visual Item children.
-    // Original plugin: Canvas renders bg + entities, MouseAreas are children.
-    // Canvas = QQuickPaintedItem (has ItemHasContents flag).
-    // Having BoidDelegate (also QQuickPaintedItem) children inside Canvas
-    // causes Qt Quick hit-testing to route hover to delegates instead of MouseAreas.
-    // FIX: entityLayer is a SEPARATE sibling Item OUTSIDE Canvas.
-    Canvas {
-        id: mainCanvas
+    // ── Themed scene: background, ambience and the entity layer ──
+    // Scene.qml of the active theme (see code/themes.js for the contract). Sibling of the input
+    // layer, which stays on top and gets every event first.
+    Loader {
+        id: sceneLoader
         anchors.fill: parent
-
-        property string _waterTop: {
-            if (wallpaper.configuration && !!wallpaper.configuration.dayNightCycle)
-                return wallpaper._dnTop;
-            return (wallpaper.configuration && wallpaper.configuration.waterTop)
-                    ? wallpaper.configuration.waterTop : "#0f4c75";
-        }
-        property string _waterBottom: {
-            if (wallpaper.configuration && !!wallpaper.configuration.dayNightCycle)
-                return wallpaper._dnBottom;
-            return (wallpaper.configuration && wallpaper.configuration.waterBottom)
-                    ? wallpaper.configuration.waterBottom : "#051e36";
-        }
-        on_WaterTopChanged: requestPaint()
-        on_WaterBottomChanged: requestPaint()
-
-        onPaint: {
-            var ctx = getContext("2d");
-            ctx.setTransform(1, 0, 0, 1, 0, 0);
-            ctx.clearRect(0, 0, width, height);
-            var grad = ctx.createLinearGradient(0, 0, 0, height);
-            grad.addColorStop(0, _waterTop);
-            grad.addColorStop(1, _waterBottom);
-            ctx.fillStyle = grad;
-            ctx.fillRect(0, 0, width, height);
-        }
-
-        // Timer inside Canvas (matches original structure)
-        Timer {
-            id: physicsTimer
-            interval: 40
-            running: !wallpaper.paused
-            repeat: true
-            triggeredOnStart: true
-
-            onTriggered: {
-                // Wait for a real size before creating the simulation
-                if (!sim) {
-                    if (wallpaper.width <= 0 || wallpaper.height <= 0) return;
-                    sim = Boids.createSimulation(
-                        wallpaper.width, wallpaper.height,
-                        Screen.devicePixelRatio, wallpaper.configuration);
-                }
-                Boids.step(sim, 1, wallpaper.configuration);
-                Boids.sync(sim, entityLayer, boidComponent);
-
-                // Smoothed stress
-                var intensity = (wallpaper.configuration &&
-                                 wallpaper.configuration.reactivityIntensity !== undefined)
-                                ? wallpaper.configuration.reactivityIntensity : 1.0;
-                // Mode 4 = Disabled: sensors stop reporting, so don't keep the last reading
-                var sensorsOff = wallpaper.configuration && wallpaper.configuration.sensorMode === 4;
-                var targetStress = sensorsOff ? 0.0 : wallpaper.sensorStress * intensity;
-                sim.cpuStress += (targetStress - sim.cpuStress) * 0.1;
-                if (Math.abs(sim.cpuStress - targetStress) < 0.005) sim.cpuStress = targetStress;
-                var targetMul = 1.0 + (sim.cpuStress * 0.4);
-                sim.speedMultiplier += (targetMul - sim.speedMultiplier) * 0.1;
-                if (Math.abs(sim.speedMultiplier - targetMul) < 0.005) sim.speedMultiplier = targetMul;
-
-                // Day/night cycle
-                wallpaper._dnTick++;
-                if (wallpaper.configuration && !!wallpaper.configuration.dayNightCycle
-                    && wallpaper._dnTick % 75 === 1) {
-                    var now = new Date();
-                    var h = now.getHours() + now.getMinutes() / 60.0;
-                    var dnC = wallpaper.getDayNightColors(h);
-                    if (wallpaper._dnTop !== dnC.top) wallpaper._dnTop = dnC.top;
-                    if (wallpaper._dnBottom !== dnC.bottom) wallpaper._dnBottom = dnC.bottom;
-                    var newGL = dnC.glimmer;
-                    if (Math.abs(wallpaper.glimmerLevel - newGL) > 0.005)
-                        wallpaper.glimmerLevel = newGL;
-                } else if (!(wallpaper.configuration && !!wallpaper.configuration.dayNightCycle)
-                           && wallpaper.glimmerLevel > 0) {
-                    wallpaper.glimmerLevel = 0;
-                }
-            }
-        }
-
-        // Width and height usually change together: coalesce into one resize
-        function applyResize() {
-            if (sim) Boids.resize(sim, width, height, Screen.devicePixelRatio);
-        }
-
-        onWidthChanged:  { requestPaint(); Qt.callLater(applyResize); }
-        onHeightChanged: { requestPaint(); Qt.callLater(applyResize); }
-    }
-
-    // ── Entity Layer ──
-    Item {
-        id: entityLayer
-        anchors.fill: parent
-        z: 1
+        z: 0
         enabled: false
-    }
-
-    // ── Surface Glimmer (golden shimmer at water surface during sunrise/sunset) ──
-    Item {
-        id: surfaceGlimmer
-        anchors.left: parent.left
-        anchors.right: parent.right
-        anchors.top: parent.top
-        height: parent.height * 0.10
-        z: 2
-        visible: wallpaper.glimmerLevel > 0.01 && !wallpaper.paused
-        opacity: wallpaper.glimmerLevel * 0.8
-
-        Rectangle {
-            anchors.fill: parent
-            gradient: Gradient {
-                GradientStop { position: 0.0; color: "#30ff8c42" }
-                GradientStop { position: 0.4; color: "#18ff7a30" }
-                GradientStop { position: 1.0; color: "#00000000" }
-            }
-        }
-
-        Repeater {
-            model: 20
-            delegate: Rectangle {
-                width: 2 + (index % 3)
-                height: width
-                radius: width / 2
-                color: index % 3 === 0 ? "#ffa060" : (index % 3 === 1 ? "#ff8c42" : "#ff7a30")
-                opacity: 0
-                // Golden-ratio spread: deterministic, follows resizes
-                x: ((index * 0.618034) % 1) * surfaceGlimmer.width
-                y: ((index * 0.754878) % 1) * surfaceGlimmer.height * 0.7
-                SequentialAnimation on opacity {
-                    loops: Animation.Infinite
-                    paused: wallpaper.paused
-                    PauseAnimation { duration: 400 + (index * 731) % 3500 }
-                    NumberAnimation { to: 0.25 + (index % 5) * 0.1; duration: 600 + (index % 4) * 200; easing.type: Easing.InOutSine }
-                    NumberAnimation { to: 0; duration: 800 + (index % 3) * 300; easing.type: Easing.InOutSine }
-                }
-            }
+        source: Qt.resolvedUrl(Themes.sceneFile(wallpaper.activeTheme))
+        onLoaded: {
+            item.sim = Qt.binding(function () { return wallpaper.sim; });
         }
     }
+    Binding { target: sceneLoader.item; property: "paused"; value: wallpaper.paused; when: sceneLoader.item !== null; restoreMode: Binding.RestoreNone }
+    Binding { target: sceneLoader.item; property: "daylight"; value: wallpaper.daylight; when: sceneLoader.item !== null; restoreMode: Binding.RestoreNone }
+    Binding { target: sceneLoader.item; property: "hour"; value: wallpaper._hour; when: sceneLoader.item !== null; restoreMode: Binding.RestoreNone }
+    Binding { target: sceneLoader.item; property: "dayNight"; value: wallpaper._cycle; when: sceneLoader.item !== null; restoreMode: Binding.RestoreNone }
+    Binding { target: sceneLoader.item; property: "waterTop"; value: wallpaper._waterTop; when: sceneLoader.item !== null; restoreMode: Binding.RestoreNone }
+    Binding { target: sceneLoader.item; property: "waterBottom"; value: wallpaper._waterBottom; when: sceneLoader.item !== null; restoreMode: Binding.RestoreNone }
+    Binding { target: sceneLoader.item; property: "customWater"; value: wallpaper._customWater; when: sceneLoader.item !== null; restoreMode: Binding.RestoreNone }
+    Binding { target: sceneLoader.item; property: "dpr"; value: Screen.devicePixelRatio; when: sceneLoader.item !== null; restoreMode: Binding.RestoreNone }
+    Binding { target: sceneLoader.item; property: "glimmerLevel"; value: wallpaper.glimmerLevel; when: sceneLoader.item !== null; restoreMode: Binding.RestoreNone }
 
-    // ── Input Layer (TOPMOST — z:10, sibling of Canvas & entityLayer) ──
-    // Not inside Canvas. Not blocked by entityLayer. Gets all events first.
+    // ── Simulation loop ──
+    Timer {
+        id: physicsTimer
+        interval: 40
+        running: !wallpaper.paused
+        repeat: true
+        triggeredOnStart: true
+
+        onTriggered: {
+            // Wait for a real size before creating the simulation
+            if (!sim) {
+                if (wallpaper.width <= 0 || wallpaper.height <= 0) return;
+                sim = Boids.createSimulation(
+                    wallpaper.width, wallpaper.height,
+                    Screen.devicePixelRatio, wallpaper.configuration);
+            }
+            Boids.step(sim, 1, wallpaper.configuration);
+            if (sceneLoader.item) sceneLoader.item.sync(sim);
+
+            // Smoothed stress
+            var intensity = (wallpaper.configuration &&
+                             wallpaper.configuration.reactivityIntensity !== undefined)
+                            ? wallpaper.configuration.reactivityIntensity : 1.0;
+            // Mode 4 = Disabled: sensors stop reporting, so don't keep the last reading
+            var sensorsOff = wallpaper.configuration && wallpaper.configuration.sensorMode === 4;
+            var targetStress = sensorsOff ? 0.0 : wallpaper.sensorStress * intensity;
+            sim.cpuStress += (targetStress - sim.cpuStress) * 0.1;
+            if (Math.abs(sim.cpuStress - targetStress) < 0.005) sim.cpuStress = targetStress;
+            var targetMul = 1.0 + (sim.cpuStress * 0.4);
+            sim.speedMultiplier += (targetMul - sim.speedMultiplier) * 0.1;
+            if (Math.abs(sim.speedMultiplier - targetMul) < 0.005) sim.speedMultiplier = targetMul;
+
+            // Day/night cycle
+            wallpaper._dnTick++;
+            if (wallpaper.configuration && !!wallpaper.configuration.dayNightCycle
+                && wallpaper._dnTick % 75 === 1) {
+                var now = new Date();
+                var h = now.getHours() + now.getMinutes() / 60.0;
+                var dnC = wallpaper.getDayNightColors(h);
+                wallpaper._hour = h;
+                if (Math.abs(wallpaper._hourDaylight - dnC.daylight) > 0.003)
+                    wallpaper._hourDaylight = dnC.daylight;
+                if (wallpaper._dnTop !== dnC.top) wallpaper._dnTop = dnC.top;
+                if (wallpaper._dnBottom !== dnC.bottom) wallpaper._dnBottom = dnC.bottom;
+                var newGL = dnC.glimmer;
+                if (Math.abs(wallpaper.glimmerLevel - newGL) > 0.005)
+                    wallpaper.glimmerLevel = newGL;
+            } else if (!(wallpaper.configuration && !!wallpaper.configuration.dayNightCycle)
+                       && wallpaper.glimmerLevel > 0) {
+                wallpaper.glimmerLevel = 0;
+            }
+        }
+    }
+
+    // Width and height usually change together: coalesce into one resize
+    function applyResize() {
+        if (sim) Boids.resize(sim, width, height, Screen.devicePixelRatio);
+    }
+    onWidthChanged:  Qt.callLater(applyResize)
+    onHeightChanged: Qt.callLater(applyResize)
+
+    // ── Input Layer (TOPMOST — z:10, sibling of the scene) ──
+    // Not inside the scene, so no theme can block it. Gets all events first.
     Item {
         id: inputLayer
         anchors.fill: parent
@@ -279,11 +250,6 @@ WallpaperItem {
                 moveCount = 0;
             }
         }
-    }
-
-    Component {
-        id: boidComponent
-        BoidDelegate {}
     }
 
     // ── Sensors ─────────────────────────────────────────────────

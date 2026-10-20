@@ -9,6 +9,11 @@
     "test": "node tools/build.js --check && node --test tests/",
     "bench": "node tests/bench.js",
     "golden:qml": "node tests/qml-golden.js",
-    "golden:gen": "node tools/gen-golden.js"
+    "golden:gen": "node tools/gen-golden.js",
+    "test:qml": "node tests/qml-golden.js && node tests/qml-render.js compare && node tests/qml-render.js smoke && node tests/qml-switch.js",
+    "render:compare": "node tests/qml-render.js compare",
+    "render:smoke": "node tests/qml-render.js smoke",
+    "render:previews": "node tests/qml-render.js previews",
+    "test:switch": "node tests/qml-switch.js"
   }
 }
