@@ -49,6 +49,13 @@ var THEMES = [
         description: "Soft vector illustration with depth fog, kelp and a sandy seabed. Grades itself for dawn and dusk.",
         usesDayNight: true,
         usesWaterColors: false
+    },
+    {
+        id: "amiga",
+        name: "Amiga",
+        description: "Late-80s Commodore Amiga look: 12-bit palette, copper-list water gradients, dithered DPaint sprites and parallax.",
+        usesDayNight: true,
+        usesWaterColors: false
     }
 ];
 
