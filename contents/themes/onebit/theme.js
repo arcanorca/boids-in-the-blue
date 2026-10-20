@@ -48,13 +48,13 @@ function fishFile(cls, variant, frame, inverted) {
 
 // ── the rest of the cast (cols x rows in texels, 4 frames unless noted) ──
 var ORCA = { cols: 30, rows: 17, frames: 4 };
-var ANGLER = { cols: 20, rows: 18, frames: 4 };
+var ANGLER = { cols: 19, rows: 20, frames: 4 };
 var JELLY = [{ name: "s", cols: 13, rows: 19 }, { name: "l", cols: 15, rows: 24 }];
 var WORM = { cols: 7, rows: 13, frames: 4 };
 
 // Angler lure bulb centre per body frame (texels, unflipped, from the sprite's top-left); the
 // lure-<n>.png (LURE_SIZE square, n = intensity 0..2) is centred on it, glow-<n>.png (GLOW_SIZES) too.
-var LURE = [{ x: 16, y: 3 }, { x: 16, y: 4 }, { x: 16, y: 3 }, { x: 16, y: 2 }];
+var LURE = [{ x: 16, y: 4 }, { x: 16, y: 5 }, { x: 16, y: 4 }, { x: 16, y: 3 }];
 var LURE_SIZE = 7;
 var GLOW_SIZES = [13, 17, 21];
 var SPARKLE_SIZE = 5;

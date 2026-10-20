@@ -213,22 +213,25 @@ function orcaSprite(frame) {
 // ── angler ───────────────────────────────────────────────────
 // Round ink body, zig-zag grin of paper teeth, a long stalk arching over the mouth to the lure.
 function anglerSprite(frame) {
-    const tl = 3, bw = 15, H = 16, g = mk(tl + bw, H);
-    const top = [[0, 8], [3, 6], [6, 4], [9, 4], [12, 5], [14, 7]], bot = [[0, 10], [3, 12], [6, 14], [9, 14], [12, 13], [14, 12]];
-    for (let x = 0; x < bw; x++) for (let y = Math.round(lerpPoly(top, x)); y <= Math.round(lerpPoly(bot, x)); y++) put(g, tl + x, y, 'k');
+    const tl = 3, bw = 14, dy = 2, H = 18, g = mk(tl + bw, H);
+    const P = (ch, list) => pts(g, ch, list.map(([x, y]) => [x, y + dy]));
+    const top = [[0, 8], [2, 6], [5, 4], [8, 4], [11, 5], [13, 7]], bot = [[0, 10], [2, 12], [5, 14], [8, 14], [11, 13], [13, 11]];
+    for (let x = 0; x < bw; x++) for (let y = Math.round(lerpPoly(top, x)); y <= Math.round(lerpPoly(bot, x)); y++) put(g, tl + x, y + dy, 'k');
     // tail fan, sheared by the frame
     const sh = [0, -1, 0, 1][frame & 3];
-    [[7 + sh, 8, 12 + sh], [8, 9, 10, 11], [9, 10]].forEach((rows, k) => rows.forEach(y => put(g, k, y, 'k')));
-    // stalk over the head to the lure
-    const ty = [1, 2, 1, 0][frame & 3];
-    pts(g, 'k', [[tl + 6, 3], [tl + 7, 2], [tl + 8, 1], [tl + 9, 1], [tl + 10, 1], [tl + 11, ty], [tl + 12, ty], [tl + 12, ty + 1]]);
-    // grin: a zig-zag of paper teeth along the mouth line
-    [[9, 'p'], [10, 'k'], [11, 'p'], [12, 'k'], [13, 'p'], [14, 'k']].forEach(([x, ch]) => put(g, tl + x, 10, ch));
+    [[8 + sh, 9 + sh, 12 + sh, 13 + sh], [9, 10, 11, 12], [10, 11]].forEach((rows, k) => rows.forEach(y => put(g, k, y + dy, 'k')));
+    P('k', [[tl + 3, 3], [tl + 4, 3], [tl + 3, 2]]);                       // dorsal fin
+    // stalk: up from the brow, over the head, to the lure hanging in front of the mouth
+    const ty = 1 + [0, 1, 0, -1][frame & 3];
+    pts(g, 'k', [[tl + 4, 5], [tl + 5, 4], [tl + 6, 3], [tl + 7, 2], [tl + 8, 1], [tl + 9, 0], [tl + 10, 0], [tl + 11, 1], [tl + 12, ty]]);
+    if (ty === 2) put(g, tl + 12, 1, 'k');
+    // open mouth: a paper gap between the jaws, ink teeth hanging into it
+    for (let x = tl + 7; x <= tl + 13; x++) { P('p', [[x, 9]]); P('p', [[x, 10]]); }
+    P('k', [[tl + 8, 9], [tl + 10, 9], [tl + 12, 9], [tl + 9, 10], [tl + 11, 10], [tl + 13, 10]]);
     // big eye: 2x2 paper with the pupil in one corner
-    pts(g, 'p', [[tl + 9, 6], [tl + 10, 6], [tl + 9, 7], [tl + 10, 7]]);
-    pts(g, 'k', [[tl + 10, 7]]);
-    // belly dither
-    for (let x = tl + 2; x < tl + 12; x++) if (get(g, x, 13) === 'k' && x % 2 === 0) put(g, x, 13, 'p');
+    P('p', [[tl + 8, 5], [tl + 9, 5], [tl + 8, 6], [tl + 9, 6]]);
+    P('k', [[tl + 9, 6]]);
+    for (let x = tl + 2; x < tl + 10; x++) if (get(g, x, 14 + dy) === 'k' && x % 2 === 0) put(g, x, 14 + dy, 'p');   // belly dither
     const out = pad(g, 1, 1, 1, 1); outline(out, 'p');
     return out;
 }
