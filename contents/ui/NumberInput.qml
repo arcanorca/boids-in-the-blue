@@ -3,78 +3,48 @@ import QtQuick.Controls
 import QtQuick.Layouts
 import org.kde.kirigami as Kirigami
 
+// A labelled number field for Kirigami.FormLayout: a SpinBox (keyboard: arrows, Page Up/Down,
+// typing; mouse wheel) for integers and decimals, with an optional unit suffix and help button.
 RowLayout {
+    id: root
+
     property string label: ""
+    property string help: ""
     property real value: 0
     property real min: 0
     property real max: 100
     property real step: 1
     property int precision: 0
+    property string suffix: ""
+
+    readonly property real _factor: Math.pow(10, precision)
 
     Kirigami.FormData.label: label
-    
-    Button {
-        text: "-"
-        Accessible.name: i18n("Decrease")
-        onClicked: {
-            var v = value - step;
-            if (v < min) v = min;
-            value = Number(v.toFixed(precision));
-        }
-        enabled: value > min
-        Layout.preferredWidth: 40
-    }
-    
-    
-    TextField {
-        id: field
-        text: value.toFixed(precision)
-        Layout.minimumWidth: 60
-        horizontalAlignment: Text.AlignHCenter
-        
-        function stepBy(delta) {
-            var v = value + delta;
-            if (v < min) v = min;
-            if (v > max) v = max;
-            value = Number(v.toFixed(precision));
-            text = value.toFixed(precision);
-        }
+    spacing: Kirigami.Units.smallSpacing
 
-        function applyValue() {
-            // Accept both "0.005" and "0,005"; reject trailing garbage like "12abc"
-            var t = text.trim().replace(",", ".");
+    SpinBox {
+        id: spin
+        editable: true
+        // from/to first: a SpinBox clamps whatever value it gets to its range
+        from: Math.round(root.min * root._factor)
+        to: Math.round(root.max * root._factor)
+        stepSize: Math.max(1, Math.round(root.step * root._factor))
+        value: Math.round(root.value * root._factor)
+        Layout.preferredWidth: Kirigami.Units.gridUnit * 9
+        Layout.minimumWidth: Kirigami.Units.gridUnit * 6
+        Accessible.name: root.label
+        Accessible.description: root.help
+
+        textFromValue: function (v, locale) {
+            return Number(v / root._factor).toLocaleString(locale, "f", root.precision) + (root.suffix !== "" ? " " + root.suffix : "");
+        }
+        valueFromText: function (text, locale) {
+            // accept "0.005" and "0,005", ignore a trailing unit; garbage keeps the old value
+            var t = text.replace(root.suffix, "").trim().replace(",", ".");
             var v = /^[-+]?(\d+\.?\d*|\.\d+)$/.test(t) ? parseFloat(t) : NaN;
-            if (!isNaN(v)) {
-                if (v < min) v = min;
-                if (v > max) v = max;
-                value = Number(v.toFixed(precision));
-            }
-            // Always resync: valueChanged does not fire when the value is unchanged
-            text = value.toFixed(precision);
+            return isNaN(v) ? spin.value : Math.round(Math.max(root.min, Math.min(root.max, v)) * root._factor);
         }
-
-        Keys.onUpPressed: stepBy(step)
-        Keys.onDownPressed: stepBy(-step)
-
-        onAccepted: { applyValue(); focus = false; }
-        onActiveFocusChanged: { if (!activeFocus) applyValue(); }
+        onValueModified: root.value = Number((value / root._factor).toFixed(root.precision))
     }
-    
-    onValueChanged: {
-        if (!field.activeFocus) {
-            field.text = value.toFixed(precision)
-        }
-    }
-    
-    Button {
-        text: "+"
-        Accessible.name: i18n("Increase")
-        onClicked: {
-            var v = value + step;
-            if (v > max) v = max;
-            value = Number(v.toFixed(precision));
-        }
-        enabled: value < max
-        Layout.preferredWidth: 40
-    }
+    HelpSlot { text: root.help; name: root.label }
 }
