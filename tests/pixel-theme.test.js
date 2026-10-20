@@ -42,3 +42,19 @@ test('cellFor quantises sizes crisply and never below the minimum', () => {
         assert.ok(c >= 1 ? (c * 2) % 1 === 0 : (c * 4) % 1 === 0, 'quantised ' + k + ' ' + size + ' -> ' + c);
     }
 });
+
+test('water is a smooth gradient: stop colours equal waterColor at the stops, day/night blends, custom colours honoured', () => {
+    const T = loadScript(path.join(DIR, 'theme.js'));
+    assert.strictEqual(T.BANDS, undefined);
+    assert.strictEqual(T.STOPS.length, 3);
+    assert.strictEqual(T.STOPS[0], 0); assert.strictEqual(T.STOPS[2], 1);
+    for (let i = 0; i < 3; i++) {
+        assert.strictEqual(T.stopColor(i, 1, '', ''), T.waterColor(1, T.STOPS[i]));
+        assert.strictEqual(T.stopColor(i, 0, '', ''), T.waterColor(0, T.STOPS[i]));
+    }
+    assert.strictEqual(T.stopColor(0, 1, '', ''), '#3a9bcc');
+    assert.strictEqual(T.stopColor(2, 0, '', ''), '#040d1c');
+    assert.notStrictEqual(T.stopColor(1, 0.5, '', ''), T.stopColor(1, 1, '', ''));
+    assert.strictEqual(T.stopColor(0, 1, '#112233', '#445566'), '#112233');
+    assert.strictEqual(T.stopColor(2, 1, '#112233', '#445566'), '#445566');
+});

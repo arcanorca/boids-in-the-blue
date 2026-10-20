@@ -121,7 +121,7 @@ A standalone HTML5 version is available in the `boids-web` folder.
 
 Three looks share the same simulation. Open the wallpaper settings and pick one under **Theme** (it switches live):
 
-*   **Refined Pixel** (default): crisp animated pixel-art sprites, stepped water, light shafts, marine snow and a seabed.
+*   **Refined Pixel** (default): crisp animated pixel-art sprites, smooth water gradient, light shafts, marine snow and a seabed.
 *   **Classic**: the original blocky sprites on a smooth gradient.
 *   **Bioluminescent Deep**: glowing creatures in dark water.
 

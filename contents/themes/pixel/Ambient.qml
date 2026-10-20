@@ -1,10 +1,10 @@
 import QtQuick
 import "theme.js" as T
 
-// Ambient scene for the "pixel" theme: stepped water, drifting surface ripples, a few light
+// Ambient scene for the "pixel" theme: smooth water gradient, drifting surface ripples, a few light
 // shafts, sparse marine snow and a sandy seabed silhouette. Everything sits behind the creatures.
 //
-// Cost: 18 static band rectangles, ~5 + ~20 + 1 animated items, all driven by GPU-side
+// Cost: one gradient rectangle, ~5 + ~20 + 1 animated items, all driven by GPU-side
 // animators (opacity / x / y), no per-frame JavaScript. Every animation stops while `paused`.
 Item {
     id: root
@@ -28,15 +28,13 @@ Item {
 
     clip: true
 
-    // ── water: stepped bands ──
-    Repeater {
-        model: T.BANDS
-        delegate: Rectangle {
-            x: 0
-            y: Math.floor(index * root.height / T.BANDS)
-            width: root.width
-            height: Math.ceil(root.height / T.BANDS) + 1
-            color: T.bandColor(index, root.daylight, root.customTop, root.customBottom)
+    // ── water: one smooth vertical gradient (same colours as before, no visible steps) ──
+    Rectangle {
+        anchors.fill: parent
+        gradient: Gradient {
+            GradientStop { position: T.STOPS[0]; color: T.stopColor(0, root.daylight, root.customTop, root.customBottom) }
+            GradientStop { position: T.STOPS[1]; color: T.stopColor(1, root.daylight, root.customTop, root.customBottom) }
+            GradientStop { position: T.STOPS[2]; color: T.stopColor(2, root.daylight, root.customTop, root.customBottom) }
         }
     }
 

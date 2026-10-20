@@ -25,7 +25,7 @@ var THEMES = [
     {
         id: "pixel",
         name: "Refined Pixel",
-        description: "Crisp pixel-art sea life with animated sprites, stepped water and drifting light shafts.",
+        description: "Crisp pixel-art sea life with animated sprites, smooth water and drifting light shafts.",
         usesDayNight: true,
         usesWaterColors: true
     },

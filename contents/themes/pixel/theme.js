@@ -86,7 +86,7 @@ var water = {
     night: [[0.0, "#0d2a4a"], [0.45, "#091e38"], [1.0, "#040d1c"]]
 };
 var SEABED = { cols: 192, rows: 40 };              // seabed.png (tiles horizontally)
-var BANDS = 18;                                    // stepped (banded) water, see Ambient.qml
+var STOPS = [0.0, 0.45, 1.0];                     // gradient stop positions of the water (see Ambient.qml)
 
 function _hex(c) { return [parseInt(c.substr(1, 2), 16), parseInt(c.substr(3, 2), 16), parseInt(c.substr(5, 2), 16)]; }
 function _str(v) { return "#" + ((1 << 24) | (v[0] << 16) | (v[1] << 8) | v[2]).toString(16).slice(1); }
@@ -104,9 +104,11 @@ function _sample(stops, p) {
 function waterColor(daylight, p) {
     return mix(_sample(water.night, p), _sample(water.day, p), Math.max(0, Math.min(1, daylight)));
 }
-// colour of water band i of BANDS. customTop/customBottom ("" = theme's own) honour the user's colours.
-function bandColor(i, daylight, customTop, customBottom) {
-    var p = (i + 0.5) / BANDS;
+// Colour of the smooth water gradient at stop i of STOPS (a piecewise-linear gradient through these
+// stops is exactly waterColor() at every height). customTop/customBottom ("" = theme's own)
+// honour the user's colours: a straight top-to-bottom blend of the two.
+function stopColor(i, daylight, customTop, customBottom) {
+    var p = STOPS[i];
     if (customTop && customBottom) return mix(customTop, customBottom, p);
     return waterColor(daylight, p);
 }

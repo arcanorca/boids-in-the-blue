@@ -1,7 +1,7 @@
 import QtQuick
 import "sync.js" as PixelSync
 
-// Scene of the "pixel" theme (Refined Pixel): stepped water + ambience (Ambient.qml) behind the
+// Scene of the "pixel" theme (Refined Pixel): smooth water + ambience (Ambient.qml) behind the
 // pooled PixelSprite layer. Scene contract: ui/code/themes.js
 Item {
     id: scene
