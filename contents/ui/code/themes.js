@@ -56,6 +56,13 @@ var THEMES = [
         description: "Late-80s Commodore Amiga look: 12-bit palette, copper-list water gradients, dithered DPaint sprites and parallax.",
         usesDayNight: true,
         usesWaterColors: false
+    },
+    {
+        id: "gameboy",
+        name: "Game Boy",
+        description: "The sea on a 1989 handheld: four LCD greens, 8x8 tiles and sprites, stepped scrolling water.",
+        usesDayNight: true,
+        usesWaterColors: false
     }
 ];
 
