@@ -216,7 +216,7 @@ function orcaFrame(frame) {
     P(8, 9, 's');
     // tail flukes: sheared by the beat
     const dy = [0, -1, 0, 1][frame];
-    const FL = [[20, 5], [20, 6], [21, 4], [21, 5], [21, 6], [21, 7], [22, 3], [22, 4], [22, 5], [22, 7], [22, 8], [23, 2], [23, 3], [23, 4], [23, 8], [23, 9]];
+    const FL = [[20, 5], [20, 6], [21, 4], [21, 5], [21, 6], [21, 7], [22, 2], [22, 3], [22, 4], [22, 5], [22, 7], [22, 8], [22, 9], [23, 1], [23, 2], [23, 3], [23, 8], [23, 9], [23, 10]];
     for (const [x, y] of FL) P(x, y + Math.round(dy * (x - 19) / 4), 'K');
     pts(g, 's', FL.filter(([x, y]) => y <= 3).map(([x, y]) => [x, y + Math.round(dy * (x - 19) / 4)]));
     const fin = mk(W + 2, H + 2);
@@ -227,7 +227,7 @@ function orcaFrame(frame) {
 
 // ── ANGLER ───────────────────────────────────────────────────
 // 15x12, faces right; the stalk ends at theme.js LURE[frame] (the bulb itself is an overlay, see lureImg).
-const ANG_PAL = mkPal({ b: '#527', l: '#83a', d: '#315', s: '#a6c', f: '#639', F: '#85b', m: '#412', w: '#ffe', e: '#fd4', k: '#102', a: '#74a', o: '#102', q: '#325', t: '#c9e' });
+const ANG_PAL = mkPal({ b: '#527', l: '#83a', d: '#315', s: '#a6c', f: '#639', F: '#85b', m: '#412', w: '#ffe', e: '#fd4', k: '#102', a: '#b8d', o: '#102', q: '#325', t: '#c9e' });
 function anglerFrame(frame) {
     const W = 13, H = 10, g = mk(W, H);
     const x0 = 3, top = [5, 4, 3, 3, 3, 3, 3, 4, 4, 5], bot = [7, 8, 8, 8, 8, 8, 8, 8, 7, 7];
@@ -248,8 +248,8 @@ function anglerFrame(frame) {
     const dy = [0, -1, 0, 1][frame];
     for (const [x, y] of [[0, 4], [0, 5], [0, 6], [0, 7], [0, 8], [1, 5], [1, 6], [1, 7], [1, 8], [2, 6], [2, 7]]) put(g, x, y + (x === 0 ? dy : 0), (x + y) % 2 ? 'f' : 'F');
     // stalk from the brow up and forward to the lure (interior coords = final - 1)
-    const L = T.LURE[frame], p0 = [8, 3], p1 = [8, -1 + dy], p2 = [L.x - 2, L.y - 1];
-    for (let i = 0; i <= 14; i++) { const t = i / 14, u = 1 - t; put(g, Math.round(u * u * p0[0] + 2 * u * t * p1[0] + t * t * p2[0]), Math.round(u * u * p0[1] + 2 * u * t * p1[1] + t * t * p2[1]), 'a'); }
+    const L = T.LURE[frame], p0 = [6, 3], p1 = [7, -2 + dy], p2 = [L.x - 2, L.y - 1];
+    for (let i = 0; i <= 20; i++) { const t = i / 20, u = 1 - t; put(g, Math.round(u * u * p0[0] + 2 * u * t * p1[0] + t * t * p2[0]), Math.round(u * u * p0[1] + 2 * u * t * p1[1] + t * t * p2[1]), 'a'); }
     const fin = mk(W + 2, H + 2);
     for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) fin[y + 1][x + 1] = g[y][x];
     outline(fin, c => c !== 'e' && c !== 'a');
@@ -349,10 +349,10 @@ function bubbleImg(cls) {
     const n = T.kinds.bubble.classes[cls].cols, g = mk(n, n), c = (n - 1) / 2;
     for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) {
         const d = Math.hypot(x - c, y - c);
-        if (d <= n / 2 - 0.25 && d > n / 2 - 1.25) g[y][x] = (x < c && y < c) ? 'R' : 'r';
-        else if (d <= n / 2 - 1.25 && n > 5 && chk(x, y) && (x > c || y > c)) g[y][x] = 'i';
+        if (d <= n / 2 - 0.25 && d > n / 2 - 1.25) g[y][x] = (x <= c && y <= c) ? 'R' : 'r';
+        else if (n > 5 && d <= n / 2 - 1.25 && x > c && y > c && d > n / 2 - 2.4 && chk(x, y)) g[y][x] = 'i';   // dithered lower-right glint
     }
-    if (n >= 6) { put(g, 1, 2, 'H'); put(g, 2, 1, 'H'); } else put(g, 1, 1, 'H');
+    if (n >= 6) { put(g, 1, 2, 'H'); put(g, 2, 1, 'H'); if (n >= 8) put(g, 2, 2, 'H'); } else put(g, 1, 1, 'H');
     return render(g, BUB_PAL);
 }
 

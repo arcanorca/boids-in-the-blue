@@ -1,5 +1,4 @@
 import QtQuick
-import "theme.js" as T
 
 // A horizontally tiling strip glued to the bottom edge, scrolled in whole virtual pixels.
 // `source` is the texture to show (the owner switches it per animation frame); tw/h in texels.
@@ -17,6 +16,7 @@ Item {
     Repeater {
         model: Math.ceil(root.width / (root.tw * root.vp)) + 1
         delegate: Image {
+            required property int index
             x: index * root.tw * root.vp - (root.offset % root.tw) * root.vp
             width: root.tw * root.vp
             height: root.h * root.vp

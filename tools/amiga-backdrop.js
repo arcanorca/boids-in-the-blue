@@ -89,7 +89,7 @@ module.exports = function (H) {
             let m = 16 + 3 * Math.sin(TAU * 3 * x / W + 0.6) + 2 * Math.sin(TAU * 9 * x / W + 1.3);
             for (const [cx, hw, h] of FORM) {
                 const d = Math.min(Math.abs(x - cx), W - Math.abs(x - cx)) / hw;
-                if (d < 1) m = Math.max(m, h * Math.pow(1 - Math.pow(d, 2.6), 1 / 2.6) + 2 * Math.sin(x * 0.9) * 0.5);
+                if (d < 1) m = Math.max(m, h * Math.pow(1 - Math.pow(d, 2.6), 1 / 2.6));
             }
             return m;
         };

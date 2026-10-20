@@ -31,6 +31,8 @@ Item {
     Repeater {
         model: [["night", 1], ["dusk", 0], ["day", 0], ["stress", 0]]
         delegate: Image {
+            required property int index
+            required property var modelData
             readonly property real k: index === 1 ? root.w.dusk : (index === 2 ? root.w.day : (index === 3 ? root.stress * 0.8 : 1))
             width: Math.max(T.COPPER.w * root.vp, root.width)
             height: T.COPPER.h * root.vp
@@ -63,6 +65,13 @@ Item {
         vp: root.vp; tw: T.GROUND.tw; h: T.GROUND.h
         offset: Math.floor(root.tick * T.DRIFT.mid / 5)
         source: T.DIR + "ground.png"
+    }
+    // night: the playfield colours (rocks, kelp, sand) fade towards the water's own deep blue
+    Rectangle {
+        anchors.fill: parent
+        color: "#014"
+        opacity: 0.55 * (1 - T.smooth(0.0, 0.5, root.daylight))
+        visible: opacity > 0.002
     }
     // stress palette swap of the playfield colours (rocks, kelp, sand) towards hot reds, in the same steps as the copper
     Rectangle {
