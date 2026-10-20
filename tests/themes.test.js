@@ -9,9 +9,9 @@ const ROOT = path.join(__dirname, '..');
 const read = (...p) => fs.readFileSync(path.join(ROOT, ...p), 'utf8');
 const T = loadScript(path.join(ROOT, 'contents', 'ui', 'code', 'themes.js'));
 
-test('registry: pixel is the default, all four themes are listed with a Scene.qml', () => {
+test('registry: pixel is the default, all themes are listed with a Scene.qml', () => {
     assert.strictEqual(T.DEFAULT_THEME, 'pixel');
-    assert.deepStrictEqual(Array.from(T.THEMES, t => t.id), ['pixel', 'classic', 'biolum', 'illustrated']);
+    assert.deepStrictEqual(Array.from(T.THEMES, t => t.id), ['pixel', 'classic', 'biolum']);
     for (const t of T.THEMES) {
         assert.ok(t.name && t.description, t.id);
         assert.ok(fs.existsSync(path.join(ROOT, 'contents', 'themes', t.id, 'Scene.qml')), t.id + ' Scene.qml');
@@ -20,9 +20,16 @@ test('registry: pixel is the default, all four themes are listed with a Scene.qm
 });
 
 test('registry: unknown, empty and odd values resolve to pixel', () => {
-    for (const v of ['', undefined, null, 'nope', 'PIXEL', 'classic ', 42, {}]) assert.strictEqual(T.resolve(v), 'pixel', String(v));
+    for (const v of ['illustrated', '', undefined, null, 'nope', 'PIXEL', 'classic ', 42, {}]) assert.strictEqual(T.resolve(v), 'pixel', String(v));
     for (const t of T.THEMES) assert.strictEqual(T.resolve(t.id), t.id);
     assert.strictEqual(T.sceneFile('nope'), '../themes/pixel/Scene.qml');
+});
+
+test('archived theme: a saved "illustrated" falls back to the default (pixel)', () => {
+    assert.strictEqual(T.resolve('illustrated'), 'pixel');
+    assert.strictEqual(T.find('illustrated'), null);
+    assert.strictEqual(T.sceneFile('illustrated'), '../themes/pixel/Scene.qml');
+    assert.ok(!fs.existsSync(path.join(ROOT, 'contents', 'themes', 'illustrated')));
 });
 
 test('main.xml: one "theme" String key in General, default pixel', () => {
@@ -37,7 +44,7 @@ test('main.qml routes through the registry (no per-theme code) and releases dele
     assert.match(main, /Themes\.resolve\(/);
     assert.match(main, /Themes\.sceneFile\(/);
     assert.match(main, /Boids\.releaseAll\(sim\)/);
-    assert.doesNotMatch(main, /themes\/(pixel|biolum|illustrated)/);
+    assert.doesNotMatch(main, /themes\/(pixel|biolum)/);
 });
 
 test('classic renders through the original BoidDelegate (frozen copy used by the legacy comparison)', () => {

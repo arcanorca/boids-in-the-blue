@@ -95,12 +95,12 @@ Window {
 
         // 6. theme-dependent controls
         p.resetToDefaults();
-        p.cfg_theme = "illustrated";
+        p.cfg_theme = "illustrated";   // archived theme: a saved value falls back to the default
         var gotIll = p.theme.id;
         p.cfg_theme = "bogus";
         var gotBogus = p.theme.id;
         p.cfg_theme = "classic";
-        say(gotIll === "illustrated" && gotBogus === "pixel" && p.theme.id === "classic", "selected theme follows cfg_theme (unknown -> pixel)");
+        say(gotIll === "pixel" && gotBogus === "pixel" && p.theme.id === "classic", "selected theme follows cfg_theme (unknown -> pixel)");
 
         // 7. screenshots: collapsed, then expanded
         p.resetToDefaults();

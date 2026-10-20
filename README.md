@@ -119,19 +119,19 @@ A standalone HTML5 version is available in the `boids-web` folder.
 
 ## // THEMES
 
-Four looks share the same simulation. Open the wallpaper settings and pick one under **Theme** (it switches live):
+Three looks share the same simulation. Open the wallpaper settings and pick one under **Theme** (it switches live):
 
 *   **Refined Pixel** (default): crisp animated pixel-art sprites, stepped water, light shafts, marine snow and a seabed.
 *   **Classic**: the original blocky sprites on a smooth gradient.
 *   **Bioluminescent Deep**: glowing creatures in dark water.
-*   **Soft Illustrated**: soft vector illustration with depth fog, kelp and dawn/dusk grading.
 
 ## // CHANGELOG
 
 ### v1.2
+- **Soft Illustrated archived**: the theme was removed; it is preserved in the git tag `archive/illustrated`. A saved `illustrated` setting falls back to Refined Pixel.
 - **Plugin id change**: now `com.github.arcanorca.boidsintheblue` (no version in id or name); `install.sh` migrates existing settings and removes the old package.
 - **Pause when covered**: the simulation pauses while a maximized/fullscreen window covers the wallpaper (not applied on the lock screen).
-- **Themes**: four selectable looks (Refined Pixel is the new default, Classic keeps the original rendering, plus Bioluminescent Deep and Soft Illustrated); switching at runtime keeps the same school.
+- **Themes**: three selectable looks (Refined Pixel is the new default, Classic keeps the original rendering, plus Bioluminescent Deep); switching at runtime keeps the same school.
 - **Settings redesign**: grouped by Theme, Ocean, Behavior, Environment, System reactivity and Performance; flocking presets; plain-word levels instead of "Zen+"; help buttons; raw sizes, speeds and flocking values moved into a collapsed Advanced section. All saved settings keep working.
 - **Bug fixes**: (to be refined)
 

@@ -42,13 +42,6 @@ var THEMES = [
         description: "Glowing creatures in dark deep water, with marine snow, light shafts and sparkles.",
         usesDayNight: true,
         usesWaterColors: true
-    },
-    {
-        id: "illustrated",
-        name: "Soft Illustrated",
-        description: "Soft vector illustration with depth fog, kelp and a sandy seabed. Grades itself for dawn and dusk.",
-        usesDayNight: true,
-        usesWaterColors: false
     }
 ];
 

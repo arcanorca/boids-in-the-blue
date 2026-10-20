@@ -6,7 +6,7 @@
 
   <group name="General">
     <entry name="theme" type="String">
-      <label>Visual theme (pixel, classic, biolum, illustrated)</label>
+      <label>Visual theme (pixel, classic, biolum)</label>
       <default>pixel</default>
     </entry>
 

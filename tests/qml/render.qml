@@ -1,6 +1,6 @@
 // Renders one deterministic scenario offscreen and saves a PNG. Modes:
 //   legacy   - the ORIGINAL renderer as fix/technical-bugs had it (frozen copy: legacy/BoidDelegate.qml)
-//   <theme>  - the Scene.qml of a theme from the registry (classic | pixel | biolum | illustrated),
+//   <theme>  - the Scene.qml of a theme from the registry (classic | pixel | biolum),
 //              driven exactly like main.qml drives it (scene.sync(sim), daylight/hour/paused)
 // Run: QT_QPA_PLATFORM=offscreen qml6 tests/qml/render.qml -- <mode> <scenario> <out.png>
 import QtQuick
@@ -66,7 +66,7 @@ Window {
     }
     function sync() {
         var it = scene.item;
-        if (it.nowOverride !== undefined) it.nowOverride = win.clockMs;   // illustrated: deterministic clock
+        if (it.nowOverride !== undefined) it.nowOverride = win.clockMs;   // themes with their own clock: deterministic
         it.sync(sim);
     }
     function advance() {
