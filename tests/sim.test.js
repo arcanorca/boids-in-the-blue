@@ -1,6 +1,6 @@
 const test = require('node:test');
 const assert = require('node:assert');
-const { loadBoids, mockComponent } = require('./harness');
+const { loadBoids, mockComponent, mulberry32 } = require('./harness');
 
 const B = loadBoids();
 const W = 1920, H = 1080;
@@ -35,9 +35,11 @@ test('lowering predator/jelly counts destroys their delegates', () => {
 });
 
 test('jellyfish keep drifting after hitting the walls', () => {
+    // Seeded: the check samples vy at an instant, so with Math.random it fails ~5% of runs
+    const Bs = loadBoids({ random: mulberry32(7) });
     const cfg = { fishCount: 5, anglerCount: 0, orcaCount: 0, jellyCount: 5 };
-    const sim = B.createSimulation(W, H, 1, cfg);
-    run(sim, cfg, 20000);
+    const sim = Bs.createSimulation(W, H, 1, cfg);
+    for (let i = 0; i < 20000; i++) Bs.step(sim, 1, cfg);
     for (const j of sim.entities.jellies)
         assert.ok(Math.abs(j.vy) >= j.speed * 0.8, 'jelly slowed to ' + j.vy.toFixed(3) + ' (base ' + j.speed.toFixed(3) + ')');
 });

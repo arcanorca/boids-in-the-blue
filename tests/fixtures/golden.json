@@ -1,0 +1,2001 @@
+{
+ "seed": 20240607,
+ "scenarios": {
+  "defaults": {
+   "s250": {
+    "hash": "7649dd8c1df15689",
+    "summary": {
+     "fish": 38,
+     "anglers": 3,
+     "orcas": 3,
+     "jellies": 5,
+     "worms": 0,
+     "bubbles": 0,
+     "eaten": 0,
+     "born": 0,
+     "live": 49,
+     "f0": [
+      331.5392400516796,
+      966.5702528384581
+     ]
+    }
+   },
+   "s500": {
+    "hash": "4744afe8a87969a2",
+    "summary": {
+     "fish": 38,
+     "anglers": 3,
+     "orcas": 3,
+     "jellies": 5,
+     "worms": 0,
+     "bubbles": 0,
+     "eaten": 0,
+     "born": 0,
+     "live": 49,
+     "f0": [
+      469.8418612861123,
+      972.092182397677
+     ]
+    }
+   },
+   "s750": {
+    "hash": "6507695c03749115",
+    "summary": {
+     "fish": 38,
+     "anglers": 3,
+     "orcas": 3,
+     "jellies": 5,
+     "worms": 0,
+     "bubbles": 0,
+     "eaten": 0,
+     "born": 0,
+     "live": 49,
+     "f0": [
+      611.503900353508,
+      958.552954353779
+     ]
+    }
+   },
+   "s1000": {
+    "hash": "afa5b22ce2ad72a9",
+    "summary": {
+     "fish": 38,
+     "anglers": 3,
+     "orcas": 3,
+     "jellies": 5,
+     "worms": 0,
+     "bubbles": 0,
+     "eaten": 0,
+     "born": 0,
+     "live": 49,
+     "f0": [
+      758.8026668869428,
+      898.8264942141413
+     ]
+    }
+   },
+   "s1250": {
+    "hash": "4ae16d643bf49666",
+    "summary": {
+     "fish": 38,
+     "anglers": 3,
+     "orcas": 3,
+     "jellies": 5,
+     "worms": 0,
+     "bubbles": 0,
+     "eaten": 0,
+     "born": 0,
+     "live": 49,
+     "f0": [
+      790.4249864931832,
+      928.5963100480781
+     ]
+    }
+   },
+   "s1500": {
+    "hash": "33c742c8fea7c033",
+    "summary": {
+     "fish": 38,
+     "anglers": 3,
+     "orcas": 3,
+     "jellies": 5,
+     "worms": 0,
+     "bubbles": 0,
+     "eaten": 0,
+     "born": 0,
+     "live": 49,
+     "f0": [
+      860.0518484464086,
+      880.5451179924639
+     ]
+    }
+   }
+  },
+  "crowded": {
+   "s250": {
+    "hash": "c996fec4cea6191b",
+    "summary": {
+     "fish": 200,
+     "anglers": 8,
+     "orcas": 8,
+     "jellies": 12,
+     "worms": 0,
+     "bubbles": 0,
+     "eaten": 0,
+     "born": 0,
+     "live": 228,
+     "f0": [
+      499.2679766609706,
+      1078.6049895952913
+     ]
+    }
+   },
+   "s500": {
+    "hash": "d54f07f8b9b67bde",
+    "summary": {
+     "fish": 200,
+     "anglers": 8,
+     "orcas": 8,
+     "jellies": 12,
+     "worms": 0,
+     "bubbles": 0,
+     "eaten": 0,
+     "born": 0,
+     "live": 228,
+     "f0": [
+      432.105892159014,
+      1077.8600805560257
+     ]
+    }
+   },
+   "s750": {
+    "hash": "d6b06844d8758cdd",
+    "summary": {
+     "fish": 200,
+     "anglers": 8,
+     "orcas": 8,
+     "jellies": 12,
+     "worms": 0,
+     "bubbles": 0,
+     "eaten": 0,
+     "born": 0,
+     "live": 228,
+     "f0": [
+      397.43950129037006,
+      801.5908737553157
+     ]
+    }
+   },
+   "s1000": {
+    "hash": "46f012d0914545fe",
+    "summary": {
+     "fish": 200,
+     "anglers": 8,
+     "orcas": 8,
+     "jellies": 12,
+     "worms": 0,
+     "bubbles": 0,
+     "eaten": 0,
+     "born": 0,
+     "live": 228,
+     "f0": [
+      258.72037549524424,
+      758.6223950196712
+     ]
+    }
+   },
+   "s1250": {
+    "hash": "c108c2584cd326eb",
+    "summary": {
+     "fish": 200,
+     "anglers": 8,
+     "orcas": 8,
+     "jellies": 12,
+     "worms": 0,
+     "bubbles": 0,
+     "eaten": 0,
+     "born": 0,
+     "live": 228,
+     "f0": [
+      265.96793561237666,
+      762.2414163597882
+     ]
+    }
+   },
+   "s1500": {
+    "hash": "2e199e1449146276",
+    "summary": {
+     "fish": 200,
+     "anglers": 8,
+     "orcas": 8,
+     "jellies": 12,
+     "worms": 0,
+     "bubbles": 0,
+     "eaten": 0,
+     "born": 0,
+     "live": 228,
+     "f0": [
+      239.41039526549935,
+      708.0914226856374
+     ]
+    }
+   }
+  },
+  "fear0": {
+   "s250": {
+    "hash": "45165268a46cad33",
+    "summary": {
+     "fish": 80,
+     "anglers": 3,
+     "orcas": 3,
+     "jellies": 5,
+     "worms": 0,
+     "bubbles": 0,
+     "eaten": 0,
+     "born": 0,
+     "live": 91,
+     "f0": [
+      502.5495250587048,
+      1050.8891700431686
+     ]
+    }
+   },
+   "s500": {
+    "hash": "655e94d023913aa6",
+    "summary": {
+     "fish": 80,
+     "anglers": 3,
+     "orcas": 3,
+     "jellies": 5,
+     "worms": 0,
+     "bubbles": 0,
+     "eaten": 0,
+     "born": 0,
+     "live": 91,
+     "f0": [
+      572.4439870363841,
+      870.8663956836798
+     ]
+    }
+   },
+   "s750": {
+    "hash": "7d27a5d0b0e2621b",
+    "summary": {
+     "fish": 80,
+     "anglers": 3,
+     "orcas": 3,
+     "jellies": 5,
+     "worms": 0,
+     "bubbles": 0,
+     "eaten": 0,
+     "born": 0,
+     "live": 91,
+     "f0": [
+      638.3593706679592,
+      792.1997315667334
+     ]
+    }
+   },
+   "s1000": {
+    "hash": "52f022c822bf1eb6",
+    "summary": {
+     "fish": 80,
+     "anglers": 3,
+     "orcas": 3,
+     "jellies": 5,
+     "worms": 0,
+     "bubbles": 0,
+     "eaten": 0,
+     "born": 0,
+     "live": 91,
+     "f0": [
+      677.6431051150578,
+      766.8810137209316
+     ]
+    }
+   },
+   "s1250": {
+    "hash": "021bc3c4c890e6ff",
+    "summary": {
+     "fish": 80,
+     "anglers": 3,
+     "orcas": 3,
+     "jellies": 5,
+     "worms": 0,
+     "bubbles": 0,
+     "eaten": 0,
+     "born": 0,
+     "live": 91,
+     "f0": [
+      716.5885718171365,
+      794.9443395285343
+     ]
+    }
+   },
+   "s1500": {
+    "hash": "83aadb9851f23727",
+    "summary": {
+     "fish": 80,
+     "anglers": 3,
+     "orcas": 3,
+     "jellies": 5,
+     "worms": 0,
+     "bubbles": 0,
+     "eaten": 0,
+     "born": 0,
+     "live": 91,
+     "f0": [
+      672.1355638685174,
+      804.903474480604
+     ]
+    }
+   }
+  },
+  "fear1": {
+   "s250": {
+    "hash": "90c5d4a0101edd65",
+    "summary": {
+     "fish": 80,
+     "anglers": 3,
+     "orcas": 3,
+     "jellies": 5,
+     "worms": 0,
+     "bubbles": 0,
+     "eaten": 0,
+     "born": 0,
+     "live": 91,
+     "f0": [
+      503.9455076548595,
+      1078.6868268906155
+     ]
+    }
+   },
+   "s500": {
+    "hash": "8f8aeba47f2dfff1",
+    "summary": {
+     "fish": 80,
+     "anglers": 3,
+     "orcas": 3,
+     "jellies": 5,
+     "worms": 0,
+     "bubbles": 0,
+     "eaten": 0,
+     "born": 0,
+     "live": 91,
+     "f0": [
+      609.1569862171056,
+      1014.7961843266497
+     ]
+    }
+   },
+   "s750": {
+    "hash": "04b2b460a41f9447",
+    "summary": {
+     "fish": 80,
+     "anglers": 3,
+     "orcas": 3,
+     "jellies": 5,
+     "worms": 0,
+     "bubbles": 0,
+     "eaten": 0,
+     "born": 0,
+     "live": 91,
+     "f0": [
+      728.8505569085836,
+      906.9041991751799
+     ]
+    }
+   },
+   "s1000": {
+    "hash": "cd2369d880e61880",
+    "summary": {
+     "fish": 80,
+     "anglers": 3,
+     "orcas": 3,
+     "jellies": 5,
+     "worms": 0,
+     "bubbles": 0,
+     "eaten": 0,
+     "born": 0,
+     "live": 91,
+     "f0": [
+      729.5450440810758,
+      902.5627385278705
+     ]
+    }
+   },
+   "s1250": {
+    "hash": "0c1fc0c067c638de",
+    "summary": {
+     "fish": 80,
+     "anglers": 3,
+     "orcas": 3,
+     "jellies": 5,
+     "worms": 0,
+     "bubbles": 0,
+     "eaten": 0,
+     "born": 0,
+     "live": 91,
+     "f0": [
+      778.4027056827947,
+      833.8422919374589
+     ]
+    }
+   },
+   "s1500": {
+    "hash": "9f6f062cbeb89aab",
+    "summary": {
+     "fish": 80,
+     "anglers": 3,
+     "orcas": 3,
+     "jellies": 5,
+     "worms": 0,
+     "bubbles": 0,
+     "eaten": 0,
+     "born": 0,
+     "live": 91,
+     "f0": [
+      806.5450145726322,
+      848.8186279550138
+     ]
+    }
+   }
+  },
+  "fear2": {
+   "s250": {
+    "hash": "5cac867c82934b5b",
+    "summary": {
+     "fish": 80,
+     "anglers": 3,
+     "orcas": 3,
+     "jellies": 5,
+     "worms": 0,
+     "bubbles": 0,
+     "eaten": 0,
+     "born": 0,
+     "live": 91,
+     "f0": [
+      499.26570819754835,
+      1055.602589771643
+     ]
+    }
+   },
+   "s500": {
+    "hash": "3d3056940a037299",
+    "summary": {
+     "fish": 80,
+     "anglers": 3,
+     "orcas": 3,
+     "jellies": 5,
+     "worms": 0,
+     "bubbles": 0,
+     "eaten": 0,
+     "born": 0,
+     "live": 91,
+     "f0": [
+      590.9150313149622,
+      995.8493448115867
+     ]
+    }
+   },
+   "s750": {
+    "hash": "40aa2e9c48b1e6cf",
+    "summary": {
+     "fish": 80,
+     "anglers": 3,
+     "orcas": 3,
+     "jellies": 5,
+     "worms": 0,
+     "bubbles": 0,
+     "eaten": 0,
+     "born": 0,
+     "live": 91,
+     "f0": [
+      677.4012379588514,
+      958.7375564593227
+     ]
+    }
+   },
+   "s1000": {
+    "hash": "26f693e0243db154",
+    "summary": {
+     "fish": 80,
+     "anglers": 3,
+     "orcas": 3,
+     "jellies": 5,
+     "worms": 0,
+     "bubbles": 0,
+     "eaten": 0,
+     "born": 0,
+     "live": 91,
+     "f0": [
+      768.7666699904934,
+      954.0645769680613
+     ]
+    }
+   },
+   "s1250": {
+    "hash": "fa007d3c26bfb76e",
+    "summary": {
+     "fish": 80,
+     "anglers": 3,
+     "orcas": 3,
+     "jellies": 5,
+     "worms": 0,
+     "bubbles": 0,
+     "eaten": 0,
+     "born": 0,
+     "live": 91,
+     "f0": [
+      774.0322175496276,
+      925.2222628243615
+     ]
+    }
+   },
+   "s1500": {
+    "hash": "74ca6420b76f8386",
+    "summary": {
+     "fish": 80,
+     "anglers": 3,
+     "orcas": 3,
+     "jellies": 5,
+     "worms": 0,
+     "bubbles": 0,
+     "eaten": 0,
+     "born": 0,
+     "live": 91,
+     "f0": [
+      822.0123656642837,
+      949.2855009040751
+     ]
+    }
+   }
+  },
+  "fear3": {
+   "s250": {
+    "hash": "ca103d50aaea7788",
+    "summary": {
+     "fish": 80,
+     "anglers": 3,
+     "orcas": 3,
+     "jellies": 5,
+     "worms": 0,
+     "bubbles": 0,
+     "eaten": 0,
+     "born": 0,
+     "live": 91,
+     "f0": [
+      499.27062023764523,
+      1059.0578502470792
+     ]
+    }
+   },
+   "s500": {
+    "hash": "81e646c8959e0700",
+    "summary": {
+     "fish": 80,
+     "anglers": 3,
+     "orcas": 3,
+     "jellies": 5,
+     "worms": 0,
+     "bubbles": 0,
+     "eaten": 0,
+     "born": 0,
+     "live": 91,
+     "f0": [
+      565.2584434719299,
+      1068.3404918081158
+     ]
+    }
+   },
+   "s750": {
+    "hash": "dc4e50fc836b1639",
+    "summary": {
+     "fish": 80,
+     "anglers": 3,
+     "orcas": 3,
+     "jellies": 5,
+     "worms": 0,
+     "bubbles": 0,
+     "eaten": 0,
+     "born": 0,
+     "live": 91,
+     "f0": [
+      677.3766515655693,
+      970.0469554768927
+     ]
+    }
+   },
+   "s1000": {
+    "hash": "d81eb4cc3d84a9a2",
+    "summary": {
+     "fish": 80,
+     "anglers": 3,
+     "orcas": 3,
+     "jellies": 5,
+     "worms": 0,
+     "bubbles": 0,
+     "eaten": 0,
+     "born": 0,
+     "live": 91,
+     "f0": [
+      669.2348329942039,
+      973.0530303920261
+     ]
+    }
+   },
+   "s1250": {
+    "hash": "e619ec5cd1150061",
+    "summary": {
+     "fish": 80,
+     "anglers": 3,
+     "orcas": 3,
+     "jellies": 5,
+     "worms": 0,
+     "bubbles": 0,
+     "eaten": 0,
+     "born": 0,
+     "live": 91,
+     "f0": [
+      667.4081639541466,
+      945.9393494955968
+     ]
+    }
+   },
+   "s1500": {
+    "hash": "a08f198454b7179f",
+    "summary": {
+     "fish": 80,
+     "anglers": 3,
+     "orcas": 3,
+     "jellies": 5,
+     "worms": 0,
+     "bubbles": 0,
+     "eaten": 0,
+     "born": 0,
+     "live": 91,
+     "f0": [
+      730.3281519989158,
+      979.0492663671781
+     ]
+    }
+   }
+  },
+  "fear4": {
+   "s250": {
+    "hash": "5b5af7ec5dfd899f",
+    "summary": {
+     "fish": 80,
+     "anglers": 3,
+     "orcas": 3,
+     "jellies": 5,
+     "worms": 0,
+     "bubbles": 0,
+     "eaten": 0,
+     "born": 0,
+     "live": 91,
+     "f0": [
+      480.7697859344668,
+      1079.6471756670696
+     ]
+    }
+   },
+   "s500": {
+    "hash": "413b8208a2062250",
+    "summary": {
+     "fish": 80,
+     "anglers": 3,
+     "orcas": 3,
+     "jellies": 5,
+     "worms": 0,
+     "bubbles": 0,
+     "eaten": 0,
+     "born": 0,
+     "live": 91,
+     "f0": [
+      622.0099694305591,
+      1010.3491672021033
+     ]
+    }
+   },
+   "s750": {
+    "hash": "ad46aa8c7316b9e0",
+    "summary": {
+     "fish": 80,
+     "anglers": 3,
+     "orcas": 3,
+     "jellies": 5,
+     "worms": 0,
+     "bubbles": 0,
+     "eaten": 0,
+     "born": 0,
+     "live": 91,
+     "f0": [
+      716.565410705459,
+      1078.253396363446
+     ]
+    }
+   },
+   "s1000": {
+    "hash": "18409050cb7c613b",
+    "summary": {
+     "fish": 80,
+     "anglers": 3,
+     "orcas": 3,
+     "jellies": 5,
+     "worms": 0,
+     "bubbles": 0,
+     "eaten": 0,
+     "born": 0,
+     "live": 91,
+     "f0": [
+      854.2544905468233,
+      1078.2369518963258
+     ]
+    }
+   },
+   "s1250": {
+    "hash": "8de3395c3a2d4824",
+    "summary": {
+     "fish": 80,
+     "anglers": 3,
+     "orcas": 3,
+     "jellies": 5,
+     "worms": 0,
+     "bubbles": 0,
+     "eaten": 0,
+     "born": 0,
+     "live": 91,
+     "f0": [
+      971.4921236612709,
+      1055.927001340205
+     ]
+    }
+   },
+   "s1500": {
+    "hash": "e06c8054aae42808",
+    "summary": {
+     "fish": 80,
+     "anglers": 3,
+     "orcas": 3,
+     "jellies": 5,
+     "worms": 0,
+     "bubbles": 0,
+     "eaten": 0,
+     "born": 0,
+     "live": 91,
+     "f0": [
+      1002.4106368184937,
+      1078.5574880034997
+     ]
+    }
+   }
+  },
+  "worms-births": {
+   "s250": {
+    "hash": "ed8563b407f06cfc",
+    "summary": {
+     "fish": 63,
+     "anglers": 0,
+     "orcas": 0,
+     "jellies": 3,
+     "worms": 3,
+     "bubbles": 117,
+     "eaten": 31,
+     "born": 3,
+     "live": 186,
+     "f0": [
+      307.67744508679647,
+      998.3957911639036
+     ]
+    }
+   },
+   "s500": {
+    "hash": "28c02cf885725e00",
+    "summary": {
+     "fish": 65,
+     "anglers": 0,
+     "orcas": 0,
+     "jellies": 3,
+     "worms": 3,
+     "bubbles": 120,
+     "eaten": 51,
+     "born": 5,
+     "live": 191,
+     "f0": [
+      249.15405489943709,
+      915.0555213653056
+     ]
+    }
+   },
+   "s750": {
+    "hash": "ab4d774c1ed0eb2c",
+    "summary": {
+     "fish": 67,
+     "anglers": 0,
+     "orcas": 0,
+     "jellies": 3,
+     "worms": 5,
+     "bubbles": 119,
+     "eaten": 70,
+     "born": 7,
+     "live": 194,
+     "f0": [
+      201.42505709603924,
+      892.1623382153513
+     ]
+    }
+   },
+   "s1000": {
+    "hash": "c61b3a080a1a539d",
+    "summary": {
+     "fish": 69,
+     "anglers": 0,
+     "orcas": 0,
+     "jellies": 3,
+     "worms": 2,
+     "bubbles": 119,
+     "eaten": 90,
+     "born": 9,
+     "live": 193,
+     "f0": [
+      231.1441022070913,
+      819.026421132681
+     ]
+    }
+   },
+   "s1250": {
+    "hash": "fa8cefa042aa1c00",
+    "summary": {
+     "fish": 71,
+     "anglers": 0,
+     "orcas": 0,
+     "jellies": 3,
+     "worms": 3,
+     "bubbles": 119,
+     "eaten": 111,
+     "born": 11,
+     "live": 196,
+     "f0": [
+      286.37271819555014,
+      790.402662859157
+     ]
+    }
+   },
+   "s1500": {
+    "hash": "9a26f58c38687e53",
+    "summary": {
+     "fish": 72,
+     "anglers": 0,
+     "orcas": 0,
+     "jellies": 3,
+     "worms": 0,
+     "bubbles": 104,
+     "eaten": 125,
+     "born": 12,
+     "live": 179,
+     "f0": [
+      308.8153322422581,
+      774.923873004459
+     ]
+    }
+   }
+  },
+  "worms-then-trim": {
+   "s183": {
+    "hash": "a92fe2248d9d5cac",
+    "summary": {
+     "fish": 40,
+     "anglers": 1,
+     "orcas": 1,
+     "jellies": 2,
+     "worms": 8,
+     "bubbles": 84,
+     "eaten": 4,
+     "born": 0,
+     "live": 136,
+     "f0": [
+      131.26552106035027,
+      622.9424756567736
+     ]
+    }
+   },
+   "s366": {
+    "hash": "e621f4f4ded4d8a0",
+    "summary": {
+     "fish": 40,
+     "anglers": 1,
+     "orcas": 1,
+     "jellies": 2,
+     "worms": 19,
+     "bubbles": 120,
+     "eaten": 6,
+     "born": 0,
+     "live": 183,
+     "f0": [
+      206.8980611574923,
+      493.4895681202203
+     ]
+    }
+   },
+   "s549": {
+    "hash": "cc6aa2280a92a04e",
+    "summary": {
+     "fish": 41,
+     "anglers": 1,
+     "orcas": 1,
+     "jellies": 2,
+     "worms": 20,
+     "bubbles": 119,
+     "eaten": 17,
+     "born": 1,
+     "live": 184,
+     "f0": [
+      301.7703559920015,
+      482.8275224781631
+     ]
+    }
+   },
+   "s732": {
+    "hash": "81dcd71c8b90ed50",
+    "summary": {
+     "fish": 10,
+     "anglers": 1,
+     "orcas": 1,
+     "jellies": 2,
+     "worms": 12,
+     "bubbles": 118,
+     "eaten": 28,
+     "born": 0,
+     "live": 144,
+     "f0": [
+      238.2906347451575,
+      494.94475240735665
+     ]
+    }
+   },
+   "s915": {
+    "hash": "0351d444bbe75d45",
+    "summary": {
+     "fish": 11,
+     "anglers": 1,
+     "orcas": 1,
+     "jellies": 2,
+     "worms": 9,
+     "bubbles": 104,
+     "eaten": 31,
+     "born": 1,
+     "live": 128,
+     "f0": [
+      283.06458729210107,
+      632.5867844129111
+     ]
+    }
+   },
+   "s1098": {
+    "hash": "e7527fe8f08e3658",
+    "summary": {
+     "fish": 11,
+     "anglers": 1,
+     "orcas": 1,
+     "jellies": 2,
+     "worms": 6,
+     "bubbles": 91,
+     "eaten": 34,
+     "born": 1,
+     "live": 112,
+     "f0": [
+      396.96980869944105,
+      639.1454382439265
+     ]
+    }
+   },
+   "s1100": {
+    "hash": "ed67b5ac017686e2",
+    "summary": {
+     "fish": 11,
+     "anglers": 1,
+     "orcas": 1,
+     "jellies": 2,
+     "worms": 6,
+     "bubbles": 90,
+     "eaten": 34,
+     "born": 1,
+     "live": 111,
+     "f0": [
+      397.7272566653242,
+      639.2907220971048
+     ]
+    }
+   }
+  },
+  "stress0.3": {
+   "s166": {
+    "hash": "1e8cd34c423c34b4",
+    "summary": {
+     "fish": 70,
+     "anglers": 3,
+     "orcas": 3,
+     "jellies": 5,
+     "worms": 0,
+     "bubbles": 0,
+     "eaten": 0,
+     "born": 0,
+     "live": 81,
+     "f0": [
+      342.11297257389737,
+      970.006635330489
+     ]
+    }
+   },
+   "s332": {
+    "hash": "69037c9080b28d8c",
+    "summary": {
+     "fish": 70,
+     "anglers": 3,
+     "orcas": 3,
+     "jellies": 5,
+     "worms": 0,
+     "bubbles": 0,
+     "eaten": 0,
+     "born": 0,
+     "live": 81,
+     "f0": [
+      334.48627651581467,
+      955.5773454513422
+     ]
+    }
+   },
+   "s498": {
+    "hash": "b17bb6780ca98071",
+    "summary": {
+     "fish": 70,
+     "anglers": 3,
+     "orcas": 3,
+     "jellies": 5,
+     "worms": 0,
+     "bubbles": 0,
+     "eaten": 0,
+     "born": 0,
+     "live": 81,
+     "f0": [
+      293.2682730742573,
+      949.465352123141
+     ]
+    }
+   },
+   "s664": {
+    "hash": "99a4de7ca7c3adfa",
+    "summary": {
+     "fish": 70,
+     "anglers": 3,
+     "orcas": 3,
+     "jellies": 5,
+     "worms": 0,
+     "bubbles": 0,
+     "eaten": 0,
+     "born": 0,
+     "live": 81,
+     "f0": [
+      246.90973831023425,
+      967.2991990099484
+     ]
+    }
+   },
+   "s830": {
+    "hash": "c045d8480980dcc3",
+    "summary": {
+     "fish": 70,
+     "anglers": 3,
+     "orcas": 3,
+     "jellies": 5,
+     "worms": 0,
+     "bubbles": 0,
+     "eaten": 0,
+     "born": 0,
+     "live": 81,
+     "f0": [
+      213.3904241741815,
+      968.0970100465578
+     ]
+    }
+   },
+   "s996": {
+    "hash": "0197005834d0efb3",
+    "summary": {
+     "fish": 70,
+     "anglers": 3,
+     "orcas": 3,
+     "jellies": 5,
+     "worms": 0,
+     "bubbles": 0,
+     "eaten": 0,
+     "born": 0,
+     "live": 81,
+     "f0": [
+      214.02679142869368,
+      949.3778135309141
+     ]
+    }
+   },
+   "s1000": {
+    "hash": "dadd1e10e049883c",
+    "summary": {
+     "fish": 70,
+     "anglers": 3,
+     "orcas": 3,
+     "jellies": 5,
+     "worms": 0,
+     "bubbles": 0,
+     "eaten": 0,
+     "born": 0,
+     "live": 81,
+     "f0": [
+      211.19937765364216,
+      946.7830289081055
+     ]
+    }
+   }
+  },
+  "stress0.6": {
+   "s166": {
+    "hash": "5fd45f4ce53fff73",
+    "summary": {
+     "fish": 70,
+     "anglers": 3,
+     "orcas": 3,
+     "jellies": 5,
+     "worms": 0,
+     "bubbles": 0,
+     "eaten": 0,
+     "born": 0,
+     "live": 81,
+     "f0": [
+      328.8218353639554,
+      936.369292377047
+     ]
+    }
+   },
+   "s332": {
+    "hash": "599809d46d4f6e6a",
+    "summary": {
+     "fish": 70,
+     "anglers": 3,
+     "orcas": 3,
+     "jellies": 5,
+     "worms": 0,
+     "bubbles": 0,
+     "eaten": 0,
+     "born": 0,
+     "live": 81,
+     "f0": [
+      320.01340196597795,
+      804.1201161776632
+     ]
+    }
+   },
+   "s498": {
+    "hash": "b6865ee0ead6fa72",
+    "summary": {
+     "fish": 70,
+     "anglers": 3,
+     "orcas": 3,
+     "jellies": 5,
+     "worms": 0,
+     "bubbles": 0,
+     "eaten": 0,
+     "born": 0,
+     "live": 81,
+     "f0": [
+      264.12057246140733,
+      726.5290158771007
+     ]
+    }
+   },
+   "s664": {
+    "hash": "af55f7b8f545eb19",
+    "summary": {
+     "fish": 70,
+     "anglers": 3,
+     "orcas": 3,
+     "jellies": 5,
+     "worms": 0,
+     "bubbles": 0,
+     "eaten": 0,
+     "born": 0,
+     "live": 81,
+     "f0": [
+      217.5253496240096,
+      700.9660395087038
+     ]
+    }
+   },
+   "s830": {
+    "hash": "d189a868078b82fb",
+    "summary": {
+     "fish": 70,
+     "anglers": 3,
+     "orcas": 3,
+     "jellies": 5,
+     "worms": 0,
+     "bubbles": 0,
+     "eaten": 0,
+     "born": 0,
+     "live": 81,
+     "f0": [
+      211.3659109748955,
+      636.7422296302407
+     ]
+    }
+   },
+   "s996": {
+    "hash": "2a4111bc2660bfcb",
+    "summary": {
+     "fish": 70,
+     "anglers": 3,
+     "orcas": 3,
+     "jellies": 5,
+     "worms": 0,
+     "bubbles": 0,
+     "eaten": 0,
+     "born": 0,
+     "live": 81,
+     "f0": [
+      199.92953050321327,
+      591.7824608956726
+     ]
+    }
+   },
+   "s1000": {
+    "hash": "82df44905a99a387",
+    "summary": {
+     "fish": 70,
+     "anglers": 3,
+     "orcas": 3,
+     "jellies": 5,
+     "worms": 0,
+     "bubbles": 0,
+     "eaten": 0,
+     "born": 0,
+     "live": 81,
+     "f0": [
+      203.07772774572643,
+      590.9644984895148
+     ]
+    }
+   }
+  },
+  "stress0.9": {
+   "s166": {
+    "hash": "0c5d3350e3129550",
+    "summary": {
+     "fish": 70,
+     "anglers": 3,
+     "orcas": 3,
+     "jellies": 5,
+     "worms": 0,
+     "bubbles": 0,
+     "eaten": 0,
+     "born": 0,
+     "live": 81,
+     "f0": [
+      311.9243272186578,
+      952.092515669479
+     ]
+    }
+   },
+   "s332": {
+    "hash": "54c6ff88989c086d",
+    "summary": {
+     "fish": 70,
+     "anglers": 3,
+     "orcas": 3,
+     "jellies": 5,
+     "worms": 0,
+     "bubbles": 0,
+     "eaten": 0,
+     "born": 0,
+     "live": 81,
+     "f0": [
+      268.7032787557472,
+      1001.243170701828
+     ]
+    }
+   },
+   "s498": {
+    "hash": "b2050a3c665ec972",
+    "summary": {
+     "fish": 70,
+     "anglers": 3,
+     "orcas": 3,
+     "jellies": 5,
+     "worms": 0,
+     "bubbles": 0,
+     "eaten": 0,
+     "born": 0,
+     "live": 81,
+     "f0": [
+      248.10363865870488,
+      932.3642609270938
+     ]
+    }
+   },
+   "s664": {
+    "hash": "ce71947c1f5a910c",
+    "summary": {
+     "fish": 70,
+     "anglers": 3,
+     "orcas": 3,
+     "jellies": 5,
+     "worms": 0,
+     "bubbles": 0,
+     "eaten": 0,
+     "born": 0,
+     "live": 81,
+     "f0": [
+      242.77397964016149,
+      936.5819908840947
+     ]
+    }
+   },
+   "s830": {
+    "hash": "a8f103175e17cb30",
+    "summary": {
+     "fish": 70,
+     "anglers": 3,
+     "orcas": 3,
+     "jellies": 5,
+     "worms": 0,
+     "bubbles": 0,
+     "eaten": 0,
+     "born": 0,
+     "live": 81,
+     "f0": [
+      180.85867843102952,
+      954.0961319099914
+     ]
+    }
+   },
+   "s996": {
+    "hash": "262d85dc291b8147",
+    "summary": {
+     "fish": 70,
+     "anglers": 3,
+     "orcas": 3,
+     "jellies": 5,
+     "worms": 0,
+     "bubbles": 0,
+     "eaten": 0,
+     "born": 0,
+     "live": 81,
+     "f0": [
+      236.34933340975934,
+      939.7658134628037
+     ]
+    }
+   },
+   "s1000": {
+    "hash": "869b80dc027e23a7",
+    "summary": {
+     "fish": 70,
+     "anglers": 3,
+     "orcas": 3,
+     "jellies": 5,
+     "worms": 0,
+     "bubbles": 0,
+     "eaten": 0,
+     "born": 0,
+     "live": 81,
+     "f0": [
+      239.59702105583145,
+      938.6904632757038
+     ]
+    }
+   }
+  },
+  "stress1.5": {
+   "s166": {
+    "hash": "611a2fe8631a70b6",
+    "summary": {
+     "fish": 70,
+     "anglers": 3,
+     "orcas": 3,
+     "jellies": 5,
+     "worms": 0,
+     "bubbles": 0,
+     "eaten": 0,
+     "born": 0,
+     "live": 81,
+     "f0": [
+      427.7291396026961,
+      945.3216269461022
+     ]
+    }
+   },
+   "s332": {
+    "hash": "6b4172d868c70125",
+    "summary": {
+     "fish": 70,
+     "anglers": 3,
+     "orcas": 3,
+     "jellies": 5,
+     "worms": 0,
+     "bubbles": 0,
+     "eaten": 0,
+     "born": 0,
+     "live": 81,
+     "f0": [
+      386.4891316978146,
+      838.3836477536962
+     ]
+    }
+   },
+   "s498": {
+    "hash": "9d9726d442572ff4",
+    "summary": {
+     "fish": 70,
+     "anglers": 3,
+     "orcas": 3,
+     "jellies": 5,
+     "worms": 0,
+     "bubbles": 0,
+     "eaten": 0,
+     "born": 0,
+     "live": 81,
+     "f0": [
+      376.9730749623494,
+      757.0463779152459
+     ]
+    }
+   },
+   "s664": {
+    "hash": "43e0b84ce7f3602d",
+    "summary": {
+     "fish": 70,
+     "anglers": 3,
+     "orcas": 3,
+     "jellies": 5,
+     "worms": 0,
+     "bubbles": 0,
+     "eaten": 0,
+     "born": 0,
+     "live": 81,
+     "f0": [
+      398.92485261870405,
+      813.9342151914254
+     ]
+    }
+   },
+   "s830": {
+    "hash": "e53df7904541e352",
+    "summary": {
+     "fish": 70,
+     "anglers": 3,
+     "orcas": 3,
+     "jellies": 5,
+     "worms": 0,
+     "bubbles": 0,
+     "eaten": 0,
+     "born": 0,
+     "live": 81,
+     "f0": [
+      286.48678204923436,
+      823.0080650570652
+     ]
+    }
+   },
+   "s996": {
+    "hash": "8e80516c8ae2b644",
+    "summary": {
+     "fish": 70,
+     "anglers": 3,
+     "orcas": 3,
+     "jellies": 5,
+     "worms": 0,
+     "bubbles": 0,
+     "eaten": 0,
+     "born": 0,
+     "live": 81,
+     "f0": [
+      347.64958819465863,
+      785.0902500910223
+     ]
+    }
+   },
+   "s1000": {
+    "hash": "347b3c88fbf12069",
+    "summary": {
+     "fish": 70,
+     "anglers": 3,
+     "orcas": 3,
+     "jellies": 5,
+     "worms": 0,
+     "bubbles": 0,
+     "eaten": 0,
+     "born": 0,
+     "live": 81,
+     "f0": [
+      345.26171277566016,
+      787.4009454071353
+     ]
+    }
+   }
+  },
+  "stress-ramp": {
+   "s216": {
+    "hash": "714a446c183d0a35",
+    "summary": {
+     "fish": 50,
+     "anglers": 3,
+     "orcas": 3,
+     "jellies": 4,
+     "worms": 0,
+     "bubbles": 0,
+     "eaten": 0,
+     "born": 0,
+     "live": 60,
+     "f0": [
+      449.5848744644174,
+      889.3119583212197
+     ]
+    }
+   },
+   "s432": {
+    "hash": "d7e166949593c839",
+    "summary": {
+     "fish": 50,
+     "anglers": 3,
+     "orcas": 3,
+     "jellies": 4,
+     "worms": 0,
+     "bubbles": 0,
+     "eaten": 0,
+     "born": 0,
+     "live": 60,
+     "f0": [
+      435.022646022999,
+      827.0858294194021
+     ]
+    }
+   },
+   "s648": {
+    "hash": "224a14b097ae5e4e",
+    "summary": {
+     "fish": 50,
+     "anglers": 3,
+     "orcas": 3,
+     "jellies": 4,
+     "worms": 0,
+     "bubbles": 0,
+     "eaten": 0,
+     "born": 0,
+     "live": 60,
+     "f0": [
+      414.2005350267067,
+      813.4860555229284
+     ]
+    }
+   },
+   "s864": {
+    "hash": "e1f9fc9cf6b35a45",
+    "summary": {
+     "fish": 50,
+     "anglers": 3,
+     "orcas": 3,
+     "jellies": 4,
+     "worms": 0,
+     "bubbles": 0,
+     "eaten": 0,
+     "born": 0,
+     "live": 60,
+     "f0": [
+      598.2415552623535,
+      851.5382771323918
+     ]
+    }
+   },
+   "s1080": {
+    "hash": "009522c891a29727",
+    "summary": {
+     "fish": 50,
+     "anglers": 3,
+     "orcas": 3,
+     "jellies": 4,
+     "worms": 0,
+     "bubbles": 0,
+     "eaten": 0,
+     "born": 0,
+     "live": 60,
+     "f0": [
+      702.0756241602878,
+      800.6224477274238
+     ]
+    }
+   },
+   "s1296": {
+    "hash": "3917444002c0d4d7",
+    "summary": {
+     "fish": 50,
+     "anglers": 3,
+     "orcas": 3,
+     "jellies": 4,
+     "worms": 0,
+     "bubbles": 0,
+     "eaten": 0,
+     "born": 0,
+     "live": 60,
+     "f0": [
+      777.5857980462173,
+      765.9445304768419
+     ]
+    }
+   },
+   "s1300": {
+    "hash": "673bde78071df401",
+    "summary": {
+     "fish": 50,
+     "anglers": 3,
+     "orcas": 3,
+     "jellies": 4,
+     "worms": 0,
+     "bubbles": 0,
+     "eaten": 0,
+     "born": 0,
+     "live": 60,
+     "f0": [
+      778.4219246130846,
+      767.0207299042735
+     ]
+    }
+   }
+  },
+  "resize": {
+   "s250": {
+    "hash": "f364fb508e18f02f",
+    "summary": {
+     "fish": 90,
+     "anglers": 3,
+     "orcas": 3,
+     "jellies": 5,
+     "worms": 0,
+     "bubbles": 0,
+     "eaten": 0,
+     "born": 0,
+     "live": 101,
+     "f0": [
+      172.8071401148143,
+      941.2735128602405
+     ]
+    }
+   },
+   "s500": {
+    "hash": "0b8b777c21632e7a",
+    "summary": {
+     "fish": 90,
+     "anglers": 3,
+     "orcas": 3,
+     "jellies": 5,
+     "worms": 0,
+     "bubbles": 0,
+     "eaten": 0,
+     "born": 0,
+     "live": 101,
+     "f0": [
+      35.3923625808281,
+      523.9494293897849
+     ]
+    }
+   },
+   "s750": {
+    "hash": "50a598e0613c7a5f",
+    "summary": {
+     "fish": 90,
+     "anglers": 3,
+     "orcas": 3,
+     "jellies": 5,
+     "worms": 0,
+     "bubbles": 0,
+     "eaten": 0,
+     "born": 0,
+     "live": 101,
+     "f0": [
+      1.6240202696938526,
+      649.2512700935964
+     ]
+    }
+   },
+   "s1000": {
+    "hash": "a4df7c1cfd4ca338",
+    "summary": {
+     "fish": 90,
+     "anglers": 3,
+     "orcas": 3,
+     "jellies": 5,
+     "worms": 0,
+     "bubbles": 0,
+     "eaten": 0,
+     "born": 0,
+     "live": 101,
+     "f0": [
+      65.31542578292026,
+      855.5158079054794
+     ]
+    }
+   },
+   "s1250": {
+    "hash": "4930e4109e4c2def",
+    "summary": {
+     "fish": 90,
+     "anglers": 3,
+     "orcas": 3,
+     "jellies": 5,
+     "worms": 0,
+     "bubbles": 0,
+     "eaten": 0,
+     "born": 0,
+     "live": 101,
+     "f0": [
+      156.78227108530035,
+      871.5558573285715
+     ]
+    }
+   },
+   "s1500": {
+    "hash": "2221c74ca5a3c1c9",
+    "summary": {
+     "fish": 90,
+     "anglers": 3,
+     "orcas": 3,
+     "jellies": 5,
+     "worms": 0,
+     "bubbles": 0,
+     "eaten": 0,
+     "born": 0,
+     "live": 101,
+     "f0": [
+      223.08456835021164,
+      839.2316255340493
+     ]
+    }
+   }
+  },
+  "resize-from-zero": {
+   "s6": {
+    "hash": "aecef0a4dca90e25",
+    "summary": {
+     "fish": 30,
+     "anglers": 3,
+     "orcas": 3,
+     "jellies": 5,
+     "worms": 0,
+     "bubbles": 0,
+     "eaten": 0,
+     "born": 0,
+     "live": 0,
+     "f0": [
+      0,
+      0
+     ]
+    }
+   },
+   "s12": {
+    "hash": "aecef0a4dca90e25",
+    "summary": {
+     "fish": 30,
+     "anglers": 3,
+     "orcas": 3,
+     "jellies": 5,
+     "worms": 0,
+     "bubbles": 0,
+     "eaten": 0,
+     "born": 0,
+     "live": 0,
+     "f0": [
+      0,
+      0
+     ]
+    }
+   },
+   "s18": {
+    "hash": "aecef0a4dca90e25",
+    "summary": {
+     "fish": 30,
+     "anglers": 3,
+     "orcas": 3,
+     "jellies": 5,
+     "worms": 0,
+     "bubbles": 0,
+     "eaten": 0,
+     "born": 0,
+     "live": 0,
+     "f0": [
+      0,
+      0
+     ]
+    }
+   },
+   "s24": {
+    "hash": "5c2ed55040a144ba",
+    "summary": {
+     "fish": 30,
+     "anglers": 3,
+     "orcas": 3,
+     "jellies": 5,
+     "worms": 0,
+     "bubbles": 0,
+     "eaten": 0,
+     "born": 0,
+     "live": 41,
+     "f0": [
+      716.7911525627678,
+      89.5096755105841
+     ]
+    }
+   },
+   "s30": {
+    "hash": "4973e204968b235d",
+    "summary": {
+     "fish": 30,
+     "anglers": 3,
+     "orcas": 3,
+     "jellies": 5,
+     "worms": 0,
+     "bubbles": 0,
+     "eaten": 0,
+     "born": 0,
+     "live": 41,
+     "f0": [
+      724.4054983161905,
+      88.50762384062487
+     ]
+    }
+   },
+   "s36": {
+    "hash": "ce33b0c418121d7e",
+    "summary": {
+     "fish": 30,
+     "anglers": 3,
+     "orcas": 3,
+     "jellies": 5,
+     "worms": 0,
+     "bubbles": 0,
+     "eaten": 0,
+     "born": 0,
+     "live": 41,
+     "f0": [
+      732.015596304871,
+      87.47403338233677
+     ]
+    }
+   },
+   "s40": {
+    "hash": "6effe63049cf7326",
+    "summary": {
+     "fish": 30,
+     "anglers": 3,
+     "orcas": 3,
+     "jellies": 5,
+     "worms": 0,
+     "bubbles": 0,
+     "eaten": 0,
+     "born": 0,
+     "live": 41,
+     "f0": [
+      737.0841337957531,
+      86.74998462509788
+     ]
+    }
+   }
+  },
+  "config-changes": {
+   "s250": {
+    "hash": "cf7bf16ca03d9db2",
+    "summary": {
+     "fish": 10,
+     "anglers": 0,
+     "orcas": 1,
+     "jellies": 5,
+     "worms": 0,
+     "bubbles": 0,
+     "eaten": 0,
+     "born": 0,
+     "live": 16,
+     "f0": [
+      339.04842327296427,
+      976.8384094275524
+     ]
+    }
+   },
+   "s500": {
+    "hash": "59a3905c37a40e1e",
+    "summary": {
+     "fish": 120,
+     "anglers": 5,
+     "orcas": 4,
+     "jellies": 9,
+     "worms": 0,
+     "bubbles": 0,
+     "eaten": 0,
+     "born": 0,
+     "live": 138,
+     "f0": [
+      347.33767981839424,
+      975.1025850195275
+     ]
+    }
+   },
+   "s750": {
+    "hash": "a5e3478c541c1bf5",
+    "summary": {
+     "fish": 120,
+     "anglers": 5,
+     "orcas": 4,
+     "jellies": 9,
+     "worms": 0,
+     "bubbles": 0,
+     "eaten": 0,
+     "born": 0,
+     "live": 138,
+     "f0": [
+      336.35689694972444,
+      773.5788229904491
+     ]
+    }
+   },
+   "s1000": {
+    "hash": "3cf494d0225f054e",
+    "summary": {
+     "fish": 30,
+     "anglers": 5,
+     "orcas": 4,
+     "jellies": 0,
+     "worms": 0,
+     "bubbles": 0,
+     "eaten": 0,
+     "born": 0,
+     "live": 39,
+     "f0": [
+      323.59538233261867,
+      506.4267052897521
+     ]
+    }
+   },
+   "s1250": {
+    "hash": "cd5bfa88f9c70033",
+    "summary": {
+     "fish": 30,
+     "anglers": 5,
+     "orcas": 4,
+     "jellies": 0,
+     "worms": 0,
+     "bubbles": 0,
+     "eaten": 0,
+     "born": 0,
+     "live": 39,
+     "f0": [
+      248.72842637812604,
+      399.09283479399676
+     ]
+    }
+   },
+   "s1500": {
+    "hash": "2e951ea018e804b0",
+    "summary": {
+     "fish": 30,
+     "anglers": 5,
+     "orcas": 4,
+     "jellies": 0,
+     "worms": 0,
+     "bubbles": 0,
+     "eaten": 0,
+     "born": 0,
+     "live": 39,
+     "f0": [
+      382.5537076098522,
+      428.3301934236601
+     ]
+    }
+   }
+  }
+ }
+}
