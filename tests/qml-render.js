@@ -52,7 +52,7 @@ if (cmd === 'compare') {
         const seen = new Set();
         for (let i = 0; i < N; i += 97) seen.add(px[i * 4] >> 4 | (px[i * 4 + 1] >> 4) << 4 | (px[i * 4 + 2] >> 4) << 8);
         const h = require('crypto').createHash('md5').update(px).digest('hex');
-        check(R.img.W === 1920 && R.img.H === 1080 && seen.size > 12 && !R.warnings.length && !hashes[h],
+        check(R.img.W === 1920 && R.img.H === 1080 && seen.size > (th === 'gameboy' ? 3 : 12) &&  /* gameboy: four shades by design (+ faint LCD glass) */ !R.warnings.length && !hashes[h],
               th + ' ' + sc + ' (colours ' + seen.size + (R.warnings.length ? ', ' + R.warnings[0] : '') + ')');
         hashes[h] = 1;
     }
