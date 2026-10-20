@@ -8,9 +8,10 @@
 // plus `px` (screen pixels per virtual pixel). Per tick and entity it only writes properties whose
 // value changed.
 //
-// Everything snaps to the virtual pixel grid. Animation is 2 frames per creature, derived from sim
-// state (no timers): tail beat from speed, jelly pulse from the sim's wobble phase, worm wiggle
-// from its wiggle phase, angler lure level from a per-delegate tick counter.
+// Positions are not snapped to the virtual grid: the delegate animates its position over one sim tick
+// and draws on whole screen pixels. Animation is 2 frames per creature, derived from sim state (no
+// timers): tail beat from speed, jelly pulse from the sim's wobble phase, worm wiggle from its wiggle
+// phase, angler lure level from a per-delegate tick counter.
 //
 // Stress: each fish has a fixed individual threshold; as stress rises more fish get the red
 // sprite palette (a palette swap: only the OAM attribute changes), those fish also shake by whole
@@ -38,27 +39,29 @@ function _sync(sim, parent, component, px) {
             var ent = list[i], kind = ent.kind, kd = K[kind];
             if (!kd) continue;
 
-            var dg = ent.delegate;
+            var dg = ent.delegate, fresh = false;
             if (!dg) {
                 dg = component.createObject(parent, { type: kd.type, spriteData: [], colorString: "#FFFFFF", rotation: 0 });
                 ent.delegate = dg;
                 if (!dg) continue;
                 dg.z = kd.layer * Z + dg.z;
-                dg.animate = false;
                 dg.phase = (ent.x * 7.31 + ent.y * 3.17) % 4;      // desynchronise the beat of a school
                 if (kind === 'fish') dg.thr = (ent.wanderTheta / 6.2831853) % 1;
+                fresh = true;
             }
             var cls = 'm';
             if (kind === 'fish') cls = T.fishClass(ent);
             else if (kind === 'bubble') cls = T.bubbleClass(ent.scale);
             if (dg.cls !== cls) dg.cls = cls;
 
-            // top-left corner on the virtual pixel grid
+            // top-left corner of the metasprite box, screen px, centred on the simulation position
             var d = T.dims(kind, cls);
-            var gx = Math.round(ent.x / px) - (d.w >> 1), gy = Math.round(ent.y / px) - (d.h >> 1);
-            var sx0 = gx * px, sy0 = gy * px;
-            if (dg.x !== sx0) dg.x = sx0;
-            if (dg.y !== sy0) dg.y = sy0;
+            var tx = ent.x - d.w * px / 2, ty = ent.y - d.h * px / 2;
+            if (fresh) { dg.animate = false; dg.ax = tx; dg.ay = ty; dg.animate = true; }   // placed, not glided
+            else {
+                if (dg.ax !== tx) dg.ax = tx;
+                if (dg.ay !== ty) dg.ay = ty;
+            }
 
             var fr;
             if (kind === 'fish' || kind === 'angler' || kind === 'orca') {

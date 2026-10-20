@@ -4,12 +4,12 @@ import "theme.js" as T
 // One entity of the "nes" theme: a metasprite baked into one shared texture (frame, palette and size
 // class are part of the file name), shown with nearest-neighbour scaling at `px` screen pixels per
 // virtual pixel. Same pooling protocol as the other themes' delegates (EntityLayer.createObject/
-// release): the property names marked "protocol" must stay. No per-entity layers, effects, timers
-// or animations: the adapter (sync.js) picks the frame and palette every tick.
+// release): the property names marked "protocol" must stay. No per-entity layers, effects or timers:
+// the adapter (sync.js) picks the frame and palette every tick.
+// Position: the simulation's position is animated (ax, ay: screen px, linear, 40 ms = one sim tick) and
+// the item sits on the nearest whole screen pixel, so the art stays crisp while the motion is smooth.
 Item {
     id: root
-    x: 0
-    y: 0
 
     // EntityLayer / adapter protocol (see BoidSprite.qml); most of it is unused here
     property var spriteData: []
@@ -22,9 +22,10 @@ Item {
     property string baseColor: "#FFFFFF"
     property string tintColor: "#FF3333"
     property double tintAlpha: 0
-    property bool animate: true
+    property bool animate: true                // off while a pooled delegate is placed (no glide from its old spot)
     property var pool: null
     function release() { if (pool) pool._release(root); }
+    function halt() { axAnim.stop(); ayAnim.stop(); }   // called when a pooled delegate is handed out again
 
     // theme state (written by sync.js)
     property string variant: "aqua"            // fish: colour variant / sprite palette ("alarm-a", "alarm-b" = stress)
@@ -40,12 +41,18 @@ Item {
     readonly property string _kind: T.NAMES[type] || ""
     readonly property bool _ready: T.kinds[_kind] !== undefined
     readonly property var _d: _ready ? T.dims(_kind, cls) : ({ w: 8, h: 8 })
+    property real ax: 0                        // top-left, screen px, animated towards the sim position
+    property real ay: 0
+    Behavior on ax { enabled: root.animate; NumberAnimation { id: axAnim; duration: 40; easing.type: Easing.Linear } }
+    Behavior on ay { enabled: root.animate; NumberAnimation { id: ayAnim; duration: 40; easing.type: Easing.Linear } }
+    x: Math.round(root.ax + root.shakeX * root.px)
+    y: Math.round(root.ay + root.shakeY * root.px)
     width: _d.w * px
     height: _d.h * px
 
     Image {
-        x: root.shakeX * root.px
-        y: root.shakeY * root.px
+        x: 0
+        y: 0
         width: root.width
         height: root.height
         visible: root._ready

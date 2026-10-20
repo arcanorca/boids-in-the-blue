@@ -107,7 +107,7 @@ test('nes: palette state follows daylight, and the integer pixel scale grows wit
     }
 });
 
-test('nes sync: palette swap per individual, shake, alarm cycling, 2-frame animation, snapped positions', () => {
+test('nes sync: palette swap per individual, shake, alarm cycling, 2-frame animation, unsnapped positions', () => {
     const rnd = mulberry32(11);
     const B = loadBoids({ random: rnd });
     B.setRandom(rnd);
@@ -124,7 +124,9 @@ test('nes sync: palette swap per individual, shake, alarm cycling, 2-frame anima
     S.sync(sim, layer, layer, 4);
     const fish = sim.entities.fish;
     assert.strictEqual(made.filter(d => d.type === T.kinds.fish.type).length, 60);
-    assert.ok(made.every(d => d.x % 4 === 0 && d.y % 4 === 0), 'sprites sit on the virtual pixel grid');
+    // not snapped to the virtual grid: the metasprite box is centred on the simulation position
+    assert.ok(fish.every(f => { const d = T.dims('fish', f.delegate.cls);
+        return Math.abs(f.delegate.ax - (f.x - d.w * 4 / 2)) < 1e-6 && Math.abs(f.delegate.ay - (f.y - d.h * 4 / 2)) < 1e-6; }), 'sprites sit on the sim position');
     assert.ok(fish.every(f => f.delegate.flip === !f.facingRight && f.delegate.frame >= 0 && f.delegate.frame <= 1));
     assert.ok(fish.every(f => f.delegate.variant === T.fishVariant(f.color) && f.delegate.shakeX === 0));
     // stress 0.9: some, not all, fish swap to the red palette, and only those shake

@@ -30,13 +30,13 @@ Item {
             d.pool = layer;
             created++;
         }
+        d.halt();                                  // no glide from the spot where it was last shown
         d.z = ++_zc;
-        d.animate = false;
+        d.animate = false;                         // the adapter sets the position, then enables animation
         d.flip = false; d.shakeX = 0; d.shakeY = 0; d.opacity = 1; d.rotation = 0;
         d.tintAlpha = 0; d.sparkle = 0; d.lure = 1; d.frame = 0; d.tick = 0;
         if (props.colorString !== undefined) d.baseColor = props.colorString;
         for (var k in props) d[k] = props[k];
-        d.animate = true;
         d.visible = true;
         live++;
         return d;
