@@ -182,33 +182,33 @@
 
     <entry name="cohesionFactor" type="Double">
       <label>Cohesion factor</label>
-      <default>0.005</default>
+      <default>0.0005</default>
       <min>0.0</min>
-      <max>0.02</max>
+      <max>0.005</max>
     </entry>
     <entry name="alignmentFactor" type="Double">
       <label>Alignment factor</label>
-      <default>0.05</default>
+      <default>0.06</default>
       <min>0.0</min>
       <max>0.15</max>
     </entry>
     <entry name="separationFactor" type="Double">
       <label>Separation factor</label>
-      <default>0.05</default>
+      <default>0.008</default>
       <min>0.0</min>
-      <max>0.2</max>
+      <max>0.08</max>
     </entry>
     <entry name="wanderFactor" type="Double">
       <label>Wander factor</label>
-      <default>0.015</default>
+      <default>0.012</default>
       <min>0.0</min>
-      <max>0.05</max>
+      <max>0.06</max>
     </entry>
     <entry name="turnFactor" type="Double">
       <label>Edge turn factor</label>
       <default>0.06</default>
       <min>0.0</min>
-      <max>0.15</max>
+      <max>0.1</max>
     </entry>
   </group>
 </kcfg>
