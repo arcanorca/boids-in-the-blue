@@ -76,7 +76,7 @@ Item {
         model: [[0.06, 1], [0.15, 0], [0.31, 2], [0.43, 0], [0.58, 1], [0.69, 2], [0.82, 0], [0.93, 1]]
         delegate: Image {
             x: Math.round(modelData[0] * root.width)
-            y: root.height - T.SEABED.rows + 8 - T.KELP[modelData[1]].rows
+            y: root.height - T.SEABED.rows + 10 - T.KELP[modelData[1]].rows
             smooth: false
             source: T.DIR + "kelp-" + modelData[1] + "-" + [0, 1, 2, 1][(Math.floor(root.tick / 4) + index) & 3] + ".png"
         }

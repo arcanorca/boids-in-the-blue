@@ -335,35 +335,48 @@ function noiseTile(level, half) {         // 16 wide x 8 high: rows 0-7 (half 0)
 const SEABED = T.SEABED;
 function seabedTile() {
     const W = SEABED.cols, H = SEABED.rows, g = mk(W, H);
-    const top = x => 7 + 2.2 * Math.sin(2 * Math.PI * x / W + 0.7) + 1.6 * Math.sin(4 * Math.PI * x / W + 2.1) + 1.0 * Math.sin(6 * Math.PI * x / W + 4.0);
+    const top = x => 9 + 2.4 * Math.sin(4 * Math.PI * x / W + 0.7) + 1.8 * Math.sin(10 * Math.PI * x / W + 2.1) + 1.0 * Math.sin(18 * Math.PI * x / W + 4.0);
+    const t = [];
     for (let x = 0; x < W; x++) {
-        const t = Math.round(top(x));
-        for (let y = t; y < H; y++) g[y][x] = 'k';
-        g[t][x] = 'p';
-        for (let k = 2; k <= 7; k++) if (t + k < H && dith(x, t + k, 0.42 * (1 - (k - 2) / 6))) g[t + k][x] = 'p';
+        t[x] = Math.round(top(x));
+        for (let y = t[x]; y < H; y++) g[y][x] = 'k';
+        g[t[x]][x] = 'p';
+        // sand lit from above: the stipple thins out with depth (same blue-noise matrix as the water)
+        for (let k = 1; k <= 12; k++) if (t[x] + k < H && noiseT(x, t[x] + k) < 0.85 * Math.pow(1 - (k - 1) / 12, 1.6)) g[t[x] + k][x] = 'p';
     }
-    // pebbles: ink stones with a paper rim, and a few ripple dashes
-    const stone = (cx, cy, w, h) => {
-        for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
-            const edge = x === 0 || y === 0 || x === w - 1 || y === h - 1;
-            if ((x === 0 || x === w - 1) && (y === 0 || y === h - 1)) continue;
-            put(g, (cx + x + W) % W, cy + y, edge ? 'p' : 'k');
+    // rocks: ink bodies with a paper rim and a stippled lit side
+    const rock = (cx, base, rx, ry) => {
+        const inside = (x, y) => Math.pow((x - cx) / rx, 2) + Math.pow((y - base) / ry, 2) <= 1 && y <= base + 2;
+        for (let y = base - ry - 1; y <= base + 2; y++) for (let x = cx - rx - 1; x <= cx + rx + 1; x++) {
+            if (!inside(x, y)) continue;
+            const edge = !inside(x - 1, y) || !inside(x + 1, y) || !inside(x, y - 1) || y === base + 2;
+            const lit = x < cx + 1 && y < base - 1 && noiseT(x, y) < 0.5;
+            put(g, (x + W) % W, y, edge || lit ? 'p' : 'k');
         }
     };
-    stone(20, 13, 5, 3); stone(61, 15, 4, 3); stone(79, 12, 3, 2);
-    for (const [x, y] of [[8, 16], [9, 16], [10, 16], [40, 14], [41, 14], [42, 14], [43, 14], [70, 18], [71, 18], [72, 18]]) put(g, x, y, 'p');
+    const ground = x => t[((x % W) + W) % W];
+    rock(30, ground(30) + 2, 8, 5); rock(41, ground(41) + 3, 5, 3);
+    rock(133, ground(133) + 2, 10, 6); rock(146, ground(146) + 3, 5, 3);
+    // starfish
+    const star = (cx, cy) => pts(g, 'p', [[0, 0], [0, -1], [0, 1], [-1, 0], [1, 0], [0, -2], [-2, 0], [2, 0], [-1, 1], [1, 1]].map(([x, y]) => [cx + x, cy + y]));
+    star(86, ground(86) + 5);
+    // pebbles and ripple dashes in the shade
+    for (const [x, y] of [[8, 18], [9, 18], [10, 18], [60, 20], [61, 20], [62, 20], [63, 20], [104, 17], [105, 17], [106, 17], [117, 21], [118, 21], [170, 19], [171, 19], [172, 19], [183, 22], [184, 22]]) put(g, x, y, 'p');
+    for (const [x, y] of [[52, 23], [101, 24], [160, 25], [18, 25]]) { put(g, x, y, 'p'); put(g, x + 1, y, 'p'); put(g, x, y + 1, 'p'); put(g, x + 1, y + 1, 'p'); }
     return g;
 }
-const KELP = [{ h: 16 }, { h: 24 }, { h: 32 }];
+const KELP = T.KELP;
 function kelpSprite(ci, frame) {
-    const h = KELP[ci].h, W = 9, g = mk(W, h);
-    const sway = y => Math.round(Math.sin((h - y) * 0.16 + frame * 2.1) * (1 + (h - y) / h * 1.4));
+    const h = KELP[ci].rows, W = KELP[ci].cols, g = mk(W, h), bx = 4;
+    const sway = y => Math.round(Math.sin((h - y) * 0.13 + frame * 2.1) * (0.6 + (h - y) / h * 2.0));
     for (let y = 0; y < h; y++) {
-        const x = 3 + sway(y);
+        const x = bx + sway(y);
         put(g, x, y, 'p');
-        if (y < h - 3 && (h - y) % 5 === 2) {                    // leaf: two cells out and up
-            const d = ((h - y) / 5 | 0) % 2 ? 1 : -1;
-            put(g, x + d, y, 'p'); put(g, x + 2 * d, y - 1, 'p');
+        if (h - y < h / 3) put(g, x - 1, y, 'p');                       // thicker towards the base
+        const k = h - y;
+        if (k > 5 && k % 6 === 2 && y > 1) {                            // blade: three cells out and up
+            const d = (k / 6 | 0) % 2 ? 1 : -1;
+            put(g, x + d, y - 1, 'p'); put(g, x + 2 * d, y - 2, 'p'); put(g, x + 2 * d, y - 3, 'p'); put(g, x + d, y, 'p');
         }
     }
     const o = g.map(r => r.slice());
@@ -411,7 +424,7 @@ function allImages() {
         add('angler-' + f + '.png', anglerSprite(f), T.ANGLER.cols, T.ANGLER.rows);
         JELLY.forEach((c, ci) => { const d = jellyDims(c); add('jelly-' + c.name + '-' + f + '.png', jellySprite(ci, f), d.cols, d.rows); });
         for (let d = 0; d < 3; d++) add('worm-' + d + '-' + f + '.png', wormSprite(f, [1, 0.6, 0.3][d]), T.WORM.cols, T.WORM.rows);
-        if (f < 3) for (let k = 0; k < KELP.length; k++) add('kelp-' + k + '-' + f + '.png', kelpSprite(k, f), 9, KELP[k].h);
+        if (f < 3) for (let k = 0; k < KELP.length; k++) add('kelp-' + k + '-' + f + '.png', kelpSprite(k, f), KELP[k].cols, KELP[k].rows);
     }
     add('bubble-s.png', bubbleSprite(false)); add('bubble-b.png', bubbleSprite(true));
     for (let f = 0; f < 2; f++) add('sparkle-' + f + '.png', sparkleSprite(f));

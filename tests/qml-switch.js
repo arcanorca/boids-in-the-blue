@@ -23,7 +23,7 @@ if (bad.length) { fail++; console.log('QML warnings/errors:\n  ' + bad.slice(0, 
 if (!lines.some(l => /SWITCH ok finished/.test(l))) { fail++; console.log('switch test did not finish:\n' + (r.stdout + r.stderr).slice(-600)); }
 const load = n => png.decode(fs.readFileSync(path.join(outDir, n + '.png')));
 const same = (a, b) => a.W === b.W && a.H === b.H && Buffer.compare(Buffer.from(a.px), Buffer.from(b.px)) === 0;
-for (const th of ['pixel', 'classic', 'biolum', 'illustrated']) {
+for (const th of ['pixel', 'classic', 'biolum', 'illustrated', 'onebit']) {
     const frozen = same(load(th + '-paused0'), load(th + '-paused1'));
     const moving = !same(load(th + '-run0'), load(th + '-run1'));
     console.log((frozen && moving ? 'ok   ' : 'FAIL ') + th + ': covered -> frozen ' + frozen + ', running -> changing ' + moving);

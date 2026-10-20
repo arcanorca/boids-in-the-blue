@@ -90,7 +90,7 @@ function waterDensity(daylight, p) {
 function noiseFile(level, half) { return "noise-" + (level < 10 ? "0" : "") + level + "-" + half + ".png"; }
 function waterFile(daylight, p, band) { return noiseFile(Math.max(0, Math.min(64, Math.round(64 * waterDensity(daylight, p)))), band & 1); }
 
-var SEABED = { cols: 96, rows: 26 };
+var SEABED = { cols: 192, rows: 30 };
 var SURFACE = { cols: 32, rows: 5 };
-var KELP = [{ cols: 9, rows: 16 }, { cols: 9, rows: 24 }, { cols: 9, rows: 32 }];
+var KELP = [{ cols: 11, rows: 20 }, { cols: 11, rows: 30 }, { cols: 11, rows: 40 }];
 var SHAFT = { cols: 96, rows: 216, levels: 4 };         // shaft positions are multiples of 16 texels (the noise matrix size)
