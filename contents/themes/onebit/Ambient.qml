@@ -6,7 +6,7 @@ import "theme.js" as T
 // surface wave strip, a 2-layer reef seabed with boulders/corals/starfish, and 9 botanical kelp plants
 // arranged in multi-depth reef groves.
 // Nothing here flickers or scrolls: the only motion is the kelp swaying one texel at a time (one frame
-// step every 2 s per plant = 0.5 Hz) and 16 marine-snow specks sinking one texel every few seconds.
+// step every 2 s per plant = 0.5 Hz). There are no drifting specks.
 // One Timer at 2 Hz drives it; nothing animates while `paused`.
 Item {
     id: root
@@ -60,21 +60,6 @@ Item {
             y: root.height - T.SEABED.rows + T.seabedTop(kx) - T.KELP[cls].rows + 6
             smooth: false
             source: T.DIR + "kelp-" + cls + "-" + ((Math.floor(root.tick / 4) + index) & 3) + ".png"
-        }
-    }
-
-    // ── specks (marine snow): one texel, sinking one texel every few seconds ──
-    Repeater {
-        model: 16
-        delegate: Rectangle {
-            readonly property real sx: ((index * 0.618034 + 0.13) % 1)
-            readonly property real sy: ((index * 0.754878 + 0.31) % 1)
-            readonly property int every: 3 + (index % 4)                          // ticks per texel
-            width: 1
-            height: 1
-            color: T.PAPER
-            x: Math.floor(sx * root.width) + [0, 1, 1, 0, -1, -1][(Math.floor(root.tick / (7 + index % 5)) + index) % 6]
-            y: (Math.floor(sy * root.height) + Math.floor(root.tick / every)) % Math.max(1, root.height - T.SEABED.rows - 8)
         }
     }
 

@@ -49,9 +49,9 @@ function fishFile(cls, variant, frame, inverted) {
 }
 
 // ── the rest of the cast (cols x rows in texels, with outline) ──
-// Reference at 1080p (3 px/texel): fish ~39x27, orca 114x60 (~3x fish), angler 57x51 (~1.5x fish),
+// Reference at 1080p (3 px/texel): fish ~39x27, orca 120x69 (~3x fish; 40x23 texels), angler 57x51 (~1.5x fish),
 // jelly bell 36-42 wide (~1x fish), worm 12x27 (~0.3x fish), bubbles 6 & 12 px.
-var ORCA = [{ name: "orca", cols: 38, rows: 20 }, { name: "orca-s", cols: 24, rows: 13 }];       // [full, small]
+var ORCA = [{ name: "orca", cols: 40, rows: 23 }, { name: "orca-s", cols: 25, rows: 14 }];       // [full, small]
 var ANGLER = [{ name: "angler", cols: 19, rows: 17 }, { name: "angler-s", cols: 13, rows: 12 }];
 var JELLY = [{ name: "t", cols: 9, rows: 15 }, { name: "s", cols: 12, rows: 19 }, { name: "l", cols: 14, rows: 22 }];
 var WORM = { cols: 4, rows: 9, frames: 4 };

@@ -28,7 +28,7 @@ randomness. Tone is carried by dot count and dot size, and nothing forms a strok
 
 Daylight: `water-0.png` (night) .. `water-5.png` (full day) are six nested layers. Layer n holds the dots that
 show at tone scale `waterScale(n)` (0.4 at night rising linearly to 1.0 in day), so a dot appears once and never moves, and the night layer keeps a faint pattern near the surface and the beam edges. Every
-layer is a fixed texture; nothing in the backdrop animates except the slow kelp and marine snow.
+layer is a fixed texture; nothing in the backdrop animates except the slow kelp sway.
 
 Measured: paper share of the full-day water 0.63 % (contours) or 2.55 % (halftone); no dot shape larger than
 3x3 texels; distinct dots at least 4 texels apart centre to centre (3 empty texels between solid dots).
@@ -46,18 +46,20 @@ Measured: paper share of the full-day water 0.63 % (contours) or 2.55 % (halfton
   13x9 texels, 39x27 px at 1080p. Their colour is not used: the variant is the pattern.
 - Creatures are paper shapes with ink markings and ink outlines inside their rim, so they stay the heaviest,
   brightest things against the dots.
-- Orca (38x20 texels, 114x60 px) is drawn with its paper areas: the white underside below the mouth line with
-  a pointed flank lobe, a white oval eye patch above and behind the eye, a sparse paper-dotted saddle behind the
-  dorsal fin, a rounded paddle with an ink rim, a tall dorsal fin and crescent flukes. The black back is only
-  its 1-texel paper outline, because it is ink on ink water.
+- Orca (40x23 texels, 120x69 px, about 3 fish long) follows the owner's reference: a sleek black body on a gentle
+  arch with the tail rising to the left into up-left flukes, a tall dorsal fin swept back on the middle of the back,
+  a large triangular flipper hanging down from the front, a white oval eye patch, a white saddle in front of the
+  fin, and a lens-shaped white belly that tapers toward the tail. The black body is ink on ink water, so it shows
+  through its 1-texel paper outline. Frames: the flukes beat up and down and the flipper wobbles by one texel. The
+  small variant (25x14) is hand-drawn with its own simplified shapes.
 - Angler 57x51 px, jelly bell 42 px wide, worm 12x27 px, bubbles 6 and 12 px.
 
 ## Motion and rates
 
 - The simulation steps 25 times per second; each sprite interpolates between steps, so motion is smooth.
 - Fish animate about 2-3 frames per second; orca and angler slower; jelly bell pulses about 1.4 frames per second.
-- The backdrop timer runs every 500 ms. Kelp changes frame every 4 ticks (2 s per frame, 0.5 Hz). Marine snow
-  specks sink one texel every 1.5-3 s. Nothing else in the backdrop moves.
+- The backdrop timer runs every 500 ms and only advances the kelp frames: each plant changes frame every 2 s
+  (0.5 Hz). Nothing else in the backdrop moves; there are no drifting specks.
 - Stress only inverts a growing share of fish from stress 0.25 (ink body, paper pattern), trembles a share by one
   texel from stress 0.5, and above stress 1.2 about a third of the fish alternate between normal and inverted at
   0.8 Hz (at most 2 flips per second per fish). Nothing flashes across the screen, and everything stops on pause.
