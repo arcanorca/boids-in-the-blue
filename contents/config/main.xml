@@ -6,53 +6,53 @@
 
   <group name="General">
     <entry name="theme" type="String">
-      <label>Visual theme (pixel, classic, biolum)</label>
+      <label>Visual theme</label>
       <default>pixel</default>
     </entry>
 
     <entry name="pauseWhenCovered" type="Bool">
-      <label>Pause when windows cover the desktop</label>
+      <label>Pause when covered</label>
       <default>true</default>
     </entry>
 
     <entry name="pauseCoverage" type="Int">
-      <label>Pause when windows cover at least this percent of the screen</label>
+      <label>Covered share of the screen that pauses the animation</label>
       <default>90</default>
       <min>50</min>
       <max>100</max>
     </entry>
 
     <entry name="dayNightCycle" type="Bool">
-      <label>Enable day/night cycle</label>
+      <label>Follow the time of day</label>
       <default>false</default>
     </entry>
 
     <entry name="waterTop" type="String">
-      <label>Water top color</label>
+      <label>Water surface color</label>
       <default>#0f4c75</default>
     </entry>
     <entry name="waterBottom" type="String">
-      <label>Water bottom color</label>
+      <label>Water depths color</label>
       <default>#051e36</default>
     </entry>
 
     <entry name="sensorMode" type="Int">
-      <label>Reactivity Mode (0=Hybrid, 1=CPU, 2=GPU, 3=Custom, 4=Passive)</label>
+      <label>React to: 0 processor and graphics card, 1 processor only, 2 graphics card only, 3 custom sensor, 4 nothing</label>
       <default>0</default>
       <min>0</min>
       <max>4</max>
     </entry>
     <entry name="sensorId" type="String">
-      <label>System Sensor ID</label>
+      <label>Main sensor ID</label>
       <default>cpu/all/usage</default>
     </entry>
     <entry name="sensorId2" type="String">
-      <label>Secondary Sensor ID</label>
+      <label>Second sensor ID</label>
       <default>gpu/all/usage</default>
     </entry>
-    
+
     <entry name="reactivityIntensity" type="Double">
-      <label>Response Intensity</label>
+      <label>Reactivity intensity</label>
       <default>1.0</default>
       <min>0.25</min>
       <max>2.0</max>
@@ -68,7 +68,7 @@
     </entry>
 
     <entry name="fishSize" type="Double">
-      <label>Fish scale</label>
+      <label>Fish size</label>
       <default>4.0</default>
       <min>1.0</min>
       <max>8.0</max>
@@ -81,20 +81,20 @@
       <max>50</max>
     </entry>
     <entry name="jellySize" type="Double">
-      <label>Jellyfish scale</label>
+      <label>Jellyfish size</label>
       <default>3.0</default>
       <min>1.0</min>
       <max>8.0</max>
     </entry>
 
     <entry name="anglerCount" type="Int">
-      <label>Angler count</label>
+      <label>Anglerfish count</label>
       <default>3</default>
       <min>0</min>
       <max>20</max>
     </entry>
     <entry name="anglerSize" type="Double">
-      <label>Angler scale</label>
+      <label>Anglerfish size</label>
       <default>4.2</default>
       <min>1.0</min>
       <max>10.0</max>
@@ -107,7 +107,7 @@
       <max>10</max>
     </entry>
     <entry name="orcaSize" type="Double">
-      <label>Orca scale</label>
+      <label>Orca size</label>
       <default>5.5</default>
       <min>1.0</min>
       <max>10.0</max>
@@ -120,7 +120,7 @@
       <max>10.0</max>
     </entry>
     <entry name="cursorFearLevel" type="Int">
-      <label>Cursor Fear Level</label>
+      <label>Cursor reaction: 0 off to 4 maximum</label>
       <default>2</default>
       <min>0</min>
       <max>4</max>
@@ -129,13 +129,13 @@
 
   <group name="Physics">
     <entry name="fishMaxSpeed" type="Double">
-      <label>Fish's Max Speed</label>
+      <label>Fish top speed</label>
       <default>0.8</default>
       <min>0.1</min>
       <max>3.0</max>
     </entry>
     <entry name="fishMinSpeed" type="Double">
-      <label>Fish's Min Speed</label>
+      <label>Fish slowest speed</label>
       <default>0.2</default>
       <min>0.05</min>
       <max>1.0</max>
@@ -143,7 +143,7 @@
 
 
     <entry name="anglerSpeed" type="Double">
-      <label>Angler speed multiplier</label>
+      <label>Anglerfish speed multiplier</label>
       <default>1.0</default>
       <min>0.1</min>
       <max>3.0</max>
@@ -155,57 +155,57 @@
       <max>3.0</max>
     </entry>
     <entry name="orcaChase" type="Double">
-      <label>Orca chase intensity</label>
+      <label>Orca aggression</label>
       <default>0.7</default>
       <min>0.0</min>
       <max>2.0</max>
     </entry>
     <entry name="anglerChase" type="Double">
-      <label>Angler chase intensity</label>
+      <label>Anglerfish aggression</label>
       <default>0.7</default>
       <min>0.0</min>
       <max>2.0</max>
     </entry>
 
     <entry name="visualRange" type="Int">
-      <label>Flocking range</label>
+      <label>Vision range</label>
       <default>130</default>
       <min>40</min>
       <max>400</max>
     </entry>
     <entry name="separationDist" type="Int">
-      <label>Separation distance</label>
+      <label>Personal space</label>
       <default>35</default>
       <min>10</min>
       <max>100</max>
     </entry>
 
     <entry name="cohesionFactor" type="Double">
-      <label>Cohesion factor</label>
+      <label>Flock attraction</label>
       <default>0.0005</default>
       <min>0.0</min>
       <max>0.005</max>
     </entry>
     <entry name="alignmentFactor" type="Double">
-      <label>Alignment factor</label>
+      <label>Alignment</label>
       <default>0.06</default>
       <min>0.0</min>
       <max>0.15</max>
     </entry>
     <entry name="separationFactor" type="Double">
-      <label>Separation factor</label>
+      <label>Repulsion</label>
       <default>0.008</default>
       <min>0.0</min>
       <max>0.08</max>
     </entry>
     <entry name="wanderFactor" type="Double">
-      <label>Wander factor</label>
+      <label>Random drift</label>
       <default>0.012</default>
       <min>0.0</min>
       <max>0.06</max>
     </entry>
     <entry name="turnFactor" type="Double">
-      <label>Edge turn factor</label>
+      <label>Edge avoidance</label>
       <default>0.06</default>
       <min>0.0</min>
       <max>0.1</max>

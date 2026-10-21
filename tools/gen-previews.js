@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Generates contents/themes/<id>/preview.png (480x270) for the settings page's theme cards:
-// renders each theme through tests/qml/render.qml (the 'defaults' scene, same school for every
+// renders each theme through tests/qml/render.qml (the 'defaults' scene, same settings for every
 // theme), crops a 960x540 window and halves it. Needs qml6 and ImageMagick (convert).
 // Usage: node tools/gen-previews.js [theme...]
 const { spawnSync } = require('child_process');

@@ -245,13 +245,6 @@ ColumnLayout {
                 }
             }
         }
-        Label {
-            Layout.fillWidth: true
-            text: i18n("The theme changes the look only; every theme shows the same school.")
-            wrapMode: Text.WordWrap
-            font: Kirigami.Theme.smallFont
-            opacity: 0.7
-        }
     }
 
     // ═══ OCEAN ══════════════════════════════════════════════════
@@ -261,37 +254,37 @@ ColumnLayout {
         twinFormLayouts: parentLayout
         Layout.fillWidth: true
 
-        Kirigami.Separator { Kirigami.FormData.label: i18nc("@title:group", "How many"); Kirigami.FormData.isSection: true }
+        Kirigami.Separator { Kirigami.FormData.label: i18nc("@title:group", "Count"); Kirigami.FormData.isSection: true }
         ValueSlider {
             id: fishCountSlider
             label: i18nc("@label:slider number of creatures", "Fish:")
-            help: i18n("Schooling fish. More fish make richer flocks but use more processor time.")
+            help: i18n("Number of fish. More fish use more processor time.")
             from: 5; to: 200; stepSize: 1
             format: function (v) { return String(Math.round(v)); }
         }
         ValueSlider {
             id: jellyCountSlider
             label: i18nc("@label:slider number of creatures", "Jellyfish:")
-            help: i18n("Slow, translucent drifters.")
+            help: i18n("Number of jellyfish.")
             from: 0; to: 50; stepSize: 1
             format: function (v) { return String(Math.round(v)); }
         }
         ValueSlider {
             id: anglerCountSlider
             label: i18nc("@label:slider number of creatures", "Anglerfish:")
-            help: i18n("Deep-sea predators with a glowing lure. They hunt fish.")
+            help: i18n("Number of anglerfish. They hunt fish.")
             from: 0; to: 20; stepSize: 1
             format: function (v) { return String(Math.round(v)); }
         }
         ValueSlider {
             id: orcaCountSlider
             label: i18nc("@label:slider number of creatures", "Orcas:")
-            help: i18n("The biggest predators. Fish scatter when one passes.")
+            help: i18n("Number of orcas. Fish scatter when an orca passes.")
             from: 0; to: 10; stepSize: 1
             format: function (v) { return String(Math.round(v)); }
         }
 
-        Kirigami.Separator { Kirigami.FormData.label: i18nc("@title:group", "How big"); Kirigami.FormData.isSection: true }
+        Kirigami.Separator { Kirigami.FormData.label: i18nc("@title:group", "Size"); Kirigami.FormData.isSection: true }
         ValueSlider {
             id: fishSizeSlider
             label: i18nc("@label:slider creature size", "Fish:")
@@ -319,7 +312,7 @@ ColumnLayout {
         ValueSlider {
             id: wormSizeSlider
             label: i18nc("@label:slider creature size", "Worms:")
-            help: i18n("Worms appear where you click. Fish that eat enough of them have babies.")
+            help: i18n("Size of the worms dropped by a click. The school gets a baby fish for every 10 worms it eats, up to 20 extra fish.")
             from: 1.0; to: 10.0; stepSize: 0.5
             format: root.multiplier
         }
@@ -349,19 +342,19 @@ ColumnLayout {
             }
             Binding { target: presetCombo; property: "currentIndex"; value: root.presetIndex }
             HelpSlot {
-                text: i18n("How the fish school. Calm: slow, loose drifting. Default: clear schools that split and merge. Lively: tight, fast, frequent turns. Chaotic: scattered, erratic bursts. Fine-tune every value under Advanced flocking below.")
+                text: i18n("How the fish move together. Calm: slow and loose. Default: clear schools that split and merge. Lively: tight, fast, frequent turns. Chaotic: scattered, erratic bursts. Changing a value under Advanced flocking switches this to Custom.")
                 name: i18n("Flocking style")
             }
         }
         ValueSlider {
             id: cursorFearSlider
             label: i18nc("@label:slider", "Cursor reaction:")
-            help: i18n("How strongly fish swim away from your mouse pointer. Off ignores the pointer.")
+            help: i18n("How strongly fish swim away from the pointer. Off ignores it; Maximum is the strongest reaction.")
             from: 0; to: 4; stepSize: 1
             format: function (v) {
                 return [i18nc("@item cursor reaction", "Off"), i18nc("@item cursor reaction", "Gentle"),
                         i18nc("@item cursor reaction", "Moderate"), i18nc("@item cursor reaction", "Strong"),
-                        i18nc("@item cursor reaction", "Panic")][Math.round(v)];
+                        i18nc("@item cursor reaction", "Maximum")][Math.round(v)];
             }
         }
 
@@ -369,28 +362,28 @@ ColumnLayout {
         ValueSlider {
             id: orcaChaseSlider
             label: i18nc("@label:slider", "Orca aggression:")
-            help: i18n("How eagerly orcas chase fish.")
+            help: i18n("How often orcas chase fish. Off means they never chase; Aggressive is the maximum.")
             from: 0.0; to: 2.0; stepSize: 0.1
             format: root.levelName
         }
         ValueSlider {
             id: orcaSpeedSlider
             label: i18nc("@label:slider", "Orca speed:")
-            help: i18n("Swimming speed of orcas, relative to normal.")
+            help: i18n("Orca swimming speed, relative to normal.")
             from: 0.1; to: 3.0; stepSize: 0.05
             format: function (v) { return i18nc("value multiplier", "%1×", v.toFixed(2)); }
         }
         ValueSlider {
             id: anglerChaseSlider
             label: i18nc("@label:slider", "Angler aggression:")
-            help: i18n("How eagerly anglerfish chase fish.")
+            help: i18n("How often anglerfish chase fish. Off means they never chase; Aggressive is the maximum.")
             from: 0.0; to: 2.0; stepSize: 0.1
             format: root.levelName
         }
         ValueSlider {
             id: anglerSpeedSlider
             label: i18nc("@label:slider", "Angler speed:")
-            help: i18n("Swimming speed of anglerfish, relative to normal.")
+            help: i18n("Anglerfish swimming speed, relative to normal.")
             from: 0.1; to: 3.0; stepSize: 0.05
             format: function (v) { return i18nc("value multiplier", "%1×", v.toFixed(2)); }
         }
@@ -407,14 +400,14 @@ ColumnLayout {
             text: i18nc("@action:button expands a section of detailed settings", "Advanced flocking")
             icon.name: checked ? "arrow-down" : "arrow-right"
             Accessible.name: i18n("Advanced flocking")
-            Accessible.description: checked ? i18n("Expanded. Press to collapse.") : i18n("Collapsed. Press to expand.")
+            Accessible.description: checked ? i18n("Expanded. Activate to collapse.") : i18n("Collapsed. Activate to expand.")
         }
 
         ValueSlider {
             id: maxSpeedSlider
             visible: root.advancedVisible
             label: i18nc("@label:slider", "Top speed:")
-            help: i18n("How fast the fish swim at most. Fish never swim slower than the slowest speed.")
+            help: i18n("Maximum speed of the fish. The slowest speed cannot exceed it.")
             from: 0.1; to: 3.0; stepSize: 0.05
             format: root.pixelsPerSecond
             onMoved: { if (minSpeedSlider.value > value) minSpeedSlider.value = value; }
@@ -423,7 +416,7 @@ ColumnLayout {
             id: minSpeedSlider
             visible: root.advancedVisible
             label: i18nc("@label:slider", "Slowest speed:")
-            help: i18n("Fish never swim slower than this. It cannot exceed the top speed.")
+            help: i18n("Minimum speed of the fish. Cannot exceed the top speed.")
             from: 0.05; to: 1.0; stepSize: 0.05
             format: root.pixelsPerSecond
             onMoved: { if (value > maxSpeedSlider.value) value = maxSpeedSlider.value; }
@@ -432,7 +425,7 @@ ColumnLayout {
             id: visualRangeSlider
             visible: root.advancedVisible
             label: i18nc("@label:slider", "Vision range:")
-            help: i18n("How far each fish sees its neighbours. Short sight breaks the school into many small groups; long sight makes one big school.")
+            help: i18n("How far each fish sees its neighbors. Short range: many small groups. Long range: one large school.")
             from: 40; to: 400; stepSize: 10
             format: function (v) { return i18nc("pixels", "%1 px", Math.round(v)); }
         }
@@ -440,7 +433,7 @@ ColumnLayout {
             id: sepDistSlider
             visible: root.advancedVisible
             label: i18nc("@label:slider", "Personal space:")
-            help: i18n("The gap fish keep from each other, about this many pixels. Larger values make a looser school.")
+            help: i18n("Distance fish keep from each other, in pixels. Larger values make a looser school.")
             from: 10; to: 100; stepSize: 1
             format: function (v) { return i18nc("pixels", "%1 px", Math.round(v)); }
         }
@@ -448,7 +441,7 @@ ColumnLayout {
             id: cohesionSlider
             visible: root.advancedVisible
             label: i18nc("@label:slider", "Flock attraction:")
-            help: i18n("Pull toward the center of the nearby group. Too much squeezes the fish into a ball.")
+            help: i18n("How strongly fish move toward the center of nearby fish. High values pull the school into a ball.")
             from: 0; to: 0.005; stepSize: 0.00005
             format: function (v) { return root.percentOf(v, 0.005); }
         }
@@ -456,7 +449,7 @@ ColumnLayout {
             id: alignmentSlider
             visible: root.advancedVisible
             label: i18nc("@label:slider", "Alignment:")
-            help: i18n("How much fish copy the swimming direction of their neighbours. High values make very orderly schools.")
+            help: i18n("How strongly fish match the direction of nearby fish. High values make orderly schools.")
             from: 0; to: 0.15; stepSize: 0.0015
             format: function (v) { return root.percentOf(v, 0.15); }
         }
@@ -464,7 +457,7 @@ ColumnLayout {
             id: separationSlider
             visible: root.advancedVisible
             label: i18nc("@label:slider", "Repulsion:")
-            help: i18n("Push away from neighbours that are too close. Too little lets fish overlap.")
+            help: i18n("How strongly fish steer away from neighbors that are too close. Low values let fish overlap.")
             from: 0; to: 0.08; stepSize: 0.0008
             format: function (v) { return root.percentOf(v, 0.08); }
         }
@@ -472,7 +465,7 @@ ColumnLayout {
             id: wanderSlider
             visible: root.advancedVisible
             label: i18nc("@label:slider", "Random drift:")
-            help: i18n("Natural randomness in the movement. High values scatter the schools.")
+            help: i18n("How much random wandering each fish adds. High values break up the schools.")
             from: 0; to: 0.06; stepSize: 0.0006
             format: function (v) { return root.percentOf(v, 0.06); }
         }
@@ -480,7 +473,7 @@ ColumnLayout {
             id: turnSlider
             visible: root.advancedVisible
             label: i18nc("@label:slider", "Edge avoidance:")
-            help: i18n("How firmly fish turn around when they approach the screen edge.")
+            help: i18n("How sharply fish turn back before reaching the screen edge.")
             from: 0; to: 0.1; stepSize: 0.001
             format: function (v) { return root.percentOf(v, 0.1); }
         }
@@ -502,7 +495,7 @@ ColumnLayout {
                 text: i18n("Follow the time of day")
                 enabled: root.theme.usesDayNight
             }
-            HelpSlot { text: i18n("The water brightens and darkens with the clock, with a golden shimmer at sunrise and sunset."); name: i18n("Day and night") }
+            HelpSlot { text: i18n("The water brightens and darkens with the time of day, with a shimmer at sunrise and sunset."); name: i18n("Day and night") }
         }
 
         Kirigami.Separator { Kirigami.FormData.label: i18nc("@title:group", "Water"); Kirigami.FormData.isSection: true }
@@ -514,8 +507,8 @@ ColumnLayout {
             text: !root.theme.usesDayNight
                   ? i18n("%1 has no day and night cycle.", i18n(root.theme.name))
                   : (!root.theme.usesWaterColors
-                     ? i18n("%1 paints its own water, so the water colors below are not used.", i18n(root.theme.name))
-                     : i18n("The water colors follow the time of day while the cycle is on."))
+                     ? i18n("%1 uses its own water colors, so the colors below are not used.", i18n(root.theme.name))
+                     : i18n("Water colors follow the time of day while the cycle is on."))
         }
         KQControls.ColorButton {
             id: colorTop
@@ -580,14 +573,14 @@ ColumnLayout {
                 Accessible.name: i18n("React to")
             }
             HelpSlot {
-                text: i18n("The sea gets restless when your computer is busy: fish turn reddish, swim faster and shake.")
+                text: i18n("Load on the processor or graphics card makes the fish turn red, swim faster and shake.")
                 name: i18n("React to")
             }
         }
         ValueSlider {
             id: reactivitySlider
             label: i18nc("@label:slider", "Intensity:")
-            help: i18n("How strongly system load affects the creatures: 25% is barely noticeable, 100% normal, 200% extreme.")
+            help: i18n("How strongly the load affects the fish. 25% is weak, 100% is normal, 200% is strong.")
             visible: sensorTypeCombo.currentIndex !== 4
             from: 0.25; to: 2.0; stepSize: 0.25
             format: function (v) { return i18nc("percent", "%1%", Math.round(v * 100)); }
@@ -605,7 +598,7 @@ ColumnLayout {
                 Accessible.name: i18n("Main sensor")
             }
             HelpSlot {
-                text: i18n("A sensor ID from System Monitor, for example cpu/all/usage or gpu/all/usage. Percent sensors use 0 to 100, temperatures 40 to 80 degrees.")
+                text: i18n("Sensor ID from System Monitor, for example cpu/all/usage. Usage sensors read 0 to 100%. Other sensors, such as temperatures, are scaled from 40 to 80.")
                 name: i18n("Main sensor")
             }
         }
@@ -622,7 +615,7 @@ ColumnLayout {
                 Accessible.name: i18n("Second sensor")
             }
             HelpSlot {
-                text: i18n("Optional. The busier of the two sensors drives the effect. Leave empty to use only the main sensor.")
+                text: i18n("Optional. The higher of the two readings drives the effect. Leave empty to use only the main sensor.")
                 name: i18n("Second sensor")
             }
         }
@@ -636,14 +629,14 @@ ColumnLayout {
                 text: i18n("Pause the animation")
             }
             HelpSlot {
-                text: i18n("Stops the animation (and the sensors) while windows hide the wallpaper, and when the screen is off. It resumes as soon as the desktop is visible again. A maximized or fullscreen window always counts as covering.")
+                text: i18n("Pauses the animation and the sensors while windows hide the wallpaper or the screen is off. Resumes when the desktop is visible again. A maximized or fullscreen window always counts as covering.")
                 name: i18n("Pause when covered")
             }
         }
         ValueSlider {
             id: coverageSlider
             label: i18nc("@label:slider", "Covered from:")
-            help: i18n("Pause when open windows hide at least this much of the screen, even if none is maximized, for example several tiled windows. 100% pauses only when the whole screen is covered.")
+            help: i18n("Pause when open windows cover at least this share of the screen, even when none is maximized. 100% pauses only when the whole screen is covered.")
             enabled: pauseCoveredCheck.checked
             from: 50; to: 100; stepSize: 5
             format: function (v) { return i18nc("percent", "%1%", Math.round(v)); }
@@ -657,7 +650,7 @@ ColumnLayout {
         Layout.rightMargin: Kirigami.Units.smallSpacing
         Layout.bottomMargin: Kirigami.Units.smallSpacing
         flat: true
-        text: i18nc("@action:button", "Reset to Defaults")
+        text: i18nc("@action:button", "Reset to defaults")
         icon.name: "edit-undo"
         onClicked: root.resetToDefaults()
         Accessible.name: i18n("Reset all settings to defaults")

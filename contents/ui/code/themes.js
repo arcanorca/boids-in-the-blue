@@ -25,56 +25,56 @@ var THEMES = [
     {
         id: "pixel",
         name: "Refined Pixel",
-        description: "Crisp pixel-art sea life with animated sprites, smooth water and drifting light shafts.",
+        description: "Crisp pixel art with light shafts",
         usesDayNight: true,
         usesWaterColors: true
     },
     {
         id: "classic",
         name: "Classic",
-        description: "The original look: hand-drawn blocky sprites on a smooth blue gradient.",
+        description: "The original look",
         usesDayNight: true,
         usesWaterColors: true
     },
     {
         id: "biolum",
-        name: "Bioluminescent Deep",
-        description: "Glowing creatures in dark deep water, with marine snow, light shafts and sparkles.",
+        name: "Bioluminescent",
+        description: "Glowing creatures in dark water",
         usesDayNight: true,
         usesWaterColors: true
     },
     {
         id: "nes",
         name: "NES",
-        description: "8-bit console look: the 2C02 palette with a calm teal sea, outlined tile-built sprites, black-and-white orcas, palette-swapped day and night and a static seabed.",
+        description: "NES-style 8-bit palette",
         usesDayNight: true,
         usesWaterColors: false
     },
     {
         id: "amiga",
         name: "Amiga",
-        description: "Calm Commodore Amiga look: a smooth copper-gradient sea, hand-drawn 12-bit sprites on one consistent pixel scale, gently swaying kelp.",
+        description: "Copper-gradient sea",
         usesDayNight: true,
         usesWaterColors: false
     },
     {
         id: "gameboy",
         name: "Game Boy",
-        description: "The sea on a 1989 handheld: four LCD greens, 8x8 tiles, calm flat water, kelp and well-drawn sprites.",
+        description: "Four LCD greens",
         usesDayNight: true,
         usesWaterColors: false
     },
     {
         id: "onebit",
         name: "1-Bit",
-        description: "Two colours only: ivory paper on deep ink. Dotted swell-contour water with diagonal sunbeams, a layered reef with kelp, bold line-art creatures; fish invert when stressed.",
+        description: "Two colours: ink on paper",
         usesDayNight: true,
         usesWaterColors: false
     },
     {
         id: "ukiyoe",
         name: "Ukiyo-e",
-        description: "Colour woodblock print (nishiki-e): koi in traditional pigments, Seigaiha wave pattern on a bokashi indigo sea, Hokusai wave crests, wakame kelp and Matsushima rocks.",
+        description: "Japanese woodblock print",
         usesDayNight: true,
         usesWaterColors: false
     }
