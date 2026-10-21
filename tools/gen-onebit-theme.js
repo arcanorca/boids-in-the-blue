@@ -295,10 +295,10 @@ function orcaSprite(frame, small) {
             const bellyTop = x >= 27 ? bot - 2 : (x >= 20 ? bot - 2 : (x >= 14 ? bot - 3 : bot - 1));
             for (let y = bellyTop; y <= bot; y++) if (get(g, x, y) === 'k') put(g, x, y, 'p');
         }
-        // Iconic white oval eye patch (cols 28..32, rows 7..8)
-        pts(g, 'p', [[28, 7], [29, 7], [30, 7], [31, 7], [28, 8], [29, 8], [30, 8], [31, 8], [32, 8]]);
-        // Saddle patch behind dorsal fin (cols 14..17, rows 6..7)
-        pts(g, 'p', [[14, 6], [15, 6], [16, 6], [17, 6], [15, 7], [16, 7]]);
+        // Iconic white oval eye patch (cols 27..31, rows 6..8)
+        pts(g, 'p', [[28, 6], [29, 6], [30, 6], [27, 7], [28, 7], [29, 7], [30, 7], [31, 7], [28, 8], [29, 8], [30, 8], [31, 8]]);
+        // Saddle patch behind dorsal fin (cols 13..17, rows 5..7)
+        pts(g, 'p', [[13, 5], [14, 5], [15, 5], [16, 5], [13, 6], [14, 6], [15, 6], [16, 6], [17, 6], [14, 7], [15, 7], [16, 7]]);
         // Subtle woodcut highlight along the upper snout and dorsal leading edge
         pts(g, 'p', [[19, 1], [18, 2], [17, 3], [24, 6], [25, 6], [26, 6]]);
         // Mouth line and pectoral separation in ink

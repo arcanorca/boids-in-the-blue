@@ -105,10 +105,10 @@ function bubbleFile(scale) { return bubbleClass(scale) ? "bubble-b.png" : "bubbl
 var WATER = {
     cols: 640, rows: 280, layers: 6, seed: 20261021,
     bands: [
-        { from: 9,   to: 34,  pitch: 5,  cover: 0.24, beamBoost: 0.22, minD: 10, maxD: 24, full: true, night: true },
-        { from: 40,  to: 88,  pitch: 6,  cover: 0.12, beamBoost: 0.30, minD: 9,  maxD: 22, full: true, night: false },
-        { from: 95,  to: 175, pitch: 8,  cover: 0.05, beamBoost: 0.32, minD: 8,  maxD: 18, full: false, night: true },
-        { from: 185, to: 269, pitch: 12, cover: 0.0,  beamBoost: 0.26, minD: 7,  maxD: 15, full: false, night: false }
+        { from: 9,   to: 34,  pitch: 5,  cover: 0.40, beamBoost: 0.30, minD: 10, maxD: 24, full: true, night: true },
+        { from: 40,  to: 88,  pitch: 5,  cover: 0.18, beamBoost: 0.55, minD: 9,  maxD: 22, full: true, night: false },
+        { from: 95,  to: 175, pitch: 7,  cover: 0.10, beamBoost: 0.50, minD: 8,  maxD: 18, full: false, night: true },
+        { from: 185, to: 269, pitch: 10, cover: 0.04, beamBoost: 0.40, minD: 7,  maxD: 15, full: false, night: false }
     ],
     beams: [[58, 1.05], [192, 0.85], [336, 1.20], [478, 0.90], [588, 1.0]],
     beamHalf: 22, beamGrow: 0.085
