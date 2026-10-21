@@ -30,7 +30,10 @@ fi
 # Only metadata.json + contents/ belong in the installed package (not ports, tests, tools)
 STAGE_DIR="$(mktemp -d)"
 trap 'rm -rf "$STAGE_DIR"' EXIT
-cp -r "$PLUGIN_DIR/metadata.json" "$PLUGIN_DIR/contents" "$STAGE_DIR/"
+if ! cp -r "$PLUGIN_DIR/metadata.json" "$PLUGIN_DIR/contents" "$STAGE_DIR/" || ! diff -rq "$PLUGIN_DIR/contents" "$STAGE_DIR/contents" >/dev/null; then
+    echo "❌ Could not stage the package (disk full or quota exceeded in $(dirname "$STAGE_DIR")?). Nothing was installed."
+    exit 1
+fi
 
 install_pkg() {
     kpackagetool6 --type Plasma/Wallpaper --install "$STAGE_DIR"
@@ -180,6 +183,12 @@ else
 fi
 
 if [ "$status" -eq 0 ]; then
+    # Verify the installed copy: a full disk can leave truncated files that kpackagetool does not notice
+    INSTALLED_DIR="$HOME/.local/share/plasma/wallpapers/$PLUGIN_ID"
+    if [ -d "$INSTALLED_DIR" ] && ! diff -rq "$PLUGIN_DIR/contents" "$INSTALLED_DIR/contents" >/dev/null; then
+        echo "❌ The installed files differ from the repository (disk full?). Free some space and run install.sh again."
+        exit 1
+    fi
     echo "✅ Installation successful!"
 
     # Carry settings over from the old plugin id (only if it is installed or in use)
