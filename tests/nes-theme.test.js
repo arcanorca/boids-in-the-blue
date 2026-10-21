@@ -69,12 +69,12 @@ test('nes art obeys the hardware: master palette, 3-colour palettes, 4+4 palette
             const pal = sprPal(v.startsWith('alarm') ? T.ALARM_STATES[st] : T.SPR_PAL[T.FISH_PALETTE[v]]);
             for (const c of cs) assert.ok(pal.has(c), f + ': ' + c + ' is not in the ' + T.FISH_PALETTE[v] + ' palette');
         } else if (f.startsWith('angler-')) {
-            const pal = new Set([...sprPal(T.SPR_PAL.pink), ...sprPal(T.SPR_PAL.gold)]);
+            const pal = new Set([...sprPal(T.SPR_PAL.lilac), ...sprPal(T.SPR_PAL.gold)]);
             for (const c of cs) assert.ok(pal.has(c), f + ' ' + c);
         } else if (/^(orca|bubble|sparkle)-/.test(f)) {
             for (const c of cs) assert.ok(sprPal(T.SPR_PAL.teal).has(c), f + ' ' + c);
         } else if (/^jelly-/.test(f)) {
-            for (const c of cs) assert.ok(sprPal(T.SPR_PAL.pink).has(c), f + ' ' + c);
+            for (const c of cs) assert.ok(sprPal(T.SPR_PAL.lilac).has(c), f + ' ' + c);
         } else if (/^worm-/.test(f)) {
             for (const c of cs) assert.ok(sprPal(T.SPR_PAL.gold).has(c), f + ' ' + c);
         } else {                                          // background: only that state's 4 palettes + universal colour

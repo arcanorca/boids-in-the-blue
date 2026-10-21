@@ -149,7 +149,7 @@ const FISH_S_TAIL = [[[2, 2], [2, 4]], [[2, 3]]];
 // colour roles -> palette index per variant: [palette, {role: index 1..3}]
 const FISH_ROLES = {
     aqua:    [['teal'],  { o: 1, b: 2, l: 3, f: 2, e: 1, p: 1 }],
-    orchid:  [['pink'],  { o: 1, b: 2, l: 3, f: 3, e: 1, p: 3 }],
+    orchid:  [['lilac'], { o: 1, b: 2, l: 3, f: 3, e: 1, p: 3 }],
     amber:   [['gold'],  { o: 1, b: 2, l: 3, f: 2, e: 1, p: 1 }],
     coral:   [['coral'], { o: 1, b: 2, l: 3, f: 2, e: 1, p: 3 }],
     lemon:   [['gold'],  { o: 1, b: 3, l: 2, f: 3, e: 1, p: 1 }],
@@ -179,7 +179,7 @@ function fishSprite(cls, variant, frame) {
 }
 
 // ── ORCA ─────────────────────────────────────────────────────
-// 24x16 (3x2 tiles), faces right. K black body, S rim light on the back, W white; palette 'sea'.
+// 24x16 (3x2 tiles), faces right. K dark body (the navy slate of palette 'teal'), S rim light on the back, W white.
 const ORCA_TOP = [8, 7, 6, 6, 5, 5, 5, 4, 4, 4, 4, 4, 4, 4, 4, 5, 5, 6, 7, 8];     // x = 4..23
 const ORCA_BOT = [9, 10, 11, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 11, 11, 10];
 function orcaSprite(frame) {
@@ -244,13 +244,13 @@ function lureTile(level) {
 }
 function anglerSprite(frame, lure) {
     return renderSprite(16, 24, [
-        { idx: toIdx(anglerBody(frame), { B: 2, L: 1, T: 3 }, 'angler'), x: 0, y: 8, pal: ['pink'] },
+        { idx: toIdx(anglerBody(frame), { B: 1, L: 2, T: 3 }, 'angler'), x: 0, y: 8, pal: ['lilac'] },
         { idx: lureTile(lure), x: 8, y: 0, pal: ['gold'] }
     ]);
 }
 
 // ── JELLY ────────────────────────────────────────────────────
-// 8x16 (1x2 tiles), palette 'pink': B bell, s rim (dark), t tentacle (dark), u tentacle highlight.
+// 8x16 (1x2 tiles), palette 'lilac': B bell (pale), s rim, t tentacle, u tentacle highlight.
 // Three tentacles; the bell pulses by one row between the two frames.
 function jellySprite(frame) {
     const g = mk(8, 16);
@@ -265,7 +265,7 @@ function jellySprite(frame) {
             put(g, Math.max(0, Math.min(7, x)), 5 + j, j % 3 === 2 ? 'u' : 't');
         }
     });
-    return single(toIdx(g, { B: 2, s: 1, t: 1, u: 3 }, 'jelly'), ['pink']);
+    return single(toIdx(g, { B: 3, s: 2, t: 2, u: 3 }, 'jelly'), ['lilac']);
 }
 
 // ── WORM ─────────────────────────────────────────────────────

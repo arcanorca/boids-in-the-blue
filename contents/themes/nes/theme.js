@@ -29,21 +29,20 @@ var NES = [
 ];
 
 // ── sprite palettes (OAM attribute 0..3), colours 1..3; colour 0 is transparent ──
-// One palette per colour family, shared by the creatures (see FISH_PALETTE and the generator):
-// coral = coral fish, and the stress palette (alarm-a / alarm-b are its two states);
-// teal = aqua fish, the orca (dark slate body, white belly), bubbles and sparkles;
-// gold = amber and lemon fish, worms, the angler's lure;
-// pink = orchid fish, the angler's body and the jelly.
+// Muted but readable: one colour family per palette, and each family's outline is the dark shade of
+// its own hue (the orca is the one exception, see the generator). Assignments:
+// coral = coral fish and the stress palette (alarm-a / alarm-b are its two states);
+// gold = amber and lemon fish, worms, the angler's warm lure;
+// teal = aqua fish, bubbles and sparkles, the orca (navy body, mint, white belly);
+// lilac = orchid fish, the jelly (soft lilac-pink) and the angler's indigo body.
 var SPR_PAL = {
-    coral: [0x06, 0x26, 0x37],
-    teal:  [0x0C, 0x2C, 0x30],
-    gold:  [0x08, 0x28, 0x38],
-    pink:  [0x14, 0x24, 0x34]
+    coral: [0x06, 0x26, 0x36],
+    gold:  [0x08, 0x18, 0x38],
+    teal:  [0x0C, 0x2B, 0x30],
+    lilac: [0x03, 0x23, 0x34]
 };
-var SPR_PAL_ORDER = ["coral", "teal", "gold", "pink"];
-// stress: fish switch to the coral slot's alarm state A (its own colours) and, above stress 1.2, cycle
-// between state A and state B (the same slot, so only the stressed sprites change)
-var ALARM_STATES = [SPR_PAL.coral, [0x06, 0x16, 0x37]];
+var SPR_PAL_ORDER = ["coral", "gold", "teal", "lilac"];
+var ALARM_STATES = [SPR_PAL.coral, [0x06, 0x16, 0x36]];
 var CALM_TICKS = 13;                              // sim ticks between changes of the slow effects (1.9 Hz at 25 Hz)
 var ALARM_PERIOD_MS = 1000;                        // one state lasts 1 s: the alternation is 1 Hz at most
 
@@ -91,7 +90,7 @@ var FISH_VARIANT = {
 var FISH_VARIANTS = ["coral", "amber", "lemon", "aqua", "orchid"];
 function fishVariant(color) { return FISH_VARIANT[String(color).toUpperCase()] || "aqua"; }
 // sprite palette of each fish variant (OAM attribute); stress swaps it to the alarm palette
-var FISH_PALETTE = { coral: "coral", amber: "gold", lemon: "gold", aqua: "teal", orchid: "pink", "alarm-a": "coral", "alarm-b": "coral" };
+var FISH_PALETTE = { coral: "coral", amber: "gold", lemon: "gold", aqua: "teal", orchid: "lilac", "alarm-a": "coral", "alarm-b": "coral" };
 // adult fish are 16x8, fry (babies and the smallest adults) a single 8x8 tile
 function fishClass(ent) { return (ent.isBaby || ent.sizeVariation < -0.45) ? "s" : "m"; }
 function bubbleClass(scale) { return scale < 2.0 ? "s" : (scale < 2.5 ? "m" : "l"); }
