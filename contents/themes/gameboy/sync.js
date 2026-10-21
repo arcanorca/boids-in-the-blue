@@ -23,13 +23,15 @@ function sync(sim, parent, component) {
 // cheap local PRNG: the simulation's own random stream must stay untouched
 function _rnd() { _seed = (Math.imul(_seed, 1664525) + 1013904223) >>> 0; return _seed / 4294967296; }
 
-// draw position of a delegate for glide fraction `a`: centre -> top-left, whole physical pixels
-function _pos(dg, a, dpr) {
-    var cx = dg.fx + (dg.tx - dg.fx) * a, cy = dg.fy + (dg.ty - dg.fy) * a;
-    var nx = (Math.round((cx - dg.width / 2) * dpr) + dg.shakeX) / dpr;
-    var ny = (Math.round((cy - dg.height / 2) * dpr) + dg.shakeY) / dpr;
-    if (dg.x !== nx) dg.x = nx;
-    if (dg.y !== ny) dg.y = ny;
+// Glide state of a delegate lives in a plain JS object (dg.gs, created by the layer) so the per-frame loop
+// never reads QML properties: {dg, fx, fy, tx, ty (centres, logical px), hw, hh (half size), sx, sy (tremble,
+// physical px), lx, ly (last written position)}.
+// draw position for glide fraction `a`: centre -> top-left, whole physical pixels
+function _pos(g, a, dpr) {
+    var nx = (Math.round((g.fx + (g.tx - g.fx) * a - g.hw) * dpr) + g.sx) / dpr;
+    var ny = (Math.round((g.fy + (g.ty - g.fy) * a - g.hh) * dpr) + g.sy) / dpr;
+    if (g.lx !== nx) { g.lx = nx; g.dg.x = nx; }
+    if (g.ly !== ny) { g.ly = ny; g.dg.y = ny; }
 }
 
 // once per rendered frame while a glide is in progress
@@ -69,7 +71,7 @@ function _sync(sim, layer, component) {
             else if (kind === 'bubble') size = ent.scale;
             else size = cc.wormSize;
 
-            var dg = ent.delegate, fresh = false;
+            var dg = ent.delegate, fresh = false, g;
             if (!dg) {
                 dg = component.createObject(layer, { x: 0, y: 0, size: size, type: type, spriteData: [], colorString: "#FFFFFF", rotation: 0 });
                 ent.delegate = dg;
@@ -81,6 +83,7 @@ function _sync(sim, layer, component) {
                 dg.st = -1;
                 fresh = true;
             }
+            g = dg.gs;
             var pal = T.PAL_NORMAL, key, mul = 1, sx = 0, sy = 0;
 
             if (kind === 'fish') {
@@ -95,11 +98,11 @@ function _sync(sim, layer, component) {
                     inv = hot ? ((dg.thr < 0.5 ? flash : 1 - flash) === 1) : true;
                     if (inv) pal = T.PAL_INV;
                     if (trem && inv) {
-                        if (shakeTick) { dg.shakeX = Math.round((_rnd() * 2 - 1) * amp); dg.shakeY = Math.round((_rnd() * 2 - 1) * amp); }
-                        sx = dg.shakeX; sy = dg.shakeY;
+                        if (shakeTick) { g.sx = Math.round((_rnd() * 2 - 1) * amp); g.sy = Math.round((_rnd() * 2 - 1) * amp); }
+                        sx = g.sx; sy = g.sy;
                     }
                 }
-                if (!sx && !sy && (dg.shakeX !== 0 || dg.shakeY !== 0)) { dg.shakeX = 0; dg.shakeY = 0; }
+                if (!sx && !sy) { g.sx = 0; g.sy = 0; }
                 key = T.fishKey(variant, pk[0], Math.floor(dg.phase));
                 // newborns twinkle while they spiral out (birthAnim runs 0..60)
                 if (ent.isBaby && ent.birthAnim !== undefined && ent.birthAnim < 60) {
@@ -153,15 +156,16 @@ function _sync(sim, layer, component) {
             if (dg.pal !== pal) dg.pal = pal;
 
             // glide: continue from where the sprite is now; a teleport (reset, wrap) jumps
+            g.hw = dg.width / 2; g.hh = dg.height / 2;
             var tx = ent.x, ty = ent.y;
-            if (fresh) { dg.fx = tx; dg.fy = ty; }
+            if (fresh) { g.fx = tx; g.fy = ty; }
             else {
-                var cx = dg.fx + (dg.tx - dg.fx) * aPrev, cy = dg.fy + (dg.ty - dg.fy) * aPrev;
+                var cx = g.fx + (g.tx - g.fx) * aPrev, cy = g.fy + (g.ty - g.fy) * aPrev;
                 var jump = (tx - cx) * (tx - cx) + (ty - cy) * (ty - cy) > 40000;
-                dg.fx = jump ? tx : cx; dg.fy = jump ? ty : cy;
+                g.fx = jump ? tx : cx; g.fy = jump ? ty : cy;
             }
-            dg.tx = tx; dg.ty = ty;
-            if (fresh) _pos(dg, 1, dpr);
+            g.tx = tx; g.ty = ty;
+            if (fresh) _pos(g, 1, dpr);
         }
     }
 }

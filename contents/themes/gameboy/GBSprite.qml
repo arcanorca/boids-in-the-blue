@@ -35,13 +35,7 @@ Image {
     property real thr: 0
     property int st: -1
     property int tick: 0
-    property int _ai: 0                 // index in the layer's live list
-    property real fx: 0                 // glide: centre at the last tick, target centre, last drawn centre
-    property real fy: 0
-    property real tx: 0
-    property real ty: 0
-    property real curX: 0
-    property real curY: 0
+    property var gs: null               // glide state (plain JS object owned by the layer, see sync.js)
 
     readonly property real _t: (pool ? pool.unit : 3) * mul        // logical px per texel
     readonly property var _r: sprite !== "" ? A.OBJ[sprite] : null
