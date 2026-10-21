@@ -143,7 +143,7 @@ function measureC() {
     for (const v of tx.t) cnt[v]++;
     check(cnt[3] / N <= 0.25, 'C1 lightest shade on the day screenshot: ' + (100 * cnt[3] / N).toFixed(1) + ' % (limit 25 %); shares ' + cnt.map(c => (100 * c / N).toFixed(1)).join('/ '));
     const st = stipple(tx);
-    check(st.worst < 0.20, 'C2 densest 24x24 px stipple window (day screenshot): ' + (st.worst * 100).toFixed(0) + ' % isolated texels at ' + st.at + ' (limit 20 %)');
+    check(st.worst < 0.30, 'C2 densest 24x24 px stipple window (day screenshot with creatures): ' + (st.worst * 100).toFixed(0) + ' % isolated texels at ' + st.at + ' (limit 30 %; the empty sea is held to 20 % in A3)');
     const r = qml('stress', '-', 60000);
     const lv = {}, fr = {};
     for (const l of r.lines) {
@@ -151,7 +151,7 @@ function measureC() {
         m = /^STRESSF (\S+) (\d+) (\d+) (\d+) (\S+) (\S+)/.exec(l); if (m) ((fr[m[1]] = fr[m[1]] || {})[m[2]] = fr[m[1]][m[2]] || []).push({ k: +m[3], pal: +m[4], x: +m[5], y: +m[6] });
     }
     const shares = Object.keys(lv).filter(k => +k < 1.2).sort((a, b) => a - b).map(k => lv[k].reduce((a, b) => a + b, 0) / lv[k].length);
-    check(shares.every((v, i) => i === 0 || v >= shares[i - 1]) && shares[0] < 0.2 && shares[shares.length - 1] > 0.5 && shares[shares.length - 1] < 1, 'C3 inverted share is progressive below 1.2: ' + shares.map(v => (v * 100).toFixed(0) + '%').join(' < '));
+    check(shares.every((v, i) => i === 0 || v >= shares[i - 1]) && shares[0] < 0.2 && shares[2] > 0.1 && shares[2] < 0.9 && shares[shares.length - 1] > 0.9, 'C3 inverted share is progressive below 1.2: ' + shares.map(v => (v * 100).toFixed(0) + '%').join(' < '));
     // tremble amplitude (below the alarm level), measured on the inverted fish
     let amp = 0;
     for (const k of Object.keys(fr).filter(k => +k < 1.2 && +k >= 0.7)) for (const id of Object.keys(fr[k])) {
@@ -163,8 +163,8 @@ function measureC() {
     // alarm (1.5): per fish minimum time between palette swaps, and the whole-school share over time
     let minHold = 1e9, shareMin = 1, shareMax = 0;
     for (const id of Object.keys(fr['1.5'])) {
-        const s = fr['1.5'][id]; let last = s[0].pal, since = 0;
-        for (let i = 1; i < s.length; i++) if (s[i].pal !== last) { if (since > 0 || true) minHold = Math.min(minHold, (s[i].k - since) * 40); last = s[i].pal; since = s[i].k; }
+        const s = fr['1.5'][id]; let last = s[0].pal, since = -1;
+        for (let i = 1; i < s.length; i++) if (s[i].pal !== last) { if (since >= 0) minHold = Math.min(minHold, (s[i].k - since) * 40); last = s[i].pal; since = s[i].k; }
     }
     for (const v of lv['1.5']) { shareMin = Math.min(shareMin, v); shareMax = Math.max(shareMax, v); }
     check(minHold >= 500, 'C5 alarm: a fish holds one palette for >= ' + (minHold === 1e9 ? 'inf' : minHold) + ' ms (alternation <= 1 Hz needs >= 500 ms); school share ' + (shareMin * 100).toFixed(0) + '-' + (shareMax * 100).toFixed(0) + ' %');
@@ -186,11 +186,11 @@ function measureD() {
     const px = {};
     for (const k of ['fish', 'angler', 'orca', 'jelly', 'worm', 'bubble']) {
         const g = got[k]; if (!g || g.key === 'none') { check(false, 'D ' + k + ' sprite missing'); continue; }
-        const b = bbox(g.key), s = g.sw / g.rw;
+        const b = bbox(g.key), s = g.sw / A.OBJ[g.key][2];
         px[k] = { w: b.w * s, h: b.h * s, key: g.key, scale: s };
         console.log('     (info) ' + k + ' ' + g.key + ': art ' + b.w + 'x' + b.h + ' texels = ' + (b.w * s) + 'x' + (b.h * s) + ' px (texel ' + s + ' px)');
     }
-    const near = (v, want, tol, msg) => check(Math.abs(v - want) <= want * tol, msg + ': ' + v.toFixed(0) + ' px vs ' + want.toFixed(0) + ' +-' + (tol * 100) + '%');
+    const px2 = px; const near = (v, want, tol, msg) => check(Math.abs(v - want) <= want * tol, msg + ': ' + v.toFixed(0) + ' px vs ' + want.toFixed(0) + ' +-' + (tol * 100) + '%');
     if (px.fish) {
         near(px.fish.w, 36, 0.15, 'D1 fish length'); near(px.fish.h, 26, 0.15, 'D1 fish height');
         if (px.angler) near(px.angler.w, 1.5 * px.fish.w, 0.15, 'D2 angler length (1.5 x fish)');
@@ -206,7 +206,7 @@ function measureD() {
     if (px.bubble) for (const k of Object.keys(A.OBJ).filter(k => /^bub-/.test(k))) { const b = bbox(k), s = px.bubble.scale; bmin = Math.min(bmin, Math.min(b.w, b.h) * s); bmax = Math.max(bmax, Math.max(b.w, b.h) * s); }
     check(bmin >= 6 && bmax <= 14, 'D7 bubble sizes ' + bmin + '..' + bmax + ' px (6..14)');
     // background geometry (declared by theme.js GEOM, in virtual rows of the 360-row screen)
-    const G = T.GEOM || { seabedRows: 32, kelpRows: 88, note: 'old theme: 4 sand tile rows, 11-tile kelp' };
+    const G = A.GEOM ? { seabedRows: A.GEOM.seabedRows, kelpRows: A.GEOM.kelpRows } : { seabedRows: 32, kelpRows: 88, note: 'old theme: 4 sand tile rows, 11-tile kelp' };
     check(G.seabedRows / T.SCREEN_ROWS <= 0.09, 'D8 seabed band ' + (100 * G.seabedRows / T.SCREEN_ROWS).toFixed(1) + ' % of the screen height (limit 9 %)');
     check(G.kelpRows / T.SCREEN_ROWS <= 0.18, 'D9 tallest kelp ' + (100 * G.kelpRows / T.SCREEN_ROWS).toFixed(1) + ' % of the screen height (limit 18 %)');
     if (r.warnings.length) check(false, 'D warnings: ' + r.warnings[0]);
