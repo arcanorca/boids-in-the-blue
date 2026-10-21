@@ -135,18 +135,11 @@ npm run flock     # flocking metrics for each preset (tests/flock-eval.js)
 2. Add one entry to `THEMES` in `contents/ui/code/themes.js` (id, name, description, `usesDayNight`, `usesWaterColors`).
 3. Add a 480x270 `preview.png` for the settings card (`node tools/gen-previews.js`), and add the id to the theme lists in `tests/themes.test.js`, `tests/qml-switch.js` and `tests/qml/switch.qml`.
 
-### Archived themes
-
-- `archive/illustrated` (git tag): the Soft Illustrated theme, removed in 1.2.
-- `archive/terminal` (git tag): the Terminal theme, removed in 1.2.
-
-A saved setting for an archived theme falls back to Refined Pixel.
-
 ## Changelog
 
 ### 1.2
 
-- Eight themes, including the new Ukiyo-e. Refined Pixel is the default.
+- Seven new themes. Refined Pixel is the default.
 - Settings rebuilt: five tabs, theme previews, flocking presets, help buttons.
 - Fish no longer pass through each other, and move more smoothly.
 - Pauses when windows cover the desktop or the screen is off.
@@ -154,7 +147,6 @@ A saved setting for an archived theme falls back to Refined Pixel.
 - Refined Pixel: smooth water gradient instead of stepped bands.
 - New plugin ID `com.github.arcanorca.boidsintheblue`; `install.sh` migrates your settings.
 - Bug fixes: worm eating, baby fish, resizing, the sensor setting, corrupted upgrades.
-- Terminal and Soft Illustrated themes are archived in the git tags `archive/terminal` and `archive/illustrated`.
 
 Older versions are in the git tags `v1.0` and `v1.1`.
 
