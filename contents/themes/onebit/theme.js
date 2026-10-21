@@ -105,7 +105,7 @@ function bubbleFile(scale) { return bubbleClass(scale) ? "bubble-b.png" : "bubbl
 //   "contours" - topographic-style swell contours made of single-texel dots, 4 texels apart on a line
 // Both are static; the six daylight layers (water-0 night .. water-5 day) only add dots, so nothing moves.
 // The width is a multiple of every period used, so the 648-texel tile repeats without a seam.
-var BACKGROUND_STYLE = "contours";                 // "halftone" | "contours"
+var BACKGROUND_STYLE = "none";                     // "none" (flat ink water) | "halftone" | "contours"
 var WATER = {
     cols: 648, rows: 280, layers: 6,
     scale0: 0.4,                                   // layer 0 (night) scales the tone by 0.4, layer 5 by 1.0

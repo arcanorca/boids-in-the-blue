@@ -311,15 +311,16 @@ function orcaSprite(frame, small) {
     const BODY = [[38.3, 11.8], [36.5, 9.6], [33.5, 8.4], [29, 7.8], [24, 7.5], [20, 7.8], [16, 8.4], [13, 9.6],
         [9, 10.2], [9, 13.8], [10, 14.2], [14, 14.6], [18, 15.2], [22, 15.7], [26, 15.8], [30, 15.4], [34, 14.6], [37, 13.2]];
     // tail stock: slim, rising to the left
-    const STOCK = [[9.5, 10.0], [6, 8.4], [3.4, 6.8], [2.6, 9.6], [4.8, 12.6], [9.5, 13.8]];
+    const STOCK = [[9.8, 10.0], [8.0, 9.0], [6.4, 8.2], [5.0, 7.6], [4.4, 8.6], [5.2, 10.0], [6.8, 11.6], [8.4, 13.0], [9.8, 13.8]];
     // dorsal fin: tip leaning back toward the tail, concave trailing edge
     const FIN = [[24.6, 8.0], [16.4, 0.2], [17.2, 3.8], [14.4, 8.0]];
     // flukes: two lobes with a notch between them, shifted vertically by the frame
     const flukesAt = (u, v, s) => {
         const vv = v - s;
-        const up = [[4.6, 8.2], [0.4, 1.6], [2.0, 3.8], [3.2, 5.6], [3.6, 7.4]];
-        const lo = [[4.6, 10.6], [0.4, 12.8], [2.4, 11.0], [3.6, 9.8]];
-        return inPoly(up, u, vv) || inPoly(lo, u, vv);
+        // one crescent: leading edge swept up-left, a notch in the middle, a shorter lower lobe
+        const FL = [[5.6, 7.4], [3.8, 5.4], [2.0, 3.6], [0.4, 2.2], [0.8, 4.6], [1.6, 6.6], [2.6, 7.8], [1.8, 9.2],
+            [1.2, 11.0], [1.0, 12.6], [2.6, 11.4], [4.2, 9.8], [5.6, 8.6]];
+        return inPoly(FL, u, vv);
     };
     // pectoral flipper: triangle hanging down and slightly back
     const FLIP = [[22.2, 14.2], [30.2, 14.8], [26.0, 19.4], [23.8, 22.6]];
@@ -333,7 +334,7 @@ function orcaSprite(frame, small) {
         const shear = dir * Math.max(0, (9 - u) / 4);
         const vt = v - shear;
         const inStock = inPoly(STOCK, u, vt);
-        const inFlukes = u <= 4.6 && flukesAt(u, v, shear);
+        const inFlukes = u <= 5.8 && flukesAt(u, v, shear);
         const body = inPoly(BODY, u, v) || inStock || inFlukes || inPoly(FIN, u, v) || flipAt(u, v);
         if (!body) continue;
         let ch = 'k';
@@ -634,6 +635,7 @@ function contourLayers() {
 }
 
 function waterLayers() {
+    if (T.BACKGROUND_STYLE === 'none') return Array.from({ length: T.WATER.layers }, () => mk(T.WATER.cols, T.WATER.rows));
     return T.BACKGROUND_STYLE === 'contours' ? contourLayers() : halftoneLayers();
 }
 
