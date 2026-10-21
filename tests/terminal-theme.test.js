@@ -48,7 +48,7 @@ test('every texel is a palette colour of its set (fully opaque or fully clear)',
     for (const f of fs.readdirSync(path.join(DIR, T.DIR))) {
         const set = /-([a-z]+)\.png$/.exec(f)[1];
         assert.ok(T.PALETTE[set], f + ': unknown palette set ' + set);
-        const allowed = new Set(Object.values(T.PALETTE[set]).map(c => hex(c).join(',')));
+        const allowed = new Set([T.BG, ...Object.values(T.PALETTE[set])].map(c => hex(c).join(',')));   // the water colour fills the cells
         const im = png.decode(fs.readFileSync(path.join(DIR, T.DIR, f)));
         for (let i = 0; i < im.W * im.H; i++) {
             const p = im.px.subarray(i * 4, i * 4 + 4);
@@ -59,7 +59,7 @@ test('every texel is a palette colour of its set (fully opaque or fully clear)',
     }
 });
 
-test('proportions at 1080p: fish 54 x 36 px, angler 1.5 x, orca 3 x (height <= 75), jelly, worm, bubbles, seabed and kelp limits', () => {
+test('proportions at 1080p: fish 54 x 36 px, angler 1.5 x, orca 3 x (4 text rows), jelly, worm, bubbles, seabed and kelp limits', () => {
     const QC = T.creatureTexelDevice(1080);     // creatures: 3 px per texel
     const QB = T.texelDevice(1080);             // the water and the bubbles: 2 px per texel
     const size = (f, q) => { const im = png.decode(fs.readFileSync(path.join(DIR, T.DIR, f))); return { w: im.W * q, h: im.H * q }; };
@@ -68,8 +68,8 @@ test('proportions at 1080p: fish 54 x 36 px, angler 1.5 x, orca 3 x (height <= 7
     const within = (v, ref) => Math.abs(v / ref - 1) <= 0.15;
     assert.ok(within(size(T.anglerFile(0, 'r', 'g'), QC).w, 1.5 * fish.w), 'angler length ~1.5 fish');
     const orca = size(T.orcaFile(0, 'r', 'g'), QC);
-    assert.ok(within(orca.w, 3 * fish.w) && orca.w >= 140 && orca.w <= 170, 'orca length ~160 px (3 fish)');
-    assert.ok(orca.h <= 75, 'orca height ' + orca.h + ' <= 75');
+    assert.ok(within(orca.w, 3 * fish.w) && orca.w >= 160 && orca.w <= 200, 'orca length 160-200 px (10 cells, about 3 fish)');
+    assert.ok(orca.h >= 108 && orca.h <= 150, 'orca height ' + orca.h + ' px: 4 text rows');
     assert.ok(within(size(T.jellyFile(1, 0, 'g'), QC).w, fish.w), 'jelly bell about one fish wide');
     assert.ok(within(size(T.wormFile(0, 0, 'g'), QC).w, 0.3 * fish.w), 'worm about 0.3 fish wide');
     for (const b of [0, 1]) { const w = size(T.bubbleFile(b ? 3 : 1.5, 'g'), QB).w; assert.ok(w >= 6 && w <= 14, 'bubble ' + w); }
@@ -78,6 +78,11 @@ test('proportions at 1080p: fish 54 x 36 px, angler 1.5 x, orca 3 x (height <= 7
     // every fish class is whole cells, and the classes order by size
     const widths = T.FISH_CLASSES.map((c, i) => size(T.fishFile(i, 'stripe', 0, 'r', 'g'), QC).w);
     assert.ok(widths[0] <= widths[1] && widths[1] < widths[2] && widths[2] < widths[3], 'classes ' + widths);   // fry and small: two cells each
+});
+
+test('the sim floor keeps the orca below the waves: floor >= waves bottom + half the orca', () => {
+    const floorPx = T.SURFACE.floor * T.texelDevice(1080), wavesBottomPx = (T.SURFACE.y + T.SURFACE.rows) * T.texelDevice(1080);
+    assert.ok(floorPx >= wavesBottomPx + T.ORCA.rows * T.creatureTexelDevice(1080) / 2, floorPx + ' < ' + wavesBottomPx + ' + half orca');
 });
 
 test('the texture sizes are the sizes theme.js declares', () => {

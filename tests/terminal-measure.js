@@ -168,8 +168,8 @@ function measureD() {
     const within = (v, ref, tol) => Math.abs(v / ref - 1) <= (tol || 0.15);
     check(within(fish.w, 54) && within(fish.h, 36), 'D1 fish ' + fish.w + 'x' + fish.h + ' vs 54x36');
     check(within(rows.angler.w, 1.5 * fish.w), 'D2 angler length ' + rows.angler.w + ' vs 1.5 x fish ' + (1.5 * fish.w));
-    check(within(rows.orca.w, 3 * fish.w), 'D3 orca length ' + rows.orca.w + ' vs 3 x fish ' + (3 * fish.w));
-    check(rows.orca.h <= 75, 'D3b orca height ' + rows.orca.h + ' px (limit 75)');
+    check(within(rows.orca.w, 3 * fish.w) && rows.orca.w >= 160 && rows.orca.w <= 200, 'D3 orca length ' + rows.orca.w + ' vs 3 x fish ' + (3 * fish.w) + ' (10 cells)');
+    check(rows.orca.h >= 108 && rows.orca.h <= 150, 'D3b orca height ' + rows.orca.h + ' px (4 text rows: 108-150)');
     check(within(rows.jelly.w, fish.w), 'D4 jelly bell width ' + rows.jelly.w + ' vs fish length ' + fish.w);
     check(within(rows.worm.w, 0.3 * fish.w), 'D5 worm width ' + rows.worm.w + ' vs 0.3 x fish ' + (0.3 * fish.w).toFixed(0));
     check(rows['bubble small'].w >= 6 && rows['bubble big'].w <= 14, 'D6 bubbles ' + rows['bubble small'].w + '-' + rows['bubble big'].w + ' px (6-14)');
