@@ -2,10 +2,11 @@ import QtQuick
 import "sync.js" as OneBitSync
 import "theme.js" as T
 
-// Scene of the "onebit" theme (1-Bit): two colours only. The world is a grid of texels
-// (GRID_ROWS tall, ps screen px per texel, ps an integer number of device pixels) shown by
-// scaling one Item with nearest-neighbour textures: dithered water + ambience (Ambient.qml)
-// behind the pooled OneBitSprite layer. Scene contract: ui/code/themes.js
+// Scene of the "onebit" theme (1-Bit): two colours only, light on dark. The backdrop (Ambient.qml: hatch-line
+// water, shafts, kelp, seabed) lives in a world of texels that is scaled by a whole number of device pixels
+// (3 px per texel at 1080p) with nearest-neighbour textures. The creatures (pooled OneBitSprite) are placed in
+// screen pixels, so they glide smoothly between simulation ticks, but are drawn with the same texel size.
+// Scene contract: ui/code/themes.js
 Item {
     id: scene
 
@@ -23,7 +24,7 @@ Item {
     // screen px per texel (a whole number of DEVICE pixels, so texels are never split)
     readonly property real ps: T.texelDevice(height * Math.max(1, dpr)) / Math.max(1, dpr)
 
-    function sync(s) { OneBitSync.sync(s, entities, entities, ps); }
+    function sync(s) { OneBitSync.sync(s, entities, entities, ps, Math.max(1, dpr)); }
 
     clip: true
     Rectangle { anchors.fill: parent; color: T.INK }
@@ -37,10 +38,9 @@ Item {
 
         Ambient {
             anchors.fill: parent
-            z: 0.5
             paused: scene.paused
             daylight: scene.daylight
         }
-        EntityLayer { id: entities; anchors.fill: parent; z: 1; enabled: false }
     }
+    EntityLayer { id: entities; anchors.fill: parent; z: 1; enabled: false }
 }
