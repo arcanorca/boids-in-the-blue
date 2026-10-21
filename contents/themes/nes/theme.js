@@ -44,7 +44,8 @@ var SPR_PAL_ORDER = ["coral", "teal", "gold", "pink"];
 // stress: fish switch to the coral slot's alarm state A (its own colours) and, above stress 1.2, cycle
 // between state A and state B (the same slot, so only the stressed sprites change)
 var ALARM_STATES = [SPR_PAL.coral, [0x06, 0x16, 0x37]];
-var ALARM_PERIOD_MS = 400;                         // one state lasts 400 ms: 1.25 Hz, well under 2 Hz
+var CALM_TICKS = 13;                              // sim ticks between changes of the slow effects (1.9 Hz at 25 Hz)
+var ALARM_PERIOD_MS = 1000;                        // one state lasts 1 s: the alternation is 1 Hz at most
 
 // ── background palettes (attribute table, per 16x16 area) ──
 // u = the universal backdrop colour ($3F00); pal[n] = BG palette n colours 1..3.
@@ -114,7 +115,7 @@ function spriteFile(kind, cls, variant, frame, extra) {
 // ── background layout (virtual pixels / tiles) ──
 var TILE = 8;
 var SEABED = { cols: 64, rows: 10 };               // seabed nametable (2 screens wide), bottom aligned
-var SURFACE = { cols: 32, rows: 2 };               // waterline nametable, scrolls horizontally
+var SURFACE = { cols: 32, rows: 2 };               // waterline nametable (static)
 var SEAM_COLS = 8;                                 // one seam texture = 8 virtual px wide, repeated along the boundary
 
 function seabedFile(state, frame) { return "seabed-" + state + "-" + frame + ".png"; }
@@ -144,4 +145,4 @@ function waterLayout(vh) {
 // ambient bubbles rising from the seabed: [tile column of the 64-tile bed, speed class]
 var VENTS = [[7, 5], [8, 3], [23, 4], [37, 6], [38, 4], [51, 5]];
 // water glints: [x as a fraction of the width, y as a fraction of the height, phase offset in ticks]
-var GLINTS = [[0.06, 0.07, 0], [0.19, 0.17, 7], [0.33, 0.1, 13], [0.47, 0.3, 4], [0.61, 0.13, 17], [0.72, 0.38, 9], [0.84, 0.22, 21], [0.93, 0.08, 11]];
+var GLINTS = [[0.06, 0.07, 0], [0.19, 0.17, 3], [0.33, 0.1, 5], [0.47, 0.3, 4], [0.61, 0.13, 7], [0.72, 0.38, 1], [0.84, 0.22, 6], [0.93, 0.08, 2]];

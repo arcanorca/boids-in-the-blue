@@ -131,7 +131,7 @@ test('nes sync: palette swap per individual, shake, alarm cycling, 2-frame anima
     assert.ok(fish.every(f => f.delegate.variant === T.fishVariant(f.color) && f.delegate.shakeX === 0));
     // stress 0.9: some, not all, fish swap to the red palette, and only those shake
     sim.cpuStress = 0.9;
-    for (let i = 0; i < 6; i++) S.sync(sim, layer, layer, 4);
+    for (let i = 0; i < T.CALM_TICKS + 1; i++) S.sync(sim, layer, layer, 4);
     const red = fish.filter(f => f.delegate.variant === 'alarm-a'), calm = fish.filter(f => f.delegate.variant === T.fishVariant(f.color));
     assert.ok(red.length > 15 && calm.length > 5 && red.length + calm.length === fish.length, red.length + ' red, ' + calm.length + ' calm');
     assert.ok(calm.every(f => f.delegate.shakeX === 0 && f.delegate.shakeY === 0));

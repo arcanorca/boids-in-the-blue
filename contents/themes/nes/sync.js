@@ -15,8 +15,9 @@
 //
 // Stress: each fish has a fixed individual threshold; as stress rises more fish get the red
 // sprite palette (a palette swap: only the OAM attribute changes), those fish also shake by whole
-// virtual pixels. Above 1.2 the alarm palette cycles between two states (palette cycling, 1.25 Hz,
-// those sprites only).
+// virtual pixels. Above 1.2 the alarm palette cycles between two states (palette cycling, 1 Hz,
+// those sprites only). Nothing that is not a swim, pulse or wiggle changes faster than 2 Hz
+// (T.CALM_TICKS sim ticks per step, 13 = 1.9 Hz).
 
 var Z = 1e9;                                       // z band size (layer order, see theme.js kinds[].layer)
 
@@ -79,7 +80,7 @@ function _sync(sim, parent, component, px) {
                 if (dg.variant !== v) dg.variant = v;
                 var shx = 0, shy = 0;
                 if (affected && stress > 0.5) {
-                    if (dg.tick % 3 === 0) {                       // jitter at ~8 Hz, in whole virtual pixels
+                    if (dg.tick % T.CALM_TICKS === 0) {             // jitter at ~2 Hz, in whole virtual pixels
                         shx = Math.round((Core.random() - 0.5) * (1 + shake));
                         shy = Math.round((Core.random() - 0.5) * (1 + shake));
                     } else { shx = dg.shakeX; shy = dg.shakeY; }
@@ -88,14 +89,14 @@ function _sync(sim, parent, component, px) {
                 if (dg.shakeY !== shy) dg.shakeY = shy;
                 // newborns twinkle above the head while they spiral out (birthAnim runs 0..60)
                 var sp = 0;
-                if (ent.isBaby && ent.birthAnim !== undefined && ent.birthAnim < 60) sp = 1 + ((dg.tick >> 3) & 1);
+                if (ent.isBaby && ent.birthAnim !== undefined && ent.birthAnim < 60) sp = 1 + (((dg.tick / T.CALM_TICKS) | 0) & 1);
                 if (dg.sparkle !== sp) dg.sparkle = sp;
             } else if (kind === 'angler') {
-                // lure flicker: two incommensurate sines -> 0 dim, 1 lit, 2 flare
+                // lure flicker: two incommensurate sines -> 0 dim, 1 lit, 2 flare; changes at most ~2 Hz
                 dg.tick++;
                 var t = dg.tick * 0.09 + dg.phase * 3.3, f = Math.sin(t) + 0.6 * Math.sin(t * 2.7 + 1.3);
                 var lv = f > 1.0 ? 2 : (f > -0.6 ? 1 : 0);
-                if (dg.lure !== lv) dg.lure = lv;
+                if (dg.tick % T.CALM_TICKS === 0 && dg.lure !== lv) dg.lure = lv;
             } else if (kind === 'jelly') {
                 fr = Math.sin(ent.wobble * A.jellyRate) > 0 ? 1 : 0;
                 if (dg.frame !== fr) dg.frame = fr;
@@ -104,7 +105,7 @@ function _sync(sim, parent, component, px) {
                 if (dg.frame !== fr) dg.frame = fr;
                 // no alpha on the NES: a worm that is giving up blinks instead of fading
                 dg.tick++;
-                var wo = (ent.life < 0.5 && ((dg.tick >> 3) & 1)) ? 0 : 1;
+                var wo = (ent.life < 0.5 && (((dg.tick / T.CALM_TICKS) | 0) & 1)) ? 0 : 1;
                 if (dg.opacity !== wo) dg.opacity = wo;
             }
         }
