@@ -1,6 +1,6 @@
 {
   "name": "boids-in-the-blue",
-  "version": "0.0.0",
+  "version": "1.2.0",
   "private": true,
   "description": "Dev tooling only (no dependencies). The plugin itself is pure QML + JS.",
   "scripts": {

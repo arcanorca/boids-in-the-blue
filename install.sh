@@ -7,22 +7,22 @@ PLUGIN_DIR="$(cd "$(dirname "$0")" && pwd)"
 OLD_ID="org.kde.plasma.boidsaquarium11"
 
 if ! command -v python3 &> /dev/null; then
-    echo "❌ Error: python3 not found (needed to read metadata.json)."
+    echo "Error: python3 not found (needed to read metadata.json)."
     exit 1
 fi
 
 PLUGIN_ID="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["KPlugin"]["Id"])' "$PLUGIN_DIR/metadata.json")" || PLUGIN_ID=""
 VERSION="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["KPlugin"]["Version"])' "$PLUGIN_DIR/metadata.json")" || VERSION=""
 if [ -z "$PLUGIN_ID" ] || [ -z "$VERSION" ]; then
-    echo "❌ Error: could not read Id/Version from metadata.json."
+    echo "Error: could not read Id/Version from metadata.json."
     exit 1
 fi
 
-echo "🌊 Installing Boids in the Blue $VERSION..."
+echo "Installing Boids in the Blue $VERSION..."
 
 # Check if kpackagetool6 exists
 if ! command -v kpackagetool6 &> /dev/null; then
-    echo "❌ Error: kpackagetool6 not found. Are you on Plasma 6?"
+    echo "Error: kpackagetool6 not found. Are you on Plasma 6?"
     exit 1
 fi
 
@@ -31,7 +31,7 @@ fi
 STAGE_DIR="$(mktemp -d)"
 trap 'rm -rf "$STAGE_DIR"' EXIT
 if ! cp -r "$PLUGIN_DIR/metadata.json" "$PLUGIN_DIR/contents" "$STAGE_DIR/" || ! diff -rq "$PLUGIN_DIR/contents" "$STAGE_DIR/contents" >/dev/null; then
-    echo "❌ Could not stage the package (disk full or quota exceeded in $(dirname "$STAGE_DIR")?). Nothing was installed."
+    echo "Could not stage the package (disk full or quota exceeded in $(dirname "$STAGE_DIR")?). Nothing was installed."
     exit 1
 fi
 
@@ -41,7 +41,7 @@ install_pkg() {
 
 # Function to remove
 remove_pkg() {
-    echo "🗑️ Removing old package registration..."
+    echo "Removing old package registration..."
     kpackagetool6 --type Plasma/Wallpaper --remove "$PLUGIN_ID"
 }
 
@@ -133,7 +133,7 @@ migrate_from_old() {
         :
     else
         if [ "$OLD_INSTALLED" -eq 1 ]; then
-            echo "⚠️ Could not reach a running Plasma shell, so your settings were NOT migrated."
+            echo "Could not reach a running Plasma shell, so your settings were NOT migrated."
             echo "   The old package ($OLD_ID) was left installed so you lose nothing."
             echo "   Log in to a Plasma session and run ./install.sh again, or do it by hand:"
             echo "   select \"Boids in the Blue\" in Desktop > Configure > Wallpaper, re-apply"
@@ -144,37 +144,37 @@ migrate_from_old() {
     fi
 
     if [ "$old_count" -gt 0 ]; then
-        echo "🔁 Migrating $old_count desktop(s) from $OLD_ID to $PLUGIN_ID..."
+        echo "Migrating $old_count desktop(s) from $OLD_ID to $PLUGIN_ID..."
         local script out cfg backup
-        script="$(build_migration_script)" || { echo "⚠️ Could not build migration script. Old package kept."; return 0; }
+        script="$(build_migration_script)" || { echo "Could not build migration script. Old package kept."; return 0; }
         cfg="${XDG_CONFIG_HOME:-$HOME/.config}/plasma-org.kde.plasma.desktop-appletsrc"
         backup="$cfg.boids-backup-$(date +%Y%m%d-%H%M%S)"
         if ! cp -p "$cfg" "$backup"; then
-            echo "⚠️ Could not back up $cfg. Migration aborted; old package kept."
+            echo "Could not back up $cfg. Migration aborted; old package kept."
             return 0
         fi
-        echo "💾 Backed up Plasma desktop config to: $backup"
+        echo "Backed up Plasma desktop config to: $backup"
         echo "   (to restore: quit plasmashell, copy it back over $cfg, start plasmashell)"
-        out="$(plasma_eval "$script" 2>&1)" || { echo "⚠️ Migration script failed: $out"; echo "   Old package kept. Restore hint: cp \"$backup\" \"$cfg\" (with plasmashell stopped)."; return 0; }
+        out="$(plasma_eval "$script" 2>&1)" || { echo "Migration script failed: $out"; echo "   Old package kept. Restore hint: cp \"$backup\" \"$cfg\" (with plasmashell stopped)."; return 0; }
         MIGRATED_COUNT="$(printf '%s' "$out" | grep -o 'BOIDS_MIGRATED=[0-9]*' | head -n1 | cut -d= -f2)"
         if [ -z "$MIGRATED_COUNT" ] || [ "$MIGRATED_COUNT" -ne "$old_count" ]; then
-            echo "⚠️ Migration did not complete as expected (${MIGRATED_COUNT:-0}/$old_count). Old package kept."
+            echo "Migration did not complete as expected (${MIGRATED_COUNT:-0}/$old_count). Old package kept."
             echo "   Output: $out"
             echo "   Restore hint: cp \"$backup\" \"$cfg\" (with plasmashell stopped)."
             MIGRATED_COUNT=0
             return 0
         fi
-        echo "✅ Migrated settings of $MIGRATED_COUNT desktop(s) to the new plugin."
+        echo "Migrated settings of $MIGRATED_COUNT desktop(s) to the new plugin."
     fi
     MIGRATION_DONE=1
 }
 
-echo "📦 Deploying package..."
+echo "Deploying package..."
 status=0
 if kpackagetool6 --type Plasma/Wallpaper --list | grep -qx "$PLUGIN_ID"; then
-    echo "🔄 Found existing installation. Attempting upgrade..."
+    echo "Found existing installation. Attempting upgrade..."
     if ! kpackagetool6 --type Plasma/Wallpaper --upgrade "$STAGE_DIR"; then
-        echo "⚠️ Upgrade failed (possibly corrupted installation). Retrying with clean install..."
+        echo "Upgrade failed (possibly corrupted installation). Retrying with clean install..."
         remove_pkg
         install_pkg || status=1
     fi
@@ -186,43 +186,43 @@ if [ "$status" -eq 0 ]; then
     # Verify the installed copy: a full disk can leave truncated files that kpackagetool does not notice
     INSTALLED_DIR="$HOME/.local/share/plasma/wallpapers/$PLUGIN_ID"
     if [ -d "$INSTALLED_DIR" ] && ! diff -rq "$PLUGIN_DIR/contents" "$INSTALLED_DIR/contents" >/dev/null; then
-        echo "❌ The installed files differ from the repository (disk full?). Free some space and run install.sh again."
+        echo "The installed files differ from the repository (disk full?). Free some space and run install.sh again."
         exit 1
     fi
-    echo "✅ Installation successful!"
+    echo "Installation successful!"
 
     # Carry settings over from the old plugin id (only if it is installed or in use)
     migrate_from_old
     if [ "$MIGRATION_DONE" -eq 1 ] && [ "$OLD_INSTALLED" -eq 1 ]; then
-        echo "🗑️ Removing old package $OLD_ID..."
-        kpackagetool6 --type Plasma/Wallpaper --remove "$OLD_ID" || echo "⚠️ Could not remove $OLD_ID (harmless; remove it manually)."
+        echo "Removing old package $OLD_ID..."
+        kpackagetool6 --type Plasma/Wallpaper --remove "$OLD_ID" || echo "Could not remove $OLD_ID (harmless; remove it manually)."
     fi
 
-    echo "🧹 Clearing QML cache..."
+    echo "Clearing QML cache..."
     rm -rf "$HOME/.cache/plasmashell/qmlcache"
 
     if [ "$MIGRATED_COUNT" -gt 0 ]; then
-        echo "ℹ️ Desktops were switched live; a Plasma restart is usually not needed."
+        echo "Desktops were switched live; a Plasma restart is usually not needed."
     fi
 
     if [ -t 0 ]; then
-        echo "🔄 Restarting Plasma Shell (Optional)..."
+        echo "Restarting Plasma Shell (Optional)..."
         read -p "Do you want to restart Plasma to apply changes immediately? (y/N) " -n 1 -r
         echo
         if [[ $REPLY =~ ^[Yy]$ ]]; then
             if ! systemctl --user restart plasma-plasmashell; then
-                echo "⚠️ systemctl restart failed. Falling back to kquitapp6/kstart..."
+                echo "systemctl restart failed. Falling back to kquitapp6/kstart..."
                 kquitapp6 plasmashell
                 (setsid kstart plasmashell > /dev/null 2>&1 &)
             fi
-            echo "✨ Plasma restarted. Enjoy Boids in the Blue $VERSION!"
+            echo "Plasma restarted. Enjoy Boids in the Blue $VERSION!"
         else
-            echo "✨ Done. You may need to re-apply the wallpaper."
+            echo "Done. You may need to re-apply the wallpaper."
         fi
     else
-        echo "✨ Done. Restart Plasma or re-apply the wallpaper to see changes."
+        echo "Done. Restart Plasma or re-apply the wallpaper to see changes."
     fi
 else
-    echo "❌ Installation failed."
+    echo "Installation failed."
     exit 1
 fi
