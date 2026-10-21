@@ -1,167 +1,151 @@
-# Boids in the Blue (KDE Plasma 6 Live Wallpaper)
+# Boids in the Blue
+
+A live wallpaper for KDE Plasma 6: a school of boids (Craig Reynolds' flocking model, 1987) with fish, jellyfish, anglerfish and orcas. It has eight visual themes, reacts to processor and graphics card load and to the cursor, and pauses when windows cover the desktop.
 
 <div align="center">
-  <br/> <img src="https://raw.githubusercontent.com/arcanorca/boids-in-the-blue/main/logo.svg" width="200" />
-  
-  <br/> <br/> </div>
+  <img src="https://raw.githubusercontent.com/arcanorca/boids-in-the-blue/main/logo.svg" width="200" alt="Boids in the Blue logo" />
+</div>
 
-A lightweight, real-time Boids simulation. Relaxing, interactive, and performance-friendly.
-
-## // DEMO
+## Demo
 
 https://github.com/user-attachments/assets/d896e1b9-4d1e-4f65-bfdf-85580c7df1e8
 
 <div align="center">
-  <h3>[Screenshots]</h3>
-  
-  <img src="https://github.com/user-attachments/assets/37279e9e-3b12-47c3-9e43-376c1617dfd7" width="45%" style="margin:5px;" />
-  <img src="https://github.com/user-attachments/assets/bff973bc-1e15-4aec-86fc-962ca3192d8e" width="45%" style="margin:5px;" />
-  
+  <img src="https://github.com/user-attachments/assets/37279e9e-3b12-47c3-9e43-376c1617dfd7" width="45%" alt="Screenshot" />
+  <img src="https://github.com/user-attachments/assets/bff973bc-1e15-4aec-86fc-962ca3192d8e" width="45%" alt="Screenshot" />
   <br/>
-
-  <img src="https://github.com/user-attachments/assets/42380813-dab9-4f95-a1d4-643c1fef97fd" width="45%" style="margin:5px;" />
-  <img src="https://github.com/user-attachments/assets/eb6690f0-bea8-43a3-bf50-86fe543a07bb" width="45%" style="margin:5px;" />
-
+  <img src="https://github.com/user-attachments/assets/42380813-dab9-4f95-a1d4-643c1fef97fd" width="45%" alt="Screenshot" />
+  <img src="https://github.com/user-attachments/assets/eb6690f0-bea8-43a3-bf50-86fe543a07bb" width="45%" alt="Screenshot" />
   <br/><br/>
-
-  <h3>[Settings GUI]</h3>
-  <img src="https://github.com/user-attachments/assets/4a7821b8-8e1b-48d8-9365-3cfd12d00fee" width="30%" style="box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2); border-radius: 10px;" />
+  <img src="https://github.com/user-attachments/assets/4a7821b8-8e1b-48d8-9365-3cfd12d00fee" width="30%" alt="Settings page" />
 </div>
 
+## Themes
 
+Pick a theme on the **Appearance** tab of the settings. The change applies immediately.
 
-## // HOW IT WORKS
+| Theme | Look |
+|---|---|
+| Refined Pixel (default) | Crisp pixel art with light shafts |
+| Classic | The original look |
+| Bioluminescent | Glowing creatures in dark water |
+| NES | NES-style 8-bit palette |
+| Amiga | Copper-gradient sea |
+| Game Boy | Four LCD greens |
+| 1-Bit | Two colors: ink on paper |
+| Ukiyo-e | Japanese woodblock print |
 
-This wallpaper runs a procedural flocking simulation based on Craig Reynolds’ Boids algorithm (1987), which models lifelike group motion using simple local rules like separation, alignment, and cohesion. The name “Boids” comes from “bird-oid”. 
+## Features
 
-It’s built with QML and an HTML5 Canvas renderer for smooth real-time animation.
+- **Flocking**: fish school with separation, alignment and cohesion. Four presets (Calm, Default, Lively, Chaotic) and advanced values for each rule.
+- **Reacts to load**: the fish turn red, swim faster and shake as the processor, the graphics card or a chosen sensor gets busier. Read from KDE's System Monitor sensors.
+- **Reacts to the cursor**: fish swim away from the pointer, and orcas chase it.
+- **Feeding and breeding**: a click drops a worm. For every 10 worms the school eats, a baby fish is born, up to 20 extra fish.
+- **Predators**: orcas and anglerfish hunt fish. Fish scatter when a predator passes.
+- **Day and night**: optional. The water brightens and darkens with the time of day.
+- **Pauses when covered**: the animation and sensors stop while maximized or fullscreen windows, or windows covering a set share of the screen, hide the wallpaper, and while the screen is off. Each screen is independent.
 
+### Mouse
 
-### 1. Reactivity & Interaction
+- Left-click: drop a worm.
+- Left-click and drag: the fish flee from the pointer and bubbles rise.
+- Right-click: a burst of bubbles.
 
-The simulation monitors your system's stress level in real-time.
+## Settings
 
-*   **System Monitoring**: Choose to track CPU, GPU, Both or custom sensor ID. As the load increases, the fish gradually turn red and start trembling nervously.
-*   **Cursor Evasion**: The school (group of fish) perceives your mouse cursor as a foreign object. If you move the pointer too close, the fish will scatter and flee to avoid it.
-*   **Control**: You can fine-tune the reaction sensitivity and cursor panic using the Response Intensity slider in settings GUI.
+The settings are split into five tabs:
 
-### 2. Ecosystem Logic
+- **Appearance**: the visual theme.
+- **Ocean**: how many fish, jellyfish, anglerfish and orcas there are, their sizes, and the size of the worms.
+- **Behavior**: the flocking style, the cursor reaction, predator aggression and speed, and the advanced flocking values.
+- **Environment**: day and night, and the water colors.
+- **System**: what the wallpaper reacts to and how strongly, and when to pause.
 
-*   **The Algorithm**: Fish follow three simple bird-oid vectors: Separation (don't crash!), Alignment (swim together), and Cohesion (stay close).
-*   **Life Cycle**: Left-click to spawn worms. Breeding is a group effort: whenever the school collectively consumes 10 worms, a new baby fish is born, yay!
-*   **Predators**: Orcas and Anglerfish roam the screen. If the school gets too close, they simply chase the fish, causing them to scatter.
+**Reset to defaults** is at the bottom of the page.
 
-## // INSTALLATION
+## Installation
 
-**Requirements**: KDE Plasma 6 + kpackagetool6
+Requirements: KDE Plasma 6 with `kpackagetool6`.
 
+### From the KDE Store
 
-### KDE Store
+In the wallpaper settings, choose *Get New...*, then search for "Boids in the Blue".
 
-`Desktop and Wallpaper` -> `Get New Plugins...` -> search `Boids`
-
-### Git
+### From the repository
 
 ```bash
-# 1. Clone the repo
 git clone https://github.com/arcanorca/boids-in-the-blue.git
 cd boids-in-the-blue
-
-# 2. Run install script
 ./install.sh
-
-# OR manual install (plugin id: com.github.arcanorca.boidsintheblue):
-# kpackagetool6 --type Plasma/Wallpaper --install .
-# Update an existing install:
-# kpackagetool6 --type Plasma/Wallpaper --upgrade .
-# Uninstall:
-# kpackagetool6 --type Plasma/Wallpaper --remove com.github.arcanorca.boidsintheblue
 ```
+
+`install.sh` installs or upgrades the package and clears the QML cache. It asks whether to restart Plasma.
+
+To install by hand, or to remove the package:
+
+```bash
+kpackagetool6 --type Plasma/Wallpaper --install .
+kpackagetool6 --type Plasma/Wallpaper --upgrade .
+kpackagetool6 --type Plasma/Wallpaper --remove com.github.arcanorca.boidsintheblue
+```
+
+Plugin id: `com.github.arcanorca.boidsintheblue`.
 
 ### Upgrading from 1.1
 
-v1.2 changed the plugin id (`org.kde.plasma.boidsaquarium11` -> `com.github.arcanorca.boidsintheblue`).
+Version 1.2 has a new plugin id (`org.kde.plasma.boidsaquarium11` before, `com.github.arcanorca.boidsintheblue` now).
 
-*   **install.sh**: migrates your settings to the new id automatically, switches your desktops to the new plugin and then removes the old package. Plasma must be running; if it is not, the old package is kept and nothing is lost.
-*   **KDE Store**: after installing 1.2, select "Boids in the Blue" again in the Wallpaper settings and remove the old "Boids in the Blue v1.1" entry. Settings must be re-applied manually on this path.
+- **install.sh**: copies your settings to the new id, switches your desktops to the new plugin and removes the old package. This needs a running Plasma session. If Plasma is not reachable, the old package stays installed and your settings are not changed.
+- **KDE Store**: install 1.2, select "Boids in the Blue" in the wallpaper settings, and remove the old 1.1 entry. Settings must be set again.
 
-## // OTHER VERSIONS
+## Other versions
 
-Both ports run the same simulation core as the KDE plugin (`core/boids-core.js`), so they share its behaviour (worms, bubbles, breeding, predators, cursor fear, NaN safety). Each port only has its own renderer, input and lifecycle code. The copies `boids-gnome-port/boids-core.js` and `boids-web/boids-core.js` are generated: after changing the core run `npm run build` (`npm test` fails if they are stale).
+The GNOME and web versions use the same simulation core (`core/boids-core.js`), so the flocking, worms, bubbles, breeding, predators and cursor fear behave the same. Each port has its own renderer and input code.
 
-### 1. Gnome Shell Port
-A lightweight port for Gnome Desktop users is included in the `boids-gnome-port` folder.
-*   **Tested On**: Fedora 43 (Other distributions are likely compatible but unverified). The latest core-based rewrite has only been syntax/logic checked outside a GNOME session.
-*   **Install**: Copy the whole `boids-gnome-port` folder (it must include `boids-core.js`) to `~/.local/share/gnome-shell/extensions/boids-gnome-port@arcanorca` and restart session.
-*   **Configuration**: No GUI yet. You can tweak counts and sizes in the `CONFIG` object at the top of `extension.js` (same keys as the KDE settings). There is no pointer interaction on GNOME.
+- **GNOME Shell** (`boids-gnome-port/`): a GNOME Shell extension. It has no settings window; edit the `CONFIG` object at the top of `extension.js`. There is no pointer interaction. Not tested in a real GNOME session yet.
+- **Web** (`boids-web/index.html`): a standalone page for any modern browser. Keep `boids-core.js` next to it. Left-click drops a worm, right-click bursts bubbles, and the cursor scares the fish. Edit the `CONFIG` object in the page to change the counts and sizes.
 
-### 2. Web / HTML5 Port
-A standalone HTML5 version is available in the `boids-web` folder.
-*   **Usage**: Open `boids-web/index.html` in any modern web browser (works from `file://`; keep `boids-core.js` next to it). Left-click drops a worm, right-click bursts bubbles, the cursor scares the fish.
-*   **Configuration**: Edit the `CONFIG` object inside `index.html` (same keys as the KDE settings).
+## Development
 
-## // CONTROLS & CONFIG
-
-**Mouse Interactions:**
-
-*   **Left-click**: Drop food (Worms).
-*   **Left-click hold**: Cursor interaction fallback (fish flee + bubbles).
-
-**Settings** (five tabs; **Reset to Defaults** is at the bottom):
-
-*   **Appearance**: pick the visual theme from preview cards (switches live).
-*   **Ocean**: how many fish, jellyfish, anglerfish and orcas, and how big each is (and the worms you drop).
-*   **Behavior**: flocking style (Calm, Default, Lively, Chaotic), cursor reaction (Off to Panic), orca/angler aggression and speed. *Advanced flocking* (collapsed) has the raw values: speeds, vision range, personal space, attraction, alignment, repulsion, random drift, edge avoidance.
-*   **Environment**: day/night cycle and water colors with a preview (greyed out, with a note, when the theme does not use them).
-*   **System**: react to CPU, GPU, a custom sensor or nothing, and how strongly; pause the animation while the desktop is covered, and how much of the screen must be covered.
-
-**Power saving**: the simulation is driven by the rendered frames, so it stops by itself on a screen the compositor no longer presents (monitor off or in power saving, lid closed on a laptop whose internal display is disabled, covered). Each screen is independent: an external monitor keeps animating while the laptop panel sleeps. After two seconds without frames the sensors and ambient animations are switched off too. Windows covering at least 90 % of a screen (adjustable 50 to 100 %, for example three tiled terminals) pause it like a maximized window does.
-
-**Flocking presets** are measured, not guessed: `npm run flock` prints schooling, spacing, collision and turning metrics for each preset on the real simulation (`tests/flock-eval.js`).
-
-## // THEMES
-
-Three looks share the same simulation. Open the wallpaper settings and pick one on the **Appearance** tab (it switches live):
-
-*   **Refined Pixel** (default): crisp animated pixel-art sprites, smooth water gradient, light shafts, marine snow and a seabed.
-*   **Classic**: the original blocky sprites on a smooth gradient.
-*   **Bioluminescent Deep**: glowing creatures in dark water.
-
-## // CHANGELOG
-
-### v1.2
-- **Ukiyo-e theme**: a new selectable look, indigo ink on washi paper with Ryuusen wave strokes, a Hokusai-style surface strip and wakame kelp; an optional pigment (Nishiki-e) colour set is available by editing one constant in its `theme.js`.
-- **Terminal archived**: the theme was removed; it is preserved in the git tag `archive/terminal`. A saved `terminal` setting falls back to Refined Pixel.
-- **Soft Illustrated archived**: the theme was removed; it is preserved in the git tag `archive/illustrated`. A saved `illustrated` setting falls back to Refined Pixel.
-- **Plugin id change**: now `com.github.arcanorca.boidsintheblue` (no version in id or name); `install.sh` migrates existing settings and removes the old package.
-- **Pause when covered**: the simulation pauses while a maximized/fullscreen window, or windows covering at least 90 % of the screen (new setting, 50 to 100 %), hide the wallpaper (not applied on the lock screen).
-- **Frame-driven simulation**: stepping follows the rendered frames at a fixed 25 steps per second on any display rate, so it stops on screens that are off, closed or blanked while other monitors keep running; idle screens also switch off sensors and ambient animations.
-- **Smoother water**: Refined Pixel uses one smooth gradient instead of stepped bands.
-- **Flocking**: new defaults and presets that school smoothly (fish used to twitch from oversized separation kicks); the cohesion, alignment, repulsion, random drift and edge ranges were rescaled to span sane behaviour. Saved custom values stay; values outside the new ranges fall back to the defaults.
-- **Themes**: three selectable looks (Refined Pixel is the new default, Classic keeps the original rendering, plus Bioluminescent Deep); switching at runtime keeps the same school.
-- **Settings redesign**: five tabs (Appearance with theme preview cards, Ocean, Behavior, Environment, System); flocking presets; plain-word levels instead of "Zen+"; help buttons; advanced flocking values collapsed. All saved settings keep working.
-- **Bug fixes**: (to be refined)
-
-### v1.1
-- **Major Optimization**: Cached config per-step, removed redundant repaints. CPU thread usage reduced 80% compare to v1.0.
-- **Day/Night Cycle**: Added a real-time Day/Night cycle with sunrise/sunset gradients and surface glimmer.
-- **UI Polish**: Refreshed the Settings GUI and added a "Reset to Defaults" button.
-- **Web Port Sync**: Day/night cycle, cursor interaction, predator AI ported to HTML5 version.
-- **Orca Cursor Chase**: Orcas pursue your cursor.
-- **Smooth U-Turn**: Fish arc away from walls instead of bouncing.
-
-## // CREDITS
-
-*   **Developer**: arcanorca 
-*   **License**: GPLv3
-*   **Stack**: QML / JavaScript / HTML5 Canvas Context
-
-
-```text
-       ████
-   ██████████
- ██████████◉◉
- ████████████
-   ██████
-     ██
+```bash
+npm test          # checks that the generated core copies are current, then runs the Node tests
+npm run build     # regenerates the core copies (contents/ui/code/boids-core.js, boids-gnome-port/boids-core.js, boids-web/boids-core.js)
+npm run test:qml  # QML checks with qml6 (offscreen): golden scenes, theme switching, settings page, render smoke
+npm run flock     # flocking metrics for each preset (tests/flock-eval.js)
 ```
+
+- `core/boids-core.js` is the only copy of the simulation. Edit it, then run `npm run build`. Do not edit the generated files.
+- `tests/fixtures/golden.json` and `tests/fixtures/golden.qml.txt` record the simulation output. A refactor must not change them. Regenerate them with `npm run golden:gen` only for a deliberate behavior change.
+- `tools/` generates the theme art: `gen-pixel-theme.js`, `gen-biolum.py`, `gen-nes-theme.js`, `gen-amiga-theme.js`, `gen-gameboy-theme.js`, `gen-onebit-theme.js` and `gen-ukiyoe-theme.js`. `gen-previews.js` renders the settings cards' `preview.png` files, and `gen-golden.js` regenerates the golden fixtures. The Classic theme has no generator; it uses the original delegate.
+
+### Adding a theme
+
+1. Create `contents/themes/<id>/` with a `Scene.qml` that follows the contract at the top of `contents/ui/code/themes.js`.
+2. Add one entry to `THEMES` in `contents/ui/code/themes.js` (id, name, description, `usesDayNight`, `usesWaterColors`).
+3. Add a 480x270 `preview.png` for the settings card (`node tools/gen-previews.js`), and add the id to the theme lists in `tests/themes.test.js`, `tests/qml-switch.js` and `tests/qml/switch.qml`.
+
+### Archived themes
+
+- `archive/illustrated` (git tag): the Soft Illustrated theme, removed in 1.2.
+- `archive/terminal` (git tag): the Terminal theme, removed in 1.2.
+
+A saved setting for an archived theme falls back to Refined Pixel.
+
+## Changelog
+
+### 1.2
+
+- **Themes**: eight themes, including the new Ukiyo-e. Refined Pixel is the default. Bioluminescent replaces Bioluminescent Deep. The Terminal and Soft Illustrated themes are archived (see the git tags above).
+- **Settings**: five tabs with theme preview cards, flocking presets, advanced flocking values in a collapsed section, help buttons, and "Reset to defaults".
+- **Flocking**: new defaults and presets; the school moves more smoothly. Saved custom values are kept; values outside the new ranges fall back to the defaults.
+- **Pause when covered**: the animation pauses while a maximized or fullscreen window, or windows covering a set share of the screen (50 to 100 %, default 90 %), hide the wallpaper. Not applied on the lock screen.
+- **Frame-driven simulation**: the simulation advances with the rendered frames at 25 steps per second on any display rate, so each screen stops when it is off or covered. Idle screens also switch off the sensors and ambient animations.
+- **Refined Pixel**: smooth water gradient instead of stepped bands.
+- **New plugin id** `com.github.arcanorca.boidsintheblue`. `install.sh` migrates existing settings.
+- **Fixes**: simulation, configuration and packaging bugs (`git log v1.1..v1.2`); `install.sh` recovers from a corrupted upgrade by reinstalling.
+
+Older versions are in the git tags `v1.0` and `v1.1`.
+
+## Credits and license
+
+Created by Arcanorca. Licensed under the GNU General Public License v3.0 or later (GPL-3.0-or-later).

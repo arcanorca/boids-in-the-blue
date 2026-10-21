@@ -3,12 +3,11 @@
     "KPlugin": {
         "Authors": [
             {
-                "Email": "user@example.com",
                 "Name": "Arcanorca"
             }
         ],
         "Category": "Abstract",
-        "Description": "A lightweight, real-time Boids simulation. Relaxing, interactive, and performance-friendly.",
+        "Description": "A calm school of Boids with several art themes. It reacts to processor and graphics card load and to the cursor, and pauses when covered by windows. Live wallpaper for KDE Plasma 6.",
         "Icon": "preferences-desktop-wallpaper",
         "Id": "com.github.arcanorca.boidsintheblue",
         "License": "GPL-3.0-or-later",
