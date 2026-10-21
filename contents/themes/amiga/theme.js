@@ -80,7 +80,7 @@ function classFor(kind, size) {
 // Angler lure: bulb centre per art and body frame (art pixels, unflipped, from the sprite's top-left).
 // The stalk in the body art ends there; the bulb itself is an overlay (lure-<n>.png, 2x2).
 var LURE = [
-    [{ x: 9, y: 1 }, { x: 9, y: 2 }, { x: 9, y: 1 }, { x: 9, y: 0 }],
+    [{ x: 9, y: 1 }, { x: 9, y: 2 }, { x: 9, y: 1 }, { x: 9, y: 2 }],
     [{ x: 14, y: 2 }, { x: 14, y: 3 }, { x: 14, y: 2 }, { x: 14, y: 1 }]
 ];
 var LURE_SIZE = 2;

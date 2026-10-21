@@ -150,7 +150,7 @@ const FISH_ART = [
     },
     {   // 12x9 (interior 10x7): the default fish
         outline: true,
-        body: ['....gf....', '...bllllb.', '..bllhllbb', '..bbbbbekb', '..bwwwwwbb', '...wwwwwd.', '....fd....'],
+        body: ['...fgf....', '...bllllb.', '..bllhllbb', '..bbbbbekb', '..bwwwwwbb', '...wwwwwd.', '....fd....'],
         ty: 0, tails: [
             ['..', 'g.', 'ff', 'ff', 'ff', 'g.', '..'], ['g.', 'ff', 'ff', 'f.', '..', '..', '..'],
             ['..', '..', 'gf', 'ff', 'gf', '..', '..'], ['..', '..', '..', 'f.', 'ff', 'ff', 'g.']],
@@ -187,7 +187,7 @@ function fishFrame(art, variant, frame) {
 // row of the body per column) are authored for the 37x17 art (interior 35x15); the small art is the same drawing
 // resampled. K body, s rim light, t sheen, W white, w white shade, g saddle, E eye.
 const ORCA_PAL = mkPal({ K: '#124', s: '#459', t: '#236', W: '#fff', w: '#9bd', g: '#68a', o: '#001', q: '#234', E: '#001', e: '#fff', m: '#012' });
-const ORCA_TOP = [7, 6, 5, 5, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 5, 5, 5, 6, 6, 7, 7, 7, 7, 8, 8, 8];
+const ORCA_TOP = [7, 6, 5, 5, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 5, 5, 5, 6, 6, 7, 7, 7, 7, 7, 7, 7];
 const ORCA_BOT = [9, 10, 11, 11, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 11, 11, 11, 11, 10, 10, 10, 9, 9, 9, 9, 9, 9, 9];
 const ORCA_BELLY = [1, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 2, 2, 2, 2, 2, 1, 1, 1, 1];
 function orcaFrame(art, frame) {
@@ -217,15 +217,17 @@ function orcaFrame(art, frame) {
     const fl = frame % 2 === 0 ? [[8, 13], [9, 13], [10, 13], [11, 13], [9, 14], [10, 14], [11, 14]] : [[8, 13], [9, 13], [10, 13], [11, 13], [10, 14], [11, 14], [12, 14]];
     for (const [x, y] of fl) P(x, y, 'K');
     P(9, 13, 's');
-    // tail flukes: two diagonal lobes, tilted by the beat
+    // tail flukes: two thick lobes forking from the peduncle, tilted slowly by the beat
     const dy = [0, -1, 0, 1][frame];
-    const lobe = [];
-    for (let i = 0; i < 6; i++) { lobe.push([29 + i, 8 - i, 0], [29 + i, 9 - i, 0], [29 + i, 9 + i, 1], [29 + i, 8 + i, 1]); }
-    for (const [x, y] of [[28, 8], [28, 9]]) P(x, y, 'K');
-    lobe.push([34, 2, 0], [33, 2, 0], [34, 15 - 1, 1], [33, 14, 1]);
-    for (const [x, y, k] of lobe) { const yy = y + Math.round(dy * (x - 28) / 6 * (k ? 1 : 1)); if (yy >= 0 && yy < H) P(x, yy, (k === 0 && yy < 7) ? 's' : 'K'); }
-    // solid core between the lobes, close to the root
-    pts(g, 'K', [[29, 8 + (dy ? Math.round(dy / 6) : 0)], [29, 9], [30, 8], [30, 9]]);
+    for (let i = 0; i < 6; i++) {
+        const x = 29 + i, sh = Math.round(dy * (x - 28) / 6), th = i >= 4 ? 3 : 3;
+        for (let q = 0; q < th; q++) {
+            const yu = 9 - i - q + 0, yl = 7 + i + q - 0;
+            P(x, yu + sh, q === th - 1 && i > 0 ? 's' : 'K');
+            P(x, yl + sh, 'K');
+        }
+    }
+    pts(g, 'K', [[29, 8], [30, 8], [29, 7], [29, 9]]);
     let body = g;
     if (!big) body = resample(g, 20, 8);
     const fin = mk(body[0].length + 2, body.length + 2);
@@ -250,20 +252,24 @@ function resample(g, w, h) {
 
 // ── ANGLER ───────────────────────────────────────────────────
 // Faces right; the stalk ends at theme.js LURE[art][frame] (the bulb itself is an overlay, see lureImg).
-const ANG_PAL = mkPal({ h: '#c9e', b: '#527', l: '#83a', d: '#315', s: '#a6c', f: '#639', F: '#85b', m: '#412', w: '#ffe', e: '#fd4', k: '#102', a: '#b8d', o: '#102', q: '#325', t: '#c9e' });
+const ANG_PAL = mkPal({ W: '#ffe', F: '#85b', h: '#c9e', b: '#527', l: '#83a', d: '#315', s: '#a6c', f: '#639', F: '#85b', m: '#412', w: '#ffe', e: '#fd4', k: '#102', a: '#b8d', o: '#102', q: '#325', t: '#c9e' });
 const ANGLER_ART = [
-    {   // 12x10 (interior 10x8)
-        body: ['...bbb....', '..bllbb...', '.bblhlebk.', 'fbbbbbbbmw', 'fbbbbbbmmw', '.dbbbbbmw.', '..ddddd...', '...f......'].map(r => r),
-        stalk: [[[6, 1]], [[6, 1], [7, 1]], [[6, 1]], [[6, 1], [7, 0]]], tail: 0
+    {   // 12x10 (interior 10x8); tail at x0..1 (3 rows, tilts with the beat), body rows start at y2
+        tail: [0, 3, ['f.', 'ff', 'f.']],
+        body: ['..........', '..........', '....bllb..', '...bllllek', '..bbbbbbbb', '..bbbbbmwm', '..dbbbbbmm', '...ddddd..'],
+        stalk: [[[6, 1], [7, 1]], [[6, 1], [7, 1]], [[6, 1], [7, 1]], [[6, 1], [7, 1]]]
     },
-    {   // 18x14 (interior 16x12)
-        body: ['................', '................', '........bbb.....', '.......bbllb....', '.....bbllllbb...', '....bllhllleekb.', '...bbbbbbbbeekbb', '..fbbbbbbbbbbbmm', '.fFbbbbbbbbbbmwm', '..fbbsbbbbbbmwmw'.slice(0, 16), '...dbbbbbbbbmmmw'.slice(0, 16), '....ddddddd.....'],
-        stalk: [[[9, 1], [10, 1], [11, 1]], [[9, 1], [10, 2], [11, 2], [12, 2]], [[9, 1], [10, 1], [11, 1]], [[9, 1], [10, 0], [11, 0]]], tail: 0
+    {   // 18x14 (interior 16x12): round body, wide toothy mouth, eye, tail fan; body rows start at y3
+        tail: [0, 5, ['f..', 'ff.', 'fff', 'ff.', 'f..']],
+        body: ['................', '................', '................', '.......bllb.....', '.....bbllhllbb..', '....bblllllleeb.', '...bbbbbbbbbekbb', '..FbbbbbbbbbbmmmW'.slice(0, 16), '..FFbbbbbbbbmwmwm'.slice(0, 16), '...dbbbbbbbbbbd.', '....ddbbbbbbdd..', '......dddddd....'],
+        stalk: [[[10, 2], [11, 1], [12, 1]], [[10, 2], [11, 2], [12, 2]], [[10, 2], [11, 1], [12, 1]], [[10, 2], [11, 1], [12, 0]]]
     }
 ];
 function anglerFrame(art, frame) {
     const A = ANGLER_ART[art], W = A.body[0].length, H = A.body.length, g = mk(W, H);
     A.body.forEach((row, y) => [...row].forEach((ch, x) => { if (ch !== '.') g[y][x] = ch; }));
+    const [tx0, ty0, trows] = A.tail, tdy = [0, -1, 0, 1][frame];
+    trows.forEach((row, j) => [...row].forEach((ch, i) => { if (ch !== '.') put(g, tx0 + i, ty0 + j + tdy, ch); }));
     for (const [x, y] of A.stalk[frame]) put(g, x, y, 'a');
     const fin = mk(W + 2, H + 2);
     for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) fin[y + 1][x + 1] = g[y][x];
@@ -301,7 +307,7 @@ function glowImg() {
 const JELLY_PAL = mkPal({ r: ['#fdf', 235], R: '#fff', b: ['#d9f', 150], i: ['#b7e', 150], g: ['#f9c', 200], a: ['#e9e', 170], A: ['#fbf', 140], t: ['#c8e', 130], f: ['#a7d', 90] });
 function jellyFrame(art, frame) {
     const K = T.kinds.jelly.arts[art], W = K.cols, H = K.rows, g = mk(W, H);
-    const bw0 = W - 2, bh = Math.round(bw0 * 0.6), top = 1, cx = (W - 1) / 2;
+    const bw0 = W, bh = Math.round(bw0 * 0.6), top = 1, cx = (W - 1) / 2;
     const bw = Math.max(bw0 - [0, 1, 2, 1][frame] * 2, 4);           // slow pulse: the bell narrows by 2 columns
     const hgt = bh + [0, 0, 1, 0][frame] * 0;
     const rows = [];
@@ -338,12 +344,9 @@ function jellyFrame(art, frame) {
 // 3x3 / 3x4, no outline: pale head, pink body, darker tail; the lower rows wiggle (4 frames).
 const WORM_PAL = mkPal({ n: '#fcb', b: '#f78', d: '#c46', l: '#fab' });
 function wormFrame(art, frame) {
-    const H = art === 0 ? 3 : 4, g = mk(3, H), sh = [0, -1, 0, 1][frame];
-    put(g, 1, 0, 'n');
-    put(g, 1, 1, 'b');
-    for (let y = 2; y < H; y++) put(g, 1 + sh, y, y === H - 1 ? 'd' : 'b');
-    if (sh !== 0) put(g, 1, 2, 'b');
-    put(g, 1 + (sh > 0 ? 1 : sh < 0 ? -1 : 0) * 0, 1, 'b');
+    const H = art === 0 ? 3 : 4, g = mk(3, H), off = [0, 1, 1, 0][frame];
+    ascii(g, ['nn.', 'bb.']);
+    for (let y = 2; y < H; y++) { const last = y === H - 1; put(g, off, y, last ? 'd' : 'b'); put(g, off + 1, y, 'd'); }
     return render(g, WORM_PAL);
 }
 
