@@ -130,6 +130,7 @@ Three looks share the same simulation. Open the wallpaper settings and pick one 
 ## // CHANGELOG
 
 ### v1.2
+- **Ukiyo-e theme**: a new selectable look, indigo ink on washi paper with Ryuusen wave strokes, a Hokusai-style surface strip and wakame kelp; an optional pigment (Nishiki-e) colour set is available by editing one constant in its `theme.js`.
 - **Terminal archived**: the theme was removed; it is preserved in the git tag `archive/terminal`. A saved `terminal` setting falls back to Refined Pixel.
 - **Soft Illustrated archived**: the theme was removed; it is preserved in the git tag `archive/illustrated`. A saved `illustrated` setting falls back to Refined Pixel.
 - **Plugin id change**: now `com.github.arcanorca.boidsintheblue` (no version in id or name); `install.sh` migrates existing settings and removes the old package.

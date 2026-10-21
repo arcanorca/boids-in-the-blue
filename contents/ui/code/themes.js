@@ -70,6 +70,13 @@ var THEMES = [
         description: "Two colours only: ivory paper on deep ink. Dotted swell-contour water with diagonal sunbeams, a layered reef with kelp, bold line-art creatures; fish invert when stressed.",
         usesDayNight: true,
         usesWaterColors: false
+    },
+    {
+        id: "ukiyoe",
+        name: "Ukiyo-e",
+        description: "Japanese woodblock print: indigo ink on washi paper, Hokusai-style wave crests, wakame kelp and Matsushima rocks.",
+        usesDayNight: true,
+        usesWaterColors: false
     }
 ];
 
