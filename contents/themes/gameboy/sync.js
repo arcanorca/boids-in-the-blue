@@ -131,7 +131,7 @@ function _sync(sim, layer, component) {
                 if (dg.exX !== ex) dg.exX = ex;
                 if (dg.exY !== ey) dg.exY = ey;
             } else if (kind === 'orca') {
-                var fo = !ent.facingRight;
+                var fo = ent.facingRight;   // the simulation's orca flag is inverted (false while swimming right) and this art faces right
                 if (dg.flip !== fo) dg.flip = fo;
                 var po = T.PACE.orca;
                 dg.phase += po.base + Math.sqrt(ent.vx * ent.vx + ent.vy * ent.vy) * po.perSpeed;

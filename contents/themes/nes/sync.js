@@ -66,7 +66,8 @@ function _sync(sim, parent, component, px) {
 
             var fr;
             if (kind === 'fish' || kind === 'angler' || kind === 'orca') {
-                var flip = !ent.facingRight;
+                // the simulation's orca flag is inverted (false while swimming right) and this orca art faces right
+                var flip = kind === 'orca' ? ent.facingRight : !ent.facingRight;
                 if (dg.flip !== flip) dg.flip = flip;
                 var spd = Math.sqrt(ent.vx * ent.vx + ent.vy * ent.vy), a = A[kind];
                 dg.phase += a.base + spd * a.perSpeed;

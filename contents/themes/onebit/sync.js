@@ -93,7 +93,8 @@ function _sync(sim, parent, component, ps, dpr) {
                     if (dg.sparkle !== sp) dg.sparkle = sp;
                 } else if (dg.sparkle !== 0) dg.sparkle = 0;
             } else if (kind === 'orca' || kind === 'angler') {
-                var flipA = !ent.facingRight;
+                // the simulation's orca flag is inverted (false while swimming right) and this orca art faces right
+                var flipA = kind === 'orca' ? ent.facingRight : !ent.facingRight;
                 if (dg.flip !== flipA) dg.flip = flipA;
                 var spdA = Math.sqrt(ent.vx * ent.vx + ent.vy * ent.vy), a = A[kind];
                 var v = T.kindVariant(kind, size);
