@@ -21,6 +21,8 @@ var NAMES = ["", "fish", "jelly", "orca", "angler", "bubble", "worm"];   // by d
 
 // device pixels per texel for a screen of the given height (device px); at least 1
 function texelDevice(heightDevicePx) { return Math.max(1, Math.round(heightDevicePx / GRID_ROWS)); }
+// creatures use larger text: device pixels per creature texel (3 at 1080p: a cell is 18 x 36 px)
+function creatureTexelDevice(heightDevicePx) { return Math.max(1, Math.round(heightDevicePx / 360)); }
 
 // ── palette sets: one set per texture family (see the palette in tools/gen-terminal-theme.py) ──
 // Creatures and the sea use only these greens (bright, normal, dim) on BG; stress recolours fish with the
@@ -78,16 +80,16 @@ function fishFile(cls, variant, frame, face, set) {
 // ── the rest of the cast (cols x rows in texels, cells of 6 x 12) ──
 // Reference at 1080p: orca 108 x 72 px (about 3 fish long), angler 60 x 72 px (about 1.7 fish), jelly bell
 // 36 px wide (one fish), worm 12 px wide (about 0.3 fish), bubbles 12 px boxes with a 6-12 px ink.
-var ORCA = { cols: 54, rows: 36 };                  // 9 x 3 cells of block art
+var ORCA = { cols: 54, rows: 24 };                  // 9 x 2 cells of block art (162 x 72 px at 1080p)
 var ANGLER = { cols: 30, rows: 36 };                // 5 x 3 cells
 var ANGLER_LURE = { x: 24, y: 0 };                 // the lure cell of the right-facing art (left-facing: x 0)
 var JELLY = [
-    { name: "small", cols: 12, rows: 36 },          // 2 cells
-    { name: "mid",   cols: 18, rows: 36 },          // 3 cells (the reference bell)
-    { name: "large", cols: 30, rows: 36 }           // 5 cells
+    { name: "small", cols: 18, rows: 24 },          // 3 x 2 cells
+    { name: "mid",   cols: 18, rows: 36 },          // 3 x 3 cells (the reference bell, 54 x 108 px)
+    { name: "large", cols: 30, rows: 36 }           // 5 x 3 cells
 ];
 var WORM = { cols: CELL_W, rowsByStage: [36, 24, 12], frames: 2 };    // 1 cell wide; stages 3, 2, 1 cells tall
-var BUBBLE = [{ cols: CELL_W, rows: CELL_H }, { cols: CELL_W, rows: CELL_H }];
+var BUBBLE = [{ cols: 3, rows: 3 }, { cols: 5, rows: 6 }];      // ink-cropped: a small degree sign, a big o (background scale)
 var SPARKLE = { cols: CELL_W, rows: CELL_H };
 var LURE_LEVELS = 3;
 
@@ -121,8 +123,9 @@ function bubbleFile(scale, set) { return bubbleClass(scale) ? "bubble-b-" + set 
 function sparkleFile(frame, set) { return "sparkle-" + frame + "-" + set + ".png"; }
 
 // ── backdrop, in texel rows (multiples of CELL_H) ───────────
-var SURFACE = { y: 24, rows: 12, floor: 42 };     // waves: text row 2 (about 48 px from the top, below a 46 px panel);
-                                                  // the creatures' centres stay below floor texels (84 px)
+var SURFACE = { y: 24, rows: 12, floor: 63 };     // waves: text row 2 (about 48 px from the top, below a 46 px panel);
+                                                  // the creatures' centres stay below floor texels (126 px): the waves
+                                                  // plus half of the tallest creature (a jelly, 108 px)
 var SEABED = { cols: 80, rows: 48, y: 492 };       // 4 text rows on the bottom: 96 px = 8.9 % of 1080
 var PROMPT = { x: CELL_W, y: 528, cols: 17, rows: CELL_H };                   // "$ boids --watch " + block cursor
 var STATUS = { cols: 32, rows: CELL_H, y: 528 };                             // "[||||| ... ] load  50%" at the bottom right

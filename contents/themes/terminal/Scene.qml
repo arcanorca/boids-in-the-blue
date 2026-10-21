@@ -22,14 +22,18 @@ Item {
     property var sim: null
     property real glimmerLevel: 0
 
+    // the screen height as known so far: until the first layout it is 0, so 1080 (the reference) is assumed
+    readonly property real _h: height > 0 ? height : 1080
     // screen px per texel (a whole number of DEVICE pixels, so texels are never split)
-    readonly property real ps: T.texelDevice(height * Math.max(1, dpr)) / Math.max(1, dpr)
+    readonly property real ps: T.texelDevice(_h * Math.max(1, dpr)) / Math.max(1, dpr)
+    // creatures are drawn with larger text: 3 px per texel at 1080p (a 3-cell fish is 54 px wide)
+    readonly property real pc: T.creatureTexelDevice(_h * Math.max(1, dpr)) / Math.max(1, dpr)
 
     // creatures stay below the waves: the simulation's upper limit is the waves line plus the fish's half height
     function sync(s) {
         s.top = T.SURFACE.floor * ps;
         if (ambient.stress !== s.cpuStress) ambient.stress = s.cpuStress;
-        TerminalSync.sync(s, entities, entities, ps, Math.max(1, dpr), T.nightSet(daylight));
+        TerminalSync.sync(s, entities, entities, pc, Math.max(1, dpr), T.nightSet(daylight), ps);
     }
 
     clip: true

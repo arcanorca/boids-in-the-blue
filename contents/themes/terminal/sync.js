@@ -29,12 +29,12 @@ var TREMBLE = [0, 1, 0, -1];                       // offsets in cells (scaled b
 
 function _clamp(v, lo, hi) { return v < lo ? lo : (v > hi ? hi : v); }
 
-function sync(sim, parent, component, ps, dpr, night) {
+function sync(sim, parent, component, ps, dpr, night, psBg) {
     if (!sim || sim.width <= 0) return;
-    try { _sync(sim, parent, component, ps > 0 ? ps : 2, dpr > 0 ? dpr : 1, !!night); } catch (e) { Boids._report('terminal sync', e); }
+    try { _sync(sim, parent, component, ps > 0 ? ps : 3, dpr > 0 ? dpr : 1, !!night, psBg > 0 ? psBg : 2); } catch (e) { Boids._report('terminal sync', e); }
 }
 
-function _sync(sim, parent, component, ps, dpr, night) {
+function _sync(sim, parent, component, ps, dpr, night, psBg) {
     component.beginTick(dpr);
     var cc = sim._c, stress = sim.cpuStress, now = Boids._now();
     var hot = stress > 1.2;
@@ -69,7 +69,8 @@ function _sync(sim, parent, component, ps, dpr, night) {
             } else {
                 component.target(dg, ent.x, ent.y);
             }
-            if (dg.ps !== ps) dg.ps = ps;
+            var pScale = kind === 'bubble' ? psBg : ps;      // creatures at the creature scale, bubbles are water: background scale
+            if (dg.ps !== pScale) dg.ps = pScale;
 
             var fr, mag, face, key, spd, a;
             if (kind === 'fish') {

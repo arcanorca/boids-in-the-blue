@@ -95,6 +95,10 @@ BLOCK_CANDIDATES = ([_quadrant_mask(b) for b in range(1, 16)] + [_lower_mask(k) 
                     [_left_mask(k) for k in range(1, 8)] + [_grid(lambda x, y: y < 2), _grid(lambda x, y: x == 5)])
 
 
+# the font's own glyphs join the block shapes as candidates: the outline may use / \\ _ - ' . | ( ) o
+BLOCK_CANDIDATES += [mask_of(c) for c in "/\\_-'.|()o"]
+
+
 def mirror_mask(m):
     return tuple(tuple(reversed(r)) for r in m)
 
@@ -152,42 +156,43 @@ def _face(text, roles, face):
 
 # ── fish ─────────────────────────────────────────────────────
 # Fish = [tail][body x k][head]: the size class is k (small 0, mid 1, large 2), so a bigger fish is the same fish
-# with more body. The tail beat swaps the tail glyph between two frames. Heads are round or blunt and never mirror
-# the tail, so a left-facing fish is a different silhouette, not a copy.
+# with more body. Body and head are bright (the mass of the fish), the tail is normal green. The tail beat swaps the
+# tail glyph between two frames. Heads are round or blunt and never mirror the tail, so a left-facing fish is a
+# different silhouette, not a copy.
 FISH_VARIANTS = ['stripe', 'spot', 'solid', 'hollow', 'check']
-#           tail frames      body  body role  head  head role  head in the small class
+#          tail frames      body  head  head in the small class
 FISH = {
-    'stripe': (['<', '/'], '=', 'n', ')', 'n', ')'),
-    'spot':   (['<', '/'], 'o', 'b', ')', 'n', 'o'),
-    'solid':  (['<', '/'], '#', 'n', '}', 'n', '}'),
-    'hollow': (['<', '/'], '-', 'd', ']', 'n', ']'),
-    'check':  (['<', '/'], '%', 'n', '}', 'n', '*'),
+    'stripe': (['<', '/'], '=', ')', ')'),
+    'spot':   (['<', '/'], '@', ')', '@'),
+    'solid':  (['<', '/'], '#', '}', '}'),
+    'hollow': (['<', '/'], 'O', ']', ']'),
+    'check':  (['<', '/'], '%', '}', '%'),
 }
 FISH_BODY = {'small': 0, 'mid': 1, 'large': 2}
 FISH_CLASSES = ['small', 'mid', 'large']
-FRY = (['<', '/'], '.', 'b')                   # babies: a tail and a bright dot, two cells
+FRY = (['<', '/'], '.')                        # babies: a tail and a bright dot, two cells
 
 
 def fish_rows(variant, cls, frame, face):
-    tails, body, brole, head, hrole, small_head = FISH[variant]
+    tails, body, head, small_head = FISH[variant]
     k = FISH_BODY[cls]
     if k == 0:
-        text, roles = tails[frame] + small_head, 'd' + hrole
+        text, roles = tails[frame] + small_head, 'nb'
     else:
-        text, roles = tails[frame] + body * k + head, 'd' + brole * k + hrole
+        text, roles = tails[frame] + body * k + head, 'n' + 'b' * (k + 1)
     return _face(text, roles, face)
 
 
 def fry_rows(frame, face):
-    tails, dot, role = FRY
-    return _face(tails[frame] + dot, 'd' + role, face)
+    tails, dot = FRY
+    return _face(tails[frame] + dot, 'nb', face)
 
 
-# ── angler: 5 x 3 cells; a lure stalk above the head, a wide mouth ──
+# ── angler: 5 x 3 cells; a stalk above the head, the lure on its tip (a separate cell, see lure_rows) ──
 ANGLER = [
-    # frame 0 / frame 1 : text, roles (the lure bulb is drawn over cell (4, 0) by lure-<level>.png)
-    (['     ', '(@@/ ', '(@@@>'], ['     ', 'dnnd ', 'dnnnb']),
-    (['     ', '(@@| ', '(@@@>'], ['     ', 'dnnd ', 'dnnnb']),
+    # frame 0 / frame 1: text, roles (the mouth shows its teeth on frame 0)
+    (['     ', '(@@@|', '(@@@>'], ['     ', 'nnnnn', 'nnnnb']),
+    (['     ', '(@@@|', '(@@@-'], ['     ', 'nnnnn', 'nnnnn']),
 ]
 
 
@@ -201,12 +206,12 @@ def angler_rows(frame, face):
     return rows
 
 
-# ── jelly: the bell (3 rows) and its tentacles; two frames pulse the bell and sway the tentacles ──
+# ── jelly: a bell with eyes and its tentacles; small 3 x 2 cells, mid 3 x 3, large 5 x 3; two frames ──
 JELLY = {
-    'small': [(['.-', '()', '/\\'], ['dd', 'nn', 'dd']), (['.-', '()', '\\/'], ['dd', 'nn', 'dd'])],
-    'mid':   [(['.-.', '(*)', '/|\\'], ['ddd', 'dnd', 'ddd']), (['.-.', '( )', '\\|/'], ['ddd', 'dnd', 'ddd'])],
-    'large': [(['.-.-.', '(   )', '/|||\\'], ['ddddd', 'ddddd', 'ddddd']),
-              (['.-.-.', '(   )', '\\|||/'], ['ddddd', 'ddddd', 'ddddd'])],
+    'small': [(['.-.', '/|\\'], ['nnn', 'nnn']), (['.-.', '\\|/'], ['nnn', 'nnn'])],
+    'mid':   [(['.-.', '(o)', '/|\\'], ['nnn', 'nbn', 'nnn']), (['.-.', '(o)', '\\|/'], ['nnn', 'nbn', 'nnn'])],
+    'large': [(['.-"-.', '(o o)', '/|||\\'], ['nnnnn', 'nbnbn', 'nnnnn']),
+              (['.-"-.', '(o o)', '\\|||/'], ['nnnnn', 'nbnbn', 'nnnnn'])],
 }
 
 
@@ -235,51 +240,44 @@ def kelp_rows(cls, frame):
     return [text_row('{' if (y + frame) % 2 == 0 else '}', 'd') for y in range(KELP_HEIGHT[cls])]
 
 
-# ── orca: a hand-drawn sub-cell map, 18 x 24 units (3 texels across, 1.5 texels down each), quantised to blocks ──
-# B = black body, G = saddle and W = white markings (both bright). Frame 1 lifts the flukes by one unit.
+# ── orca: block-character art, 9 x 2 cells (162 x 72 px at 1080p) ──
+# A hand-drawn map of 18 x 16 units (3 texels across, 1.5 texels down each; a cell is 2 x 8 units). Each 6 x 12 cell is
+# quantised to the best block shape (all quadrant patterns and the eighth blocks) with two colours: the black body is
+# normal green, the saddle, the eye patch, the belly and the chin are bright. Frame 1 lifts the flukes by one unit.
+ORCA_TONES = {'W': 'b', 'G': 'b', 'B': 'n'}      # map character -> colour role
 ORCA_MAP = [
-    '.........B........',
-    '........BB........',
-    '........BB........',
-    '.......BBBB.......',
-    'BB.....BBBB.......',
-    'BB....BBBBB.......',
-    'BBB...BBBBBB......',
-    'BBB..BBBBBBBB.....',
-    '..BBBBBBBBBBBBBB..',
-    '..GGGBBBBBBWWWBBBB',
-    '..GGGBBBBBWWWWWBBB',
-    '..BBBBBBBBWWWWWWWW',
-    '...BBBBBBWWWBBWWWW',
-    'BBBBBWWWWWWWBBWWWW',
-    'BBBBBBWWWWWWWWWW..',
-    'BB..BBWWWWWWWW....',
-    'BB...BBBBBBB......',
-    '...BBBBBBBB.......',
-    '....BBBB..........',
-    '..................',
-    '..................',
-    '..................',
-    '..................',
-    '..................',
+    '.........BB.......',
+    '........BBBB......',
+    '.......BBBBBB.....',
+    '......BBBBBBBB....',
+    '.....BBBBBBBBBB...',
+    '....BBBBBBBBBBBB..',
+    'BB..BBBBBBBBBBBBBB',
+    'BBB.BBBBBBBBBWWWBB',
+    '..BBBBBBBBBBWWWBBB',
+    '..BBBBBBBBBBBBBBBB',
+    '..BBBBBWWWWWWWWWWB',
+    '..BBBBBWBBWWWWWWWW',
+    '...BBBBWBBWWWWWW..',
+    'BB..BBBWWWWWW.....',
+    'BB...BBWWWWW......',
+    '.B.....BB.........',
 ]
-
-
-ORCA_TONES = {'W': 'b', 'G': 'b', 'B': 'n'}      # black body normal, white markings and saddle bright
+assert len(ORCA_MAP) == 16 and all(len(r) == 18 for r in ORCA_MAP), 'orca map must be 18 x 16 units'
 
 
 def orca_map(frame):
     m = [list(r) for r in ORCA_MAP]
     if frame == 1:
         # the flukes (the three left units) lift by one unit
-        for y in range(24):
+        for y in range(16):
             for x in range(3):
-                m[y][x] = ORCA_MAP[y + 1][x] if y + 1 < 24 else '.'
+                m[y][x] = ORCA_MAP[y + 1][x] if y + 1 < 16 else '.'
     return m
 
 
 def _quantise(labels):
-    """labels: 12 x 6 texels of None / 'b' / 'd'. The cell (mask, fg, bg) with the fewest wrong texels; ties prefer
+    """labels: 12 x 6 texels of None / 'b' / 'n' / 'd'. The cell (mask, fg, bg) with the fewest wrong texels; ties prefer
     fewer coloured sides, then the earlier candidate (stable output)."""
     best = None
     for mask in BLOCK_CANDIDATES:
@@ -298,14 +296,13 @@ def _quantise(labels):
 
 def orca_rows(frame, face):
     amap = orca_map(frame)
-    labels = [[None] * 54 for _ in range(36)]
-    for ty in range(36):
-        uy = min(23, int(ty * 2 / 3))
+    labels = [[None] * 54 for _ in range(24)]          # 24 texel rows x 54 texel columns
+    for ty in range(24):
+        uy = min(15, int(ty * 2 / 3))                  # a unit is 1.5 texels down
         for tx in range(54):
-            c = amap[uy][tx // 3]
-            labels[ty][tx] = ORCA_TONES.get(c)
+            labels[ty][tx] = ORCA_TONES.get(amap[uy][tx // 3])
     cells = []
-    for cy in range(3):
+    for cy in range(2):
         row = []
         for cx in range(9):
             sub = [labels[cy * CH + y][cx * CW:(cx + 1) * CW] for y in range(CH)]
@@ -316,8 +313,9 @@ def orca_rows(frame, face):
     return cells
 
 
+# the lure: a '*' (normal at rest, bright when it flares; a '+' at the flare), the stalk stays normal green
 def lure_rows(level):
-    return [text_row('*', ['d', 'n', 'b'][level])]
+    return [text_row('+' if level == 2 else '*', 'n' if level == 0 else 'b')]
 
 
 def sparkle_rows(frame):
@@ -325,7 +323,13 @@ def sparkle_rows(frame):
 
 
 def bubble_rows(big):
-    return [text_row('o' if big else '\u00b0', 'n' if big else 'd')]
+    return [text_row('o' if big else '\u00b0', 'n')]          # bubbles are water: drawn at the background scale
+
+
+def render_cropped(rows, pal):
+    """The texture cropped to its ink (the bubbles are sized by their ink, not by the cell)."""
+    im = render(rows, pal)
+    return im.crop(im.split()[3].getbbox())
 
 
 # ── backdrop ─────────────────────────────────────────────────
@@ -414,8 +418,8 @@ def gen_all():
             out['sparkle-%d-%s.png' % (f, s)] = render(sparkle_rows(f), pal)
         for lvl in range(3):
             out['lure-%d-%s.png' % (lvl, s)] = render(lure_rows(lvl), pal)
-        out['bubble-s-%s.png' % s] = render(bubble_rows(False), pal)
-        out['bubble-b-%s.png' % s] = render(bubble_rows(True), pal)
+        out['bubble-s-%s.png' % s] = render_cropped(bubble_rows(False), pal)
+        out['bubble-b-%s.png' % s] = render_cropped(bubble_rows(True), pal)
         for cls in range(3):
             for f in (0, 1):
                 out['kelp-%d-%d-%s.png' % (cls, f, s)] = render(kelp_rows(cls, f), pal)
