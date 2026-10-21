@@ -3,19 +3,51 @@ import QtQuick
 // Pooling entity layer of the "amiga" theme (AmigaSprite delegates). Pass it to AmigaSync.sync() as
 // the "component": createObject(parent, props) hands out pooled sprites whose release() returns them
 // to the pool (the adapter calls that from sim.onRemove, so a removed entity vanishes at once).
-// `cell` = screen px per virtual pixel (set by Scene.qml); sprites follow it through a binding.
+// `cell` = screen px per art pixel (set by Scene.qml).
+//
+// Smooth motion: sync.js calls beginTick() once per sim tick; ONE shared tween `t` (0..1, linear, as long
+// as the real tick interval) interpolates every sprite between its previous and its new position, and the
+// sprite lands on whole screen pixels (Math.round) - never on the art-pixel grid, so slow fish glide
+// instead of crawling in 3 px steps. No per-sprite animation objects.
 Item {
     id: layer
 
-    property int cell: 4
+    property int cell: 3
+    property bool paused: false
     property real stressStep: 0            // written by sync.js: palette-swap level 0..1 for the backdrop
     property int created: 0
     property int live: 0
+    property real t: 1                     // tween between the last two sim ticks
+    property double _last: 0
+    property real _ema: 40                  // smoothed real interval between ticks (ms)
 
     property var _free: [[], [], [], [], [], [], []]       // indexed by delegate type
     property double _zc: 0                                 // newest sprite on top, as in the other renderers
 
     Component { id: spriteComponent; AmigaSprite {} }
+
+    NumberAnimation {
+        id: tween
+        target: layer
+        property: "t"
+        from: 0
+        to: 1
+        duration: 40
+        running: false
+    }
+
+    // called by sync.js at the start of every tick: restart the tween. Its length is 1.35x the smoothed tick
+    // interval, so a late or early tick (timers fire on frame boundaries) neither stalls nor jumps the sprites:
+    // they always have somewhere to glide to, at an almost constant speed.
+    function beginTick() {
+        var now = Date.now();
+        if (_last > 0) _ema = _ema * 0.85 + Math.max(10, Math.min(150, now - _last)) * 0.15;
+        _last = now;
+        tween.stop();
+        tween.duration = Math.round(_ema * 1.35);
+        t = 0;
+        if (!paused) tween.start(); else t = 1;
+    }
 
     function createObject(parent, props) {
         var t = props.type;
@@ -28,11 +60,9 @@ Item {
             created++;
         }
         d.z = ++_zc;
-        d.animate = false;
-        d.flip = false; d.shakeX = 0; d.shakeY = 0; d.opacity = 1; d.rotation = 0;
-        d.sparkle = 0; d.cls = 0; d.frame = 0;
+        d.flip = false; d.opacity = 1; d.rotation = 0;
+        d.sparkle = 0; d.cls = 0; d.frame = 0; d.glow = 1; d.lure = 1;
         for (var k in props) d[k] = props[k];
-        d.animate = true;
         d.visible = true;
         live++;
         return d;

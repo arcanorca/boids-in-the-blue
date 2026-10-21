@@ -1,23 +1,21 @@
 import QtQuick
 
-// A horizontally tiling strip glued to the bottom edge, scrolled in whole virtual pixels.
-// `source` is the texture to show (the owner switches it per animation frame); tw/h in texels.
+// A static horizontally tiling strip glued to the bottom edge; tw/h in art pixels, shown at vp px each.
 Item {
     id: root
-    property int vp: 4
-    property int tw: 512
-    property int h: 100
+    property int vp: 3
+    property int tw: 640
+    property int h: 26
     property string source: ""
-    property int offset: 0                 // virtual px scrolled left (wraps at tw)
     anchors.bottom: parent.bottom
     width: parent.width
     height: h * vp
 
     Repeater {
-        model: Math.ceil(root.width / (root.tw * root.vp)) + 1
+        model: Math.ceil(root.width / (root.tw * root.vp))
         delegate: Image {
             required property int index
-            x: index * root.tw * root.vp - (root.offset % root.tw) * root.vp
+            x: index * root.tw * root.vp
             width: root.tw * root.vp
             height: root.h * root.vp
             smooth: false

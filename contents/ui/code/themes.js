@@ -53,7 +53,7 @@ var THEMES = [
     {
         id: "amiga",
         name: "Amiga",
-        description: "Late-80s Commodore Amiga look: 12-bit palette, copper-list water gradients, dithered DPaint sprites and parallax.",
+        description: "Calm Commodore Amiga look: a smooth copper-gradient sea, hand-drawn 12-bit sprites on one consistent pixel scale, gently swaying kelp.",
         usesDayNight: true,
         usesWaterColors: false
     },
