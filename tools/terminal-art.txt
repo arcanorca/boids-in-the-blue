@@ -65,15 +65,15 @@ by hand: eye, fins, mouth, belly line, stray characters. Every glyph must surviv
           ,-L
          /
  \   ,-"""-.
-  >-(  :: O  \VvVv
- /  (  ::     /^^^^
+  >-(:::: O  \VvVv
+ /  (:::::::::/^^^^
      `-.___.-'
 === angler.1 ===
           ,-L
          /
  /   ,-"""-.
-  >-(  :: O  \VvVv
- \  (  ::     /^^^^
+  >-(:::: O  \VvVv
+ \  (:::::::::/^^^^
      `-.___.-'
 === jelly.small.0 ===
  .-""-.
