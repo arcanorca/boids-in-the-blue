@@ -262,7 +262,7 @@ const ANGLER_ART = [
     {   // 18x14 (interior 16x12): round body, wide toothy mouth, eye, tail fan; body rows start at y3
         tail: [0, 5, ['f..', 'ff.', 'fff', 'ff.', 'f..']],
         body: ['................', '................', '................', '.......bllb.....', '.....bbllhllbb..', '....bblllllleeb.', '...bbbbbbbbbekbb', '..FbbbbbbbbbbmmmW'.slice(0, 16), '..FFbbbbbbbbmwmwm'.slice(0, 16), '...dbbbbbbbbbbd.', '....ddbbbbbbdd..', '......dddddd....'],
-        stalk: [[[10, 2], [11, 1], [12, 1]], [[10, 2], [11, 2], [12, 2]], [[10, 2], [11, 1], [12, 1]], [[10, 2], [11, 1], [12, 0]]]
+        stalk: [[[10, 2], [10, 1], [11, 1], [12, 1]], [[10, 2], [11, 2], [12, 2]], [[10, 2], [10, 1], [11, 1], [12, 1]], [[10, 2], [10, 1], [11, 1], [11, 0], [12, 0]]]
     }
 ];
 function anglerFrame(art, frame) {
