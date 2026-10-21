@@ -46,7 +46,7 @@ var THEMES = [
     {
         id: "nes",
         name: "NES",
-        description: "8-bit console look: the 2C02 palette, tile-built sprites, palette-swapped day and night and a scrolling waterline.",
+        description: "8-bit console look: the 2C02 palette with a calm teal sea, outlined tile-built sprites, palette-swapped day and night and a static seabed.",
         usesDayNight: true,
         usesWaterColors: false
     },

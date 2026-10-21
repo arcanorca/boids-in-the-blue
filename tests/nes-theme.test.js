@@ -166,3 +166,83 @@ test('nes sync: palette swap per individual, shake, alarm cycling, 2-frame anima
     assert.deepStrictEqual([...ops].sort(), [0, 1]);
     assert.ok(sim.entities.bubbles.every(b => b.delegate.cls === T.bubbleClass(b.scale)));
 });
+
+// ── hardware budget, proportions and calm (added with the redesign) ──
+// opaque pixels of an image as [x, y, hex] (alpha 255); fully transparent pixels are colour 0
+function opaque(im) {
+    const out = [];
+    for (let y = 0; y < im.H; y++) for (let x = 0; x < im.W; x++) {
+        const i = (y * im.W + x) * 4;
+        if (im.px[i + 3] === 255) out.push([x, y, hex(im.px[i], im.px[i + 1], im.px[i + 2])]);
+    }
+    return out;
+}
+
+test('nes sprites: at most 3 opaque colours per sprite (one palette, colour 0 transparent)', () => {
+    for (const f of fs.readdirSync(path.join(DIR, T.DIR))) {
+        if (/^(seam|seabed|surface|glint)-/.test(f)) continue;      // background tiles: 4 palettes, checked above
+        const cs = new Set(opaque(load(f)).map(p => p[2]));
+        // the angler is two metasprite parts (body palette + lure palette): 3 + 3 colours
+        assert.ok(cs.size <= (f.startsWith('angler-') ? 6 : 3), f + ' has ' + cs.size + ' colours');
+    }
+});
+
+test('nes proportions: fish 36 px wide at 1080p (+-15 %), angler 1.5 fish, orca about 3 fish, jelly about a fish', () => {
+    const px = T.pxFor(1080);                                       // 4 screen px per virtual px
+    assert.strictEqual(px, 4);
+    const width = f => { const p = opaque(load(f)); return (Math.max(...p.map(q => q[0])) - Math.min(...p.map(q => q[0])) + 1) * px; };
+    const fish = width(T.spriteFile('fish', 'm', 'aqua', 0));
+    assert.ok(Math.abs(fish - 36) <= 36 * 0.15, 'fish is ' + fish + ' px wide, target 36');
+    const angler = width(T.spriteFile('angler', 'm', '', 0, 1)) ;
+    assert.ok(Math.abs(angler / fish - 1.5) <= 0.25, 'angler ' + angler + ' px, ' + (angler / fish).toFixed(2) + ' fish');
+    const orca = width(T.spriteFile('orca', 'm', '', 0));
+    assert.ok(Math.abs(orca - 3 * 36) <= 3 * 36 * 0.15, 'orca ' + orca + ' px');
+    const jelly = width(T.spriteFile('jelly', 'm', '', 0));
+    assert.ok(Math.abs(jelly - 36) <= 36 * 0.15, 'jelly bell ' + jelly + ' px');
+    for (let c = 0; c < 3; c++) {                                  // bubbles 6..14 px
+        const b = width(T.spriteFile('bubble', ['s', 'm', 'l'][c]));
+        assert.ok(b >= 6 && b <= 14, 'bubble ' + b + ' px');
+    }
+    const worm = width(T.spriteFile('worm', 'm', '', 0));
+    assert.ok(Math.abs(worm / fish - 0.3) <= 0.15, 'worm ' + (worm / fish).toFixed(2) + ' fish');
+});
+
+test('nes scene: seabed band at most 9 % and tallest kelp at most 20 % of a 270-line screen', () => {
+    const rowsAbove = (f) => {                                      // rows of the seabed texture above the screen bottom
+        const im = load(f), tops = [];
+        for (let x = 0; x < im.W; x++) {
+            let top = im.H;
+            for (let y = 0; y < im.H; y++) if (im.px[(y * im.W + x) * 4 + 3] === 255) { top = y; break; }
+            tops.push(top);
+        }
+        return { tops, H: im.H };
+    };
+    const s = rowsAbove(T.seabedFile('day', 0));
+    const sorted = s.tops.slice().sort((a, b) => a - b);
+    const sandTop = sorted[Math.floor(sorted.length / 2)];         // median column top: the sand line
+    const sand = s.H - sandTop;
+    assert.ok(sand / 270 <= 0.09, 'sand band ' + (sand / 270 * 100).toFixed(1) + ' %');
+    const kelp = sandTop - sorted[0];                              // the tallest plant, measured from the sand
+    assert.ok(kelp / 270 <= 0.20, 'tallest kelp ' + (kelp / 270 * 100).toFixed(1) + ' %');
+});
+
+test('nes calm: water seams are one row, the seabed differs between frames by at most 2 % of a screen', () => {
+    for (const st of T.BG_STATES) for (let k = 0; k < 3; k++) assert.strictEqual(load(T.seamFile(st, k)).H, 1, 'seam ' + k);
+    for (const st of T.BG_STATES) {
+        const a = load(T.seabedFile(st, 0)), b = load(T.seabedFile(st, 1));
+        let diff = 0;
+        for (let i = 0; i < a.W * a.H; i++) if (a.px[i * 4] !== b.px[i * 4] || a.px[i * 4 + 1] !== b.px[i * 4 + 1] || a.px[i * 4 + 2] !== b.px[i * 4 + 2]) diff++;
+        assert.ok(diff / (480 * 270) <= 0.02, st + ': ' + (100 * diff / (480 * 270)).toFixed(2) + ' % of a 480x270 screen changes between frames');
+    }
+});
+
+test('nes rates: nothing changes faster than 2 Hz except swimming, pulsing and wiggling; stress alternates at 1 Hz at most', () => {
+    const TICK_MS = 500;                                             // Ambient.qml Timer interval (2 Hz)
+    assert.ok(TICK_MS >= 500);
+    assert.ok(T.ALARM_PERIOD_MS >= 1000, 'alarm state lasts a second: alternation <= 1 Hz');
+    assert.ok(T.CALM_TICKS * 40 >= 500, 'slow effects change at most every 500 ms (25 Hz sim)');
+    const sync = fs.readFileSync(path.join(DIR, 'sync.js'), 'utf8');
+    assert.ok(/dg\.tick % T\.CALM_TICKS === 0/.test(sync), 'shake and lure change on CALM_TICKS');
+    const amb = fs.readFileSync(path.join(DIR, 'Ambient.qml'), 'utf8');
+    assert.ok(/interval: 500/.test(amb) && !/scroll/.test(amb), 'ambient tick is 2 Hz and the waterline does not scroll');
+});
