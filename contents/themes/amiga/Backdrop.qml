@@ -73,7 +73,7 @@ Item {
             anchors.fill: parent
             smooth: false
             opacity: (base === root.stressBase && step === root.stressIdx) ? 1 : 0
-            Behavior on opacity { NumberAnimation { duration: 1500 } }
+            Behavior on opacity { enabled: !root.paused; NumberAnimation { duration: 1500 } }
             visible: opacity > 0.002
             source: visible ? T.DIR + "copper-stress-" + base + "-" + step + ".png" : ""
         }

@@ -72,7 +72,7 @@ Item {
         height: s
         smooth: true
         opacity: root.glow
-        Behavior on opacity { NumberAnimation { duration: 900 } }
+        Behavior on opacity { enabled: !(root.pool && root.pool.paused); NumberAnimation { duration: 500 } }
         source: visible ? T.DIR + "glow.png" : ""
     }
     // body
