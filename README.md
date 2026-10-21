@@ -10,15 +10,26 @@ A live wallpaper for KDE Plasma 6: a school of boids (Craig Reynolds' flocking m
 
 https://github.com/user-attachments/assets/d896e1b9-4d1e-4f65-bfdf-85580c7df1e8
 
-<div align="center">
-  <img src="https://github.com/user-attachments/assets/37279e9e-3b12-47c3-9e43-376c1617dfd7" width="45%" alt="Screenshot" />
-  <img src="https://github.com/user-attachments/assets/bff973bc-1e15-4aec-86fc-962ca3192d8e" width="45%" alt="Screenshot" />
-  <br/>
-  <img src="https://github.com/user-attachments/assets/42380813-dab9-4f95-a1d4-643c1fef97fd" width="45%" alt="Screenshot" />
-  <img src="https://github.com/user-attachments/assets/eb6690f0-bea8-43a3-bf50-86fe543a07bb" width="45%" alt="Screenshot" />
-  <br/><br/>
-  <img src="https://github.com/user-attachments/assets/4a7821b8-8e1b-48d8-9365-3cfd12d00fee" width="30%" alt="Settings page" />
-</div>
+## Screenshots
+
+<table>
+  <tr>
+    <td align="center"><img src="docs/screenshots/refined-pixel.jpg" width="400" alt="Refined Pixel"><br>Refined Pixel</td>
+    <td align="center"><img src="docs/screenshots/classic.jpg" width="400" alt="Classic"><br>Classic</td>
+  </tr>
+  <tr>
+    <td align="center"><img src="docs/screenshots/bioluminescent.jpg" width="400" alt="Bioluminescent"><br>Bioluminescent</td>
+    <td align="center"><img src="docs/screenshots/nes.jpg" width="400" alt="NES"><br>NES</td>
+  </tr>
+  <tr>
+    <td align="center"><img src="docs/screenshots/amiga.jpg" width="400" alt="Amiga"><br>Amiga</td>
+    <td align="center"><img src="docs/screenshots/game-boy.jpg" width="400" alt="Game Boy"><br>Game Boy</td>
+  </tr>
+  <tr>
+    <td align="center"><img src="docs/screenshots/1-bit.jpg" width="400" alt="1-Bit"><br>1-Bit</td>
+    <td align="center"><img src="docs/screenshots/ukiyo-e.jpg" width="400" alt="Ukiyo-e"><br>Ukiyo-e</td>
+  </tr>
+</table>
 
 ## Themes
 
@@ -135,15 +146,15 @@ A saved setting for an archived theme falls back to Refined Pixel.
 
 ### 1.2
 
-- **Themes**: eight themes, including the new Ukiyo-e. Refined Pixel is the default. Bioluminescent replaces Bioluminescent Deep. The Terminal and Soft Illustrated themes are archived (see the git tags above).
-- **Settings**: five tabs with theme preview cards, flocking presets, advanced flocking values in a collapsed section, help buttons, and "Reset to defaults".
-- **Flocking**: new defaults and presets; the school moves more smoothly. Saved custom values are kept; values outside the new ranges fall back to the defaults.
-- **Fish no longer pass through each other**: separation takes the size of the fish into account and steering is smoothed and limited, so schools flow around one another and do not jitter.
-- **Pause when covered**: the animation pauses while a maximized or fullscreen window, or windows covering a set share of the screen (50 to 100 %, default 90 %), hide the wallpaper. Not applied on the lock screen.
-- **Frame-driven simulation**: the simulation advances with the rendered frames at 25 steps per second on any display rate, so each screen stops when it is off or covered. Idle screens also switch off the sensors and ambient animations.
-- **Refined Pixel**: smooth water gradient instead of stepped bands.
-- **New plugin id** `com.github.arcanorca.boidsintheblue`. `install.sh` migrates existing settings.
-- **Fixes**: simulation, configuration and packaging bugs (`git log v1.1..v1.2`); `install.sh` recovers from a corrupted upgrade by reinstalling.
+- Eight themes, including the new Ukiyo-e. Refined Pixel is the default.
+- Settings rebuilt: five tabs, theme previews, flocking presets, help buttons.
+- Fish no longer pass through each other, and move more smoothly.
+- Pauses when windows cover the desktop or the screen is off.
+- The simulation runs at the same speed on any display refresh rate.
+- Refined Pixel: smooth water gradient instead of stepped bands.
+- New plugin ID `com.github.arcanorca.boidsintheblue`; `install.sh` migrates your settings.
+- Bug fixes: worm eating, baby fish, resizing, the sensor setting, corrupted upgrades.
+- Terminal and Soft Illustrated themes are archived in the git tags `archive/terminal` and `archive/illustrated`.
 
 Older versions are in the git tags `v1.0` and `v1.1`.
 
