@@ -111,14 +111,14 @@ function busyWindows(im, q, win) {
     }
     const S = new Int32Array((W + 1) * (H + 1));
     for (let y = 0; y < H; y++) { let row = 0; for (let x = 0; x < W; x++) { row += busy[y * W + x]; S[(y + 1) * (W + 1) + x + 1] = S[y * (W + 1) + x + 1] + row; } }
-    let max = 0, flagged = 0, total = 0, at = '';
+    let max = 0, flagged = 0, total = 0, at = '', list = [];
     for (let y = 0; y + win <= H; y += win / 2) for (let x = 0; x + win <= W; x += win / 2) {
         const n = S[(y + win) * (W + 1) + x + win] - S[y * (W + 1) + x + win] - S[(y + win) * (W + 1) + x] + S[y * (W + 1) + x];
         const f = n / (win * win); total++;
         if (f > max) { max = f; at = x + ',' + y; }
-        if (f >= 0.5) flagged++;
+        if (f >= 0.5) { flagged++; if (list.length < 6) list.push(x + ',' + y); }
     }
-    return { max, flagged, total, at };
+    return { max, flagged, total, at, list };
 }
 const SCENES = [['day', 'defaults'], ['night', 'night'], ['crowded', 'crowded'], ['stress0.9', 'stress0.9'], ['feeding', 'feeding'], ['stress1.5', 'stress1.5']];
 function renderScenes() {
@@ -139,7 +139,7 @@ function measureC() {
     for (const name in files) {
         const im = png32(files[name]), L = lumaStats(im), B = busyWindows(im, q, 24);
         check(L.gamma < 0.25 && B.flagged === 0, 'C ' + name.padEnd(9) + ' mean luma ' + (L.gamma * 100).toFixed(1) + '% (linear ' + (L.linear * 100).toFixed(1) + '%), colours ' + L.colours +
-              ', busy 24x24 windows: ' + B.flagged + '/' + B.total + ' (max busy share ' + (B.max * 100).toFixed(0) + '% at ' + B.at + ')');
+              ', busy 24x24 windows: ' + B.flagged + '/' + B.total + ' (max busy share ' + (B.max * 100).toFixed(0) + '% at ' + B.at + ')' + (B.flagged ? ' flagged at ' + B.list.join(' ') : ''));
     }
 }
 

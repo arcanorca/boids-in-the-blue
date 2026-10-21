@@ -226,9 +226,9 @@ function anglerSprite(frame, S) {
 // out, so the outline scallops), 3-5 clean 1-texel tentacles that sway with the frame. Frames: relaxed,
 // mid, contracted, mid.
 const JELLY_ART = {
-    t: { hw: 3, bell: [[1, 2, 3, 3, 3], [1, 2, 2, 2, 2, 2], [1, 2, 2, 2, 2, 2]], tent: [[-2, 4], [0, 6], [2, 4]], hl: 1 },
-    s: { hw: 5, bell: [[2, 4, 5, 5, 5, 5], [1, 3, 4, 4, 4, 4, 4], [1, 3, 4, 4, 4, 4, 4, 4]], tent: [[-4, 6], [0, 8], [4, 6]], hl: 2 },
-    l: { hw: 6, bell: [[2, 4, 5, 6, 6, 6, 6], [2, 4, 5, 5, 5, 5, 5, 5], [1, 3, 4, 5, 5, 5, 5, 5, 5]], tent: [[-4, 6], [-2, 9], [0, 11], [2, 9], [4, 6]], hl: 2 }
+    t: { hw: 3, bell: [[1, 2, 3, 3, 3], [1, 2, 3, 3, 2, 2], [1, 2, 3, 2, 2, 2]], tent: [[-2, 4], [0, 6], [2, 4]], hl: 1 },
+    s: { hw: 4, bell: [[1, 3, 4, 4, 4, 4], [1, 3, 4, 4, 4, 3, 3], [1, 3, 4, 4, 3, 3, 2]], tent: [[-4, 6], [0, 9], [4, 6]], hl: 2 },
+    l: { hw: 5, bell: [[2, 4, 5, 5, 5, 5], [2, 4, 5, 5, 5, 4, 4], [1, 3, 5, 5, 4, 4, 3]], tent: [[-4, 7], [0, 11], [4, 7]], hl: 2 }
 };
 function jellyDims(ci) {
     const a = JELLY_ART[T.JELLY[ci].name], hb = Math.max(...a.bell.map(b => b.length)), len = Math.max(...a.tent.map(t => t[1]));
@@ -238,26 +238,23 @@ function jellySprite(ci, frame) {
     const a = JELLY_ART[T.JELLY[ci].name], d = jellyDims(ci), cx = a.hw + 1;
     const bell = a.bell[[0, 1, 2, 1][frame & 3]], hb = bell.length;
     const g = mk(d.cols, d.rows), dome = mk(d.cols, d.rows);
-    for (let r = 0; r < hb; r++) for (let x = -bell[r]; x <= bell[r]; x++) dome[1 + r][cx + x] = 'k';
-    // frilly rim: lobes hanging one texel below the dome, 2 wide with a 1 texel gap
-    const lobes = [];
-    for (let x = -bell[hb - 1]; x <= bell[hb - 1]; x++) if (((x + 12) % 3) !== 2) lobes.push(x);
-    for (const x of lobes) dome[1 + hb][cx + x] = 'k';
+    // dome in ink; the last row keeps every other texel, so the paper outline scallops into a frill
+    for (let r = 0; r < hb; r++) for (let x = -bell[r]; x <= bell[r]; x++) if (r < hb - 1 || x % 2 === 0) dome[1 + r][cx + x] = 'k';
     outline(dome, 'p');
     for (let y = 0; y < d.rows; y++) for (let x = 0; x < d.cols; x++) if (dome[y][x] !== '.') g[y][x] = dome[y][x];
-    // tentacles: 1-texel lines from the rim, swaying gently; every lateral step keeps the line 4-connected
+    // tentacles: 1-texel lines hanging from the frill, swaying slowly; every lateral step keeps the line 4-connected
     for (const [off, len] of a.tent) {
         let px = cx + off;
         for (let k = 0; k < len; k++) {
-            const x = cx + off + Math.round(0.9 * Math.sin(k * 0.5 + frame * 1.1 + off) * (k > 1 ? 1 : 0));
-            const y = hb + 3 + k - 1;
+            const x = cx + off + Math.round(0.9 * Math.sin(k * 0.38 + frame * 1.0 + off) * (k > 1 ? 1 : 0));
+            const y = hb + 2 + k;
             if (x !== px) put(g, px, y, 'p');
             put(g, x, y, 'p'); px = x;
         }
     }
     // highlight (upper left) and a little organ ring
     put(g, cx - bell[2] + a.hl + 1, 3, 'p');
-    if (a.hw >= 5) pts(g, 'p', [[cx - 1, hb - 1], [cx + 1, hb - 1], [cx, hb - 2]]);
+    if (a.hw >= 4) pts(g, 'p', [[cx - 1, hb - 2], [cx + 1, hb - 2], [cx, hb - 3]]);
     return g;
 }
 
@@ -343,8 +340,6 @@ function surfaceTile() {
     const S = T.SURFACE, g = mk(S.cols, S.rows);
     const y = x => 2 + Math.round(1.0 * Math.sin(2 * Math.PI * x / 32 + 0.4));
     for (let x = 0; x < S.cols; x++) { put(g, x, y(x), 'p'); if (x > 0 && y(x) !== y(x - 1)) put(g, x, y(x - 1), 'p'); }
-    for (let x = 6; x < 13; x++) put(g, x, 5, 'p');
-    for (let x = 38; x < 43; x++) put(g, x, 5, 'p');
     return g;
 }
 // Seabed: an ink silhouette with a paper contour 1 texel thick, boulders outlined in paper with a highlight, and

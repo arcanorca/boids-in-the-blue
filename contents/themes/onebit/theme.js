@@ -52,7 +52,7 @@ function fishFile(cls, variant, frame, inverted) {
 // Reference at 1080p: orca ~3x fish length, angler ~1.5x, jelly bell ~1x, worm ~0.3x.
 var ORCA = [{ name: "orca", cols: 37, rows: 20 }, { name: "orca-s", cols: 23, rows: 13 }];       // [full, small]
 var ANGLER = [{ name: "angler", cols: 18, rows: 17 }, { name: "angler-s", cols: 12, rows: 11 }];
-var JELLY = [{ name: "t", cols: 9, rows: 14 }, { name: "s", cols: 13, rows: 18 }, { name: "l", cols: 15, rows: 22 }];  // tiny, small, large bell
+var JELLY = [{ name: "t", cols: 9, rows: 14 }, { name: "s", cols: 11, rows: 18 }, { name: "l", cols: 13, rows: 20 }];  // tiny, small, large bell
 var WORM = { cols: 4, rows: 8, frames: 4 };
 var BUBBLE = [{ cols: 2, rows: 2 }, { cols: 4, rows: 4 }];
 var SPARKLE_SIZE = 5;
