@@ -57,7 +57,7 @@ var ALARM_PERIOD_MS = 1000;                        // one state lasts 1 s: the a
 function _fade(c) { return c >= 0x10 ? c - 0x10 : 0x0F; }          // the classic NES fade step (unused now)
 var BG_DAY = { u: 0x0F, pal: [[0x2C, 0x1C, 0x0C], [0x08, 0x18, 0x36], [0x0A, 0x1A, 0x2A], [0x2C, 0x3B, 0x30]] };
 var BG_DUSK = { u: 0x0F, pal: [[0x1C, 0x0C, 0x0D], [0x08, 0x07, 0x18], [0x0A, 0x0A, 0x1A], [0x1C, 0x2C, 0x3B]] };
-var BG_NIGHT = { u: 0x0F, pal: [[0x0C, 0x0C, 0x0D], [0x08, 0x07, 0x0D], [0x0A, 0x0B, 0x0A], [0x0C, 0x1C, 0x2C]] };
+var BG_NIGHT = { u: 0x0F, pal: [[0x1C, 0x0C, 0x0C], [0x0D, 0x08, 0x00], [0x0A, 0x0B, 0x0A], [0x1C, 0x2C, 0x3B]] };
 var BG = { day: BG_DAY, dusk: BG_DUSK, night: BG_NIGHT };
 var BG_STATES = ["day", "dusk", "night"];
 // daylight (0 night .. 1 day) -> palette state
@@ -129,7 +129,7 @@ function seamFile(state, k) { return "seam-" + state + "-" + k + ".png"; }   // 
 // gradient reads as smooth without a band per row. Boundaries are fractions of the screen height and
 // may fall on any row: every band uses the same BG palette, so the attribute table has nothing to split.
 // Returns bands [{y0, y1, shade}] (rows [y0, y1), shade 0..3) and seams [{y, k}] (one row each).
-var WATER_SPLITS = [0.11, 0.37, 0.66];
+var WATER_SPLITS = [0.11, 0.36, 0.80];
 function waterLayout(vh) {
     var s = WATER_SPLITS.map(function (f) { return Math.round(f * vh); });
     var bands = [], seams = [], y0 = 0;
