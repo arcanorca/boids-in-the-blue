@@ -247,86 +247,63 @@ function fishSprite(ci, variant, frame, inverted) {
 }
 
 // ── orca ─────────────────────────────────────────────────────
-// True killer-whale woodcut: sleek INK body with a crisp 1-texel PAPER outline, tall swept dorsal fin,
-// bright PAPER lower jaw/belly sweeping up into a flank lobe, iconic PAPER oval eye patch, grey-hatched
-// saddle mark behind the dorsal fin, pectoral paddle and crescent flukes (nose right).
-const ORCA_TOP = [8, 8, 8, 7, 7, 7, 6, 6, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 6, 6, 6, 7, 7, 8, 8, 9]; // x = 8..35 (28 cols)
-const ORCA_BOT = [10, 10, 11, 11, 11, 12, 12, 13, 13, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 13, 13, 13, 12, 12, 11, 11, 10, 9];
-
+// Killer whale in 1-bit. The body is INK on INK water, so the recognition comes from the PAPER areas:
+// a white lower half (belly and lower jaw) with the characteristic flank lobe, a white oval eye patch
+// above and behind the eye, a sparse paper-dotted saddle behind the dorsal fin, and a rounded white
+// pectoral paddle. The silhouette is one ink shape with a 1-texel paper outline. Predicates are written in
+// full-size design units (38 x 20) and sampled at cell centres, so the small variant (24 x 13) is the same
+// animal. Nose to the right. Shear (flukes) and flap (paddle) follow the frame.
 function orcaSprite(frame, small) {
-    const W = small ? 22 : 36, H = small ? 11 : 18, S = small ? 22 / 36 : 1;
+    const W = small ? 24 : 38, H = small ? 13 : 20;
+    const sx = 38 / W, sy = 20 / H;
     const g = mk(W, H);
     const dir = [0, -1, 0, 1][frame & 3];
+    const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+    const BODY_CY = 10.4;
+    const inBody = (u, v) => ((u - 22.5) / 14) ** 2 + ((v - BODY_CY) / 5.6) ** 2 <= 1;        // stocky, rounded head at the right
+    const inPeduncle = (u, v) => u >= 4.5 && u <= 11 && Math.abs(v - BODY_CY) <= 2.4;       // narrow tail stock
+    const inFin = (u, v) => {                                                              // tall triangular dorsal fin, swept back
+        if (v < 1.6 || v > 5.2) return false;
+        const t = (v - 1.6) / 3.6;
+        return u >= 19.8 - 3.3 * t && u <= 19.8 + 5.7 * t;
+    };
+    const inFlukes = (u, v) => {                                                           // crescent flukes with a central notch
+        if (u < 1.0 || u > 8.6) return false;
+        const vv = v - dir * clamp((7 - u) / 3.2, 0, 99);
+        const hf = 1.2 + 3.8 * Math.pow((8.6 - u) / 8.6, 1.4);
+        if (Math.abs(vv - BODY_CY) > hf) return false;
+        return !(u < 3.2 && Math.abs(vv - BODY_CY) < 1.3);
+    };
+    const flipCy = 14.2 + (frame & 1) * 0.5;
+    const inFlipper = (u, v) => ((u - 24.0) / 3.2) ** 2 + ((v - flipCy) / 2.6) ** 2 <= 1;   // rounded paddle
+    const inFlipRing = (u, v) => !inFlipper(u, v) && ((u - 24.0) / 4.0) ** 2 + ((v - flipCy) / 3.4) ** 2 <= 1;
+    const inLobe = (u, v) => {                                                             // pointed white flank lobe
+        if (v < 7.6 || v > 11.5) return false;
+        const hw = (v - 7.6) / 3.9 * 5.0;
+        return Math.abs(u - 18.6) <= hw;
+    };
+    const boundary = u => 11.5 - 1.5 * clamp((u - 31) / 5, 0, 1);                         // mouth line at the snout, flat along the flank
+    const inEyePatch = (u, v) => ((u - 28.4) / 2.6) ** 2 + ((v - 7.0) / 1.6) ** 2 <= 1;
+    const inSaddle = (u, v) => ((u - 12.6) / 3.4) ** 2 + ((v - 7.4) / 2.1) ** 2 <= 1;
+    const silhouette = (u, v) => inBody(u, v) || inPeduncle(u, v) || inFin(u, v) || inFlukes(u, v) || inFlipper(u, v);
 
-    if (!small) {
-        // Body (x = 8..35)
-        for (let i = 0; i < ORCA_TOP.length; i++) {
-            const x = 8 + i;
-            for (let y = ORCA_TOP[i]; y <= ORCA_BOT[i]; y++) put(g, x, y, 'k');
-        }
-        // Tall swept-back dorsal fin (rows 0..5, cols 17..23)
-        const finRows = [[0, 19, 20], [1, 18, 21], [2, 18, 21], [3, 17, 22], [4, 17, 23]];
-        for (const [y, x0, x1] of finRows) for (let x = x0; x <= x1; x++) put(g, x, y, 'k');
-        // Pectoral flipper (rows 15..17, cols 22..27)
-        const flipRows = frame % 2 === 0
-            ? [[15, 23, 27], [16, 22, 26], [17, 23, 25]]
-            : [[15, 23, 27], [16, 23, 26], [17, 24, 25]];
-        for (const [y, x0, x1] of flipRows) for (let x = x0; x <= x1; x++) put(g, x, y, 'k');
-
-        // Tail stock & crescent flukes (cols 0..8), sheared vertically by frame
-        const flukes = [
-            [0, [4, 5, 13, 14]],
-            [1, [5, 6, 7, 11, 12, 13]],
-            [2, [6, 7, 8, 10, 11, 12]],
-            [3, [7, 8, 9, 10, 11]],
-            [4, [7, 8, 9, 10, 11]],
-            [5, [8, 9, 10]],
-            [6, [8, 9, 10]],
-            [7, [8, 9, 10]]
-        ];
-        for (const [x, rows] of flukes) {
-            const sh = Math.round(dir * Math.max(0, (7 - x) / 3.2));
-            for (const y of rows) put(g, x, Math.max(0, Math.min(H - 1, y + sh)), 'k');
-        }
-
-        // Paper markings: lower jaw/chin, sweeping belly & flank lobe
-        for (let x = 11; x <= 34; x++) {
-            const bot = ORCA_BOT[x - 8];
-            const bellyTop = x >= 27 ? bot - 2 : (x >= 20 ? bot - 2 : (x >= 14 ? bot - 3 : bot - 1));
-            for (let y = bellyTop; y <= bot; y++) if (get(g, x, y) === 'k') put(g, x, y, 'p');
-        }
-        // Iconic white oval eye patch (cols 27..31, rows 6..8)
-        pts(g, 'p', [[28, 6], [29, 6], [30, 6], [27, 7], [28, 7], [29, 7], [30, 7], [31, 7], [28, 8], [29, 8], [30, 8], [31, 8]]);
-        // Saddle patch behind dorsal fin (cols 13..17, rows 5..7)
-        pts(g, 'p', [[13, 5], [14, 5], [15, 5], [16, 5], [13, 6], [14, 6], [15, 6], [16, 6], [17, 6], [14, 7], [15, 7], [16, 7]]);
-        // Subtle woodcut highlight along the upper snout and dorsal leading edge
-        pts(g, 'p', [[19, 1], [18, 2], [17, 3], [24, 6], [25, 6], [26, 6]]);
-        // Mouth line and pectoral separation in ink
-        pts(g, 'k', [[31, 11], [32, 11], [33, 10], [34, 10], [23, 14], [24, 14], [25, 14], [26, 14]]);
-    } else {
-        // Small variant (22x11 interior -> 24x13 with outline)
-        const sTop = [5, 5, 4, 4, 3, 3, 3, 3, 3, 3, 3, 3, 4, 4, 4, 5, 5]; // x = 5..21
-        const sBot = [6, 6, 7, 7, 8, 8, 8, 8, 8, 8, 8, 8, 8, 7, 7, 6, 6];
-        for (let i = 0; i < sTop.length; i++) {
-            for (let y = sTop[i]; y <= sBot[i]; y++) put(g, 5 + i, y, 'k');
-        }
-        for (const [y, x0, x1] of [[0, 11, 12], [1, 11, 13], [2, 10, 13]]) for (let x = x0; x <= x1; x++) put(g, x, y, 'k');
-        pts(g, 'k', [[14, 9], [15, 9], [16, 9], [15, 10]]);
-        const sFlukes = [[0, [2, 3, 8, 9]], [1, [3, 4, 7, 8]], [2, [4, 5, 6, 7]], [3, [4, 5, 6]], [4, [5, 6]]];
-        for (const [x, rows] of sFlukes) {
-            const sh = Math.round(dir * Math.max(0, (4 - x) / 2.2));
-            for (const y of rows) put(g, x, Math.max(0, Math.min(H - 1, y + sh)), 'k');
-        }
-        for (let x = 7; x <= 20; x++) {
-            const bot = sBot[x - 5];
-            for (let y = bot - 1; y <= bot; y++) if (get(g, x, y) === 'k') put(g, x, y, 'p');
-        }
-        pts(g, 'p', [[17, 4], [18, 4], [19, 4], [18, 5], [9, 4], [10, 4]]);
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+        const u = (x + 0.5) * sx, v = (y + 0.5) * sy;
+        if (!silhouette(u, v)) continue;
+        let ch = 'k';
+        if (inFlipper(u, v)) ch = 'p';
+        else if (inFlipRing(u, v)) ch = 'k';
+        else if (v >= boundary(u) || inLobe(u, v)) ch = 'p';                           // white underside and flank lobe
+        if (inEyePatch(u, v)) ch = 'p';
+        if (inSaddle(u, v) && (Math.floor(u) + 2 * Math.floor(v)) % 3 === 0 && !inFlipper(u, v)) ch = 'p';   // sparse dots
+        put(g, x, y, ch);
     }
+    // the eye: a single ink texel in the white patch edge, ringed by paper so it reads at small size
+    const ex = Math.round(31 / sx - 0.5), ey = Math.round(9.0 / sy - 0.5);
+    if (!small) { put(g, ex, ey, 'k'); pts(g, 'p', [[ex - 1, ey], [ex + 1, ey], [ex, ey - 1], [ex, ey + 1]]); }
 
-    const out = pad(g, 1, 1, 1, 1);
-    outline(out, 'p');
-    return out;
+    outline(g, 'p');
+    return g;
 }
 
 // ── angler ───────────────────────────────────────────────────
@@ -516,83 +493,103 @@ function lureSprite(level) {
 }
 
 // ── backdrop ─────────────────────────────────────────────────
-// Woodcut ocean water (640x280) in 6 cumulative daylight layers:
-// - Upper photic zone has full-width undulating swell-hatch lines (no harsh straight seam line).
-// - Five diagonal sunbeams are built from feathered horizontal engraving strokes whose coverage peaks
-//   in the beam core and tapers toward the edges and depth.
-// - Every hatch row is separated vertically by >= 4 texels, and every dash is >= 6 texels long with
-//   gaps >= 6 texels, guaranteeing zero period-<=2 patterns in any 24x24 px window.
-function waterLayers() {
-    const Wt = T.WATER, rnd = rng(Wt.seed);
+// Dotted water (see theme.js WATER). Every layer is a set of dots on a fixed lattice or fixed contour
+// candidates; layer n is the union of dots that show at daylight scale n, so each dot appears once and
+// never moves. Tone is carried by dot SIZE (single texel, plus of 5, solid 3x3) only.
+const clamp01 = v => Math.max(0, Math.min(1, v));
+// beam envelope 0..1 at (x, y); x wraps around the tile width
+function waterBeam(x, y) {
+    const Wt = T.WATER;
+    let best = 0;
+    for (const [c, wf] of Wt.beams) {
+        const hw = (Wt.beamHalf + Wt.beamGrow * y) * wf;
+        let dx = ((x - (c + 0.48 * y)) % Wt.cols + Wt.cols) % Wt.cols;
+        if (dx > Wt.cols / 2) dx -= Wt.cols;
+        const u = Math.abs(dx) / hw;
+        if (u < 1) best = Math.max(best, 1 - u * u);
+    }
+    return best;
+}
+// depth fade: 1 at the surface band, 0 from fadeBot * rows down (the lower third is empty)
+function waterDepth(y) {
+    const Wt = T.WATER;
+    return clamp01((Wt.fadeBot * Wt.rows - y) / ((Wt.fadeBot - Wt.fadeTop) * Wt.rows));
+}
+// tone scale of daylight layer n
+function waterScale(n) {
+    const Wt = T.WATER;
+    return Wt.scale0 + (1 - Wt.scale0) * n / (Wt.layers - 1);
+}
+// dot of size lvl centred on (x, y); x wraps (tile), y is clipped
+function stampDot(g, x, y, lvl) {
+    if (lvl <= 0) return;
+    const cells = lvl === 1 ? [[0, 0]]
+        : lvl === 2 ? [[0, 0], [1, 0], [-1, 0], [0, 1], [0, -1]]
+        : [[-1, -1], [0, -1], [1, -1], [-1, 0], [0, 0], [1, 0], [-1, 1], [0, 1], [1, 1]];
+    for (const [dx, dy] of cells) {
+        const yy = y + dy;
+        if (yy < 0 || yy >= H_(g)) continue;
+        g[yy][(((x + dx) % W_(g)) + W_(g)) % W_(g)] = 'p';
+    }
+}
+
+// Ben-Day halftone: dots on the 45-degree lattice (x, y multiples of pitch, (x/pitch + y/pitch) even)
+function halftoneLayers() {
+    const Wt = T.WATER, Hf = Wt.halftone, P = Hf.pitch;
     const layers = Array.from({ length: Wt.layers }, () => mk(Wt.cols, Wt.rows));
-
-    // Smooth ocean-swell vertical offset shared across rows so adjacent rows never pinch closer than 4 texels
-    const swell = x => Math.round(1.1 * Math.sin(2 * Math.PI * x / 160 + 0.4));
-
-    // Beam envelope strength (0 outside .. 1 at core) at (x, y)
-    const beamStrength = (x, y) => {
-        let best = 0;
-        for (const [c, wf] of Wt.beams) {
-            const hw = (Wt.beamHalf + Wt.beamGrow * y) * wf;
-            let dx = ((x - (c + 0.48 * y)) % Wt.cols + Wt.cols) % Wt.cols;
-            if (dx > Wt.cols / 2) dx -= Wt.cols;
-            const u = Math.abs(dx) / hw;
-            if (u < 1) best = Math.max(best, 1 - u * u);
-        }
-        return best;
-    };
-
-    const paintRow = (yBase, layer, minD, maxD, baseCover, beamBoost, beamOnly) => {
-        const on = new Uint8Array(Wt.cols);
-        let x = Math.floor(rnd() * 14);
-        const end = x + Wt.cols;
-        while (x < end) {
-            const xm = x % Wt.cols;
-            const bs = beamStrength(xm, yBase);
-            const cov = Math.min(0.68, (beamOnly ? 0 : baseCover) + bs * beamBoost);
-            if (cov < 0.08) {
-                x += 8 + Math.floor(rnd() * 8);
-                continue;
-            }
-            const d = Math.max(6, Math.round((minD + rnd() * (maxD - minD)) * (0.75 + 0.45 * bs)));
-            const gap = Math.max(7, Math.round(d * (1 - cov) / cov * (0.75 + 0.5 * rnd())));
-            for (let i = 0; i < d && x + i < end; i++) {
-                const xx = (x + i) % Wt.cols;
-                if (!beamOnly || beamStrength(xx, yBase) > 0.06) on[xx] = 1;
-            }
-            x += d + gap;
-        }
-        // Clean up any fragment clipped shorter than 6 texels by a beam boundary
-        for (let c = 0; c < Wt.cols;) {
-            if (!on[c]) { c++; continue; }
-            let e = c;
-            while (e < Wt.cols && on[e]) e++;
-            if (e - c < 6) for (let i = c; i < e; i++) on[i] = 0;
-            c = e;
-        }
-        // Each dash keeps one swell offset (taken at its left end) so it never splits across two rows
-        for (let c = 0; c < Wt.cols;) {
-            if (!on[c]) { c++; continue; }
-            const off = swell(c);
-            let e = c;
-            while (e < Wt.cols && on[e]) e++;
-            const yy = yBase + off;
-            if (yy >= 6 && yy < Wt.rows - 2) for (let i = c; i < e; i++) layers[layer][yy][i] = 'p';
-            c = e;
-        }
-    };
-
-    for (const b of Wt.bands) {
-        let rowIdx = 0;
-        for (let y0 = b.from; y0 <= b.to; y0 += b.pitch, rowIdx++) {
-            // Deterministic layer assignment spreads adjacent rows across layers 0..5 smoothly
-            const layer = b.night
-                ? (rowIdx % 3 === 0 ? 0 : 1 + (rowIdx % (Wt.layers - 1)))
-                : (1 + ((rowIdx * 2 + Math.floor(rnd() * 2)) % (Wt.layers - 1)));
-            paintRow(y0, layer, b.minD || 8, b.maxD || 20, b.cover, b.beamBoost || 0.28, !b.full);
-        }
+    const levelOf = t => t < Hf.levels[0] ? 0 : t < Hf.levels[1] ? 1 : t < Hf.levels[2] ? 2 : 3;
+    for (let y = 0; y < Wt.rows; y += P) for (let x = 0; x < Wt.cols; x += P) {
+        if (((x / P) + (y / P)) % 2 !== 0) continue;
+        const df = waterDepth(y);
+        if (df <= 0) continue;
+        // low-frequency swell (periods divide the tile width, so it is seamless)
+        const sw = 1 + Hf.swell * (0.6 * Math.sin(2 * Math.PI * x / 216 + 0.7) + 0.4 * Math.sin(2 * Math.PI * y / 97 + 1.3));
+        const tone = (Hf.surfaceTone + Hf.beamBoost * waterBeam(x, y)) * df * sw;
+        for (let n = 0; n < Wt.layers; n++) stampDot(layers[n], x, y, levelOf(tone * waterScale(n)));
     }
     return layers;
+}
+
+// Topographic swell contours: single-texel dots, at least 4 texels apart along the lines; a second set of
+// diagonal contours appears inside the sunbeams. Candidates are picked greedily by intensity (fixed order).
+function contourLayers() {
+    const Wt = T.WATER, C = Wt.contours;
+    const layers = Array.from({ length: Wt.layers }, () => mk(Wt.cols, Wt.rows));
+    const G = (x, y) => 0.35 * Math.sin(2 * Math.PI * x / 216 + 0.4) + 0.30 * Math.sin(2 * Math.PI * y / 170 + 1.1)
+        + 0.20 * Math.sin(2 * Math.PI * x / 324 + 2 * Math.PI * y / 290 + 0.3);
+    const H = (x, y) => 0.5 * Math.cos(2 * Math.PI * (x - 0.5 * y) / C.beamPeriod);
+    const cand = [];
+    for (let y = 0; y < Wt.rows - 1; y++) for (let x = 0; x < Wt.cols; x++) {
+        const df = waterDepth(y);
+        if (df <= 0) continue;
+        const k = Math.floor(G(x, y) / C.step);
+        const xr = (x + 1) % Wt.cols;
+        if (Math.floor(G(xr, y) / C.step) !== k || Math.floor(G(x, y + 1) / C.step) !== k) cand.push({ x, y, I: df });
+        const bs = waterBeam(x, y);
+        if (bs > 0.25) {
+            const kb = Math.floor(H(x, y) / C.step);
+            if (Math.floor(H(xr, y) / C.step) !== kb || Math.floor(H(x, y + 1) / C.step) !== kb) cand.push({ x, y, I: df * (0.6 + 0.4 * bs) });
+        }
+    }
+    cand.sort((a, b) => (b.I - a.I) || (a.y - b.y) || (a.x - b.x));
+    const kept = [];
+    for (const c of cand) {
+        let ok = true;
+        for (const k of kept) {
+            let dx = Math.abs(c.x - k.x); dx = Math.min(dx, Wt.cols - dx);
+            const dy = c.y - k.y;
+            if (dx * dx + dy * dy < C.gap * C.gap) { ok = false; break; }
+        }
+        if (ok) kept.push(c);
+    }
+    for (const c of kept) {
+        for (let n = 0; n < Wt.layers; n++) if (c.I * waterScale(n) >= C.theta) layers[n][c.y][c.x] = 'p';
+    }
+    return layers;
+}
+
+function waterLayers() {
+    return T.BACKGROUND_STYLE === 'contours' ? contourLayers() : halftoneLayers();
 }
 
 // Double-crested woodcut surface wave strip (128x8, tiles horizontally)

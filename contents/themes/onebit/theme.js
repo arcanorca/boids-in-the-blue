@@ -99,19 +99,32 @@ function bubbleClass(scale) { return scale < 2.25 ? 0 : 1; }
 function bubbleFile(scale) { return bubbleClass(scale) ? "bubble-b.png" : "bubble-s.png"; }
 
 // ── backdrop ─────────────────────────────────────────────────
-// Woodcut ocean backdrop: undulating horizontal swell-hatch rows in 4 depth zones + 5 feathered diagonal
-// sunbeams across 6 cumulative daylight layers (water-0.png at night .. water-5.png in full daylight).
-// Every hatch row is spaced by >= 5 texels vertically so no 24x24 px window ever contains a period-<=2 pattern.
+// Dotted water, built as a REGULAR lattice (no randomness): tone is carried by dot SIZE, never by a
+// fine random field. BACKGROUND_STYLE picks the look:
+//   "halftone" - Ben-Day halftone on a 45-degree lattice, dot size 0..3 from a smooth tone field
+//   "contours" - topographic-style swell contours made of single-texel dots, 4 texels apart on a line
+// Both are static; the six daylight layers (water-0 night .. water-5 day) only add dots, so nothing moves.
+// The width is a multiple of every period used, so the 648-texel tile repeats without a seam.
+var BACKGROUND_STYLE = "contours";                 // "halftone" | "contours"
 var WATER = {
-    cols: 640, rows: 280, layers: 6, seed: 20261021,
-    bands: [
-        { from: 9,   to: 34,  pitch: 5,  cover: 0.40, beamBoost: 0.30, minD: 10, maxD: 24, full: true, night: true },
-        { from: 40,  to: 88,  pitch: 5,  cover: 0.18, beamBoost: 0.55, minD: 9,  maxD: 22, full: true, night: false },
-        { from: 95,  to: 175, pitch: 7,  cover: 0.10, beamBoost: 0.50, minD: 8,  maxD: 18, full: false, night: true },
-        { from: 185, to: 269, pitch: 10, cover: 0.04, beamBoost: 0.40, minD: 7,  maxD: 15, full: false, night: false }
-    ],
-    beams: [[58, 1.05], [192, 0.85], [336, 1.20], [478, 0.90], [588, 1.0]],
-    beamHalf: 22, beamGrow: 0.085
+    cols: 648, rows: 280, layers: 6,
+    scale0: 0.4,                                   // layer 0 (night) scales the tone by 0.4, layer 5 by 1.0
+    fadeTop: 0.10, fadeBot: 0.62,                  // depth fade: full at fadeTop*rows, nothing below fadeBot*rows
+    beams: [[58, 1.05], [192, 0.85], [336, 1.20], [478, 0.90], [588, 1.0]],   // 5 diagonal sunbeams: centre x at y=0, width factor
+    beamHalf: 22, beamGrow: 0.085,
+    halftone: {
+        pitch: 6,                                  // lattice: x and y multiples of 6, (x/6 + y/6) even => 45-degree grid, neighbours 8.5 apart
+        surfaceTone: 0.45,                         // tone under the surface in full day (level 2 at the top, level 3 in beams)
+        beamBoost: 0.8,                            // extra tone in a beam core (about two levels)
+        swell: 0.12,                               // gentle large-scale modulation of the tone
+        levels: [0.2, 0.4, 0.7]                    // tone thresholds for dot sizes 1 (single), 2 (plus), 3 (solid 3x3)
+    },
+    contours: {
+        step: 0.25,                                // contour interval of the swell field
+        gap: 4,                                    // dots on a contour are at least 4 texels apart (Euclidean)
+        beamPeriod: 108,                           // period of the diagonal contour set inside the beams
+        theta: 0.3                                 // a dot shows in a layer when its intensity * scale >= theta
+    }
 };
 function waterFile(level) { return "water-" + level + ".png"; }
 function waterLevel(daylight) { return Math.max(0, Math.min(WATER.layers - 1, Math.floor(Math.max(0, daylight) / 0.17))); }

@@ -75,30 +75,68 @@ test('fish classes, sizes and the backdrop budget behave', () => {
     for (let x = 0; x < T.SEABED.cols; x += 7) assert.ok(T.seabedTop(x) >= 12 && T.seabedTop(x) <= T.SEABED.rows - 4);
 });
 
-test('the backdrop is calm and dark: hatch lines only, no stipple, low mean luminance (texture level)', () => {
+test('the backdrop is calm and dark: dots only, each dot clear of the others, low paper share (texture level)', () => {
     const hex = c => [1, 3, 5].map(i => parseInt(c.substr(i, 2), 16));
     const paper = hex(T.PAPER);
-    let paperTexels = 0, all = 0;
+    const W = T.WATER.cols, H = T.WATER.rows;
+    let paperTexels = 0;
     for (let l = 0; l < T.WATER.layers; l++) {
         const im = png.decode(fs.readFileSync(path.join(DIR, T.DIR, T.waterFile(l))));
-        for (let y = 0; y < im.H; y++) {
-            // runs of paper: dashes of at least 6 texels, plus at most one single texel per beam (the diagonal edge)
-            let x = 0, singles = 0;
-            while (x < im.W) {
-                const on = i => im.px[(y * im.W + i) * 4 + 3] === 255 && im.px[(y * im.W + i) * 4] === paper[0];
-                if (!on(x)) { x++; continue; }
-                let e = x; while (e < im.W && on(e)) e++;
-                if (e - x === 1 && x > 0 && e < im.W) singles++; else assert.ok(e - x >= 6 || x === 0 || e === im.W, 'water layer ' + l + ' row ' + y + ' has a short run');
-                if (l === T.WATER.layers - 1 && e - x > 1) paperTexels += e - x;
-                x = e;
+        assert.strictEqual(im.W, W); assert.strictEqual(im.H, H);
+        const on = new Uint8Array(W * H);
+        for (let i = 0; i < W * H; i++) on[i] = im.px[i * 4 + 3] === 255 && im.px[i * 4] === paper[0] ? 1 : 0;
+        // 8-connected components: a dot is a single texel, a plus (5) or a solid 3x3; never a stroke
+        const comp = new Int32Array(W * H).fill(-1);
+        const comps = [];
+        for (let i = 0; i < W * H; i++) {
+            if (!on[i] || comp[i] >= 0) continue;
+            const id = comps.length, cells = [], stack = [i];
+            comp[i] = id;
+            while (stack.length) {
+                const c = stack.pop(); cells.push(c);
+                const cx = c % W, cy = (c - cx) / W;
+                for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
+                    const ny = cy + dy, nx = (cx + dx + W) % W;
+                    if (ny < 0 || ny >= H) continue;
+                    const j = ny * W + nx;
+                    if (on[j] && comp[j] < 0) { comp[j] = id; stack.push(j); }
+                }
             }
-            assert.ok(singles <= T.WATER.beams.length, 'water layer ' + l + ' row ' + y + ' is stippled');
+            comps.push(cells);
         }
-        all += im.W * im.H;
+        for (const cells of comps) {
+            const xs = cells.map(c => c % W), ys = cells.map(c => Math.floor(c / W));
+            const bw = Math.max(...xs) - Math.min(...xs) + 1, bh = Math.max(...ys) - Math.min(...ys) + 1;
+            assert.ok(bw <= 3 && bh <= 3, 'water layer ' + l + ': a paper shape is ' + bw + 'x' + bh + ' texels (dots are at most 3x3)');
+        }
+        // distinct dots keep at least 3 texels (Euclidean) between their nearest texels
+        // (checked on a coarse grid of dot centres: a dot centre sits in every 3x3 cell it covers)
+        const centre = cells => {
+            const xs = cells.map(c => c % W), ys = cells.map(c => Math.floor(c / W));
+            return [xs.reduce((a, b) => a + b, 0) / xs.length, ys.reduce((a, b) => a + b, 0) / ys.length];
+        };
+        const cs = comps.map(centre);
+        let minD = Infinity;
+        const grid = new Map();
+        cs.forEach((c, k) => { const key = Math.floor(c[0] / 12) + ',' + Math.floor(c[1] / 12); if (!grid.has(key)) grid.set(key, []); grid.get(key).push(k); });
+        for (let k = 0; k < cs.length; k++) {
+            const gx = Math.floor(cs[k][0] / 12), gy = Math.floor(cs[k][1] / 12);
+            for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) for (const m of grid.get((gx + dx) + ',' + (gy + dy)) || []) {
+                if (m <= k) continue;
+                // minimum distance between the two components' texels
+                for (const a of comps[k]) for (const b of comps[m]) {
+                    let ddx = Math.abs(a % W - b % W); ddx = Math.min(ddx, W - ddx);
+                    const ddy = Math.abs(Math.floor(a / W) - Math.floor(b / W));
+                    const d = Math.sqrt(ddx * ddx + ddy * ddy);
+                    if (d < minD) minD = d;
+                }
+            }
+        }
+        assert.ok(minD >= 3 || minD === Infinity, 'water layer ' + l + ': two dots are only ' + minD.toFixed(2) + ' texels apart');
+        if (l === T.WATER.layers - 1) paperTexels = on.reduce((a, b) => a + b, 0);
     }
-    // all layers shown (full day): paper share of the 640x360 world well below the 25 % luminance budget
-    const share = paperTexels / (T.WATER.cols * T.GRID_ROWS);
-    assert.ok(share < 0.08, 'water hatch share ' + share);
+    const share = paperTexels / (W * T.GRID_ROWS);
+    assert.ok(share < 0.08, 'full-day paper share of the water ' + share);
 });
 
 test('onebit measurable criteria (needs qml6): calm backdrop, smooth motion, comfort, proportions, stress', { timeout: 600000 }, t => {
