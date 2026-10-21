@@ -70,13 +70,6 @@ var THEMES = [
         description: "Two colours only: ivory paper on deep ink. Dotted swell-contour water with diagonal sunbeams, a layered reef with kelp, bold line-art creatures; fish invert when stressed.",
         usesDayNight: true,
         usesWaterColors: false
-    },
-    {
-        id: "terminal",
-        name: "Terminal",
-        description: "A green-phosphor CRT: the sea is a calm field of text, fish, jellyfish, an anglerfish and a black-and-white orca drawn from characters, a kelp seabed, a prompt line and a load bar that turns fish amber and red under stress.",
-        usesDayNight: true,
-        usesWaterColors: false
     }
 ];
 

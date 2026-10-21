@@ -11,7 +11,7 @@ const T = loadScript(path.join(ROOT, 'contents', 'ui', 'code', 'themes.js'));
 
 test('registry: pixel is the default, all themes are listed with a Scene.qml', () => {
     assert.strictEqual(T.DEFAULT_THEME, 'pixel');
-    assert.deepStrictEqual(Array.from(T.THEMES, t => t.id), ['pixel', 'classic', 'biolum', 'nes', 'amiga', 'gameboy', 'onebit', 'terminal']);
+    assert.deepStrictEqual(Array.from(T.THEMES, t => t.id), ['pixel', 'classic', 'biolum', 'nes', 'amiga', 'gameboy', 'onebit']);
     for (const t of T.THEMES) {
         assert.ok(t.name && t.description, t.id);
         assert.ok(fs.existsSync(path.join(ROOT, 'contents', 'themes', t.id, 'Scene.qml')), t.id + ' Scene.qml');
@@ -30,6 +30,13 @@ test('archived theme: a saved "illustrated" falls back to the default (pixel)', 
     assert.strictEqual(T.find('illustrated'), null);
     assert.strictEqual(T.sceneFile('illustrated'), '../themes/pixel/Scene.qml');
     assert.ok(!fs.existsSync(path.join(ROOT, 'contents', 'themes', 'illustrated')));
+});
+
+test('archived themes: a saved "terminal" falls back to the default (pixel)', () => {
+    assert.strictEqual(T.resolve('terminal'), 'pixel');
+    assert.strictEqual(T.find('terminal'), null);
+    assert.strictEqual(T.sceneFile('terminal'), '../themes/pixel/Scene.qml');
+    assert.ok(!fs.existsSync(path.join(ROOT, 'contents', 'themes', 'terminal')));
 });
 
 test('main.xml: one "theme" String key in General, default pixel', () => {

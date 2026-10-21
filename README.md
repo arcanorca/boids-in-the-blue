@@ -130,6 +130,7 @@ Three looks share the same simulation. Open the wallpaper settings and pick one 
 ## // CHANGELOG
 
 ### v1.2
+- **Terminal archived**: the theme was removed; it is preserved in the git tag `archive/terminal`. A saved `terminal` setting falls back to Refined Pixel.
 - **Soft Illustrated archived**: the theme was removed; it is preserved in the git tag `archive/illustrated`. A saved `illustrated` setting falls back to Refined Pixel.
 - **Plugin id change**: now `com.github.arcanorca.boidsintheblue` (no version in id or name); `install.sh` migrates existing settings and removes the old package.
 - **Pause when covered**: the simulation pauses while a maximized/fullscreen window, or windows covering at least 90 % of the screen (new setting, 50 to 100 %), hide the wallpaper (not applied on the lock screen).
