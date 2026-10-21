@@ -1,13 +1,13 @@
 // Generates the "ukiyoe" theme's textures and, optionally, a contact sheet.
 //   node tools/gen-ukiyoe-theme.js [--check] [--sheet <out.png>] [--write]     (SCALE=4 sets the sheet scale)
-//   NISHIKIE=1 node tools/gen-ukiyoe-theme.js ...   writes the Nishiki-e pigment set to img-nishikie/ instead
-// Default set: exactly two colours (INK, PAPER from theme.js) plus transparency; every texel is one of the three.
-// Nishiki-e set: the same drawings in traditional pigments (the PIGMENTS table); fish bodies, worm, lure and kelp
-// take a pigment, everything else stays ink and paper. Nothing is ever blended and no texture uses noise.
 //
-// Art is built on char grids: 'k' ink, 'p' paper, '.' clear, and in Nishiki-e the pigment letters. Inspired by
-// woodblock prints: creatures have sculpted fins, bold 1-texel outlines in the opposite tone and clear interior
-// markings (light from the upper left). The water is Ryuusen wave strokes (see waterLayers).
+// A nishiki-e (colour woodblock print) is flat colour areas with bold keyblock outlines, soft bokashi gradients,
+// repeating traditional patterns and a limited pigment palette. So: every sprite, the surface strip and the
+// seabed are flat fills in the PALETTE of theme.js (one letter per pigment) with 1-texel sumi / indigo outlines;
+// only the water layers are blends (a bokashi gradient with the Seigaiha pattern added at low contrast).
+// Nothing is noise and nothing animates but the frame sets.
+//
+// Art is built on char grids: a letter is a pigment of T.PALETTE (water tones '1'..'5' are per variant), '.' is clear.
 'use strict';
 const fs = require('fs');
 const path = require('path');
@@ -16,8 +16,7 @@ const { loadScript } = require('../tests/harness');
 
 const ROOT = path.join(__dirname, '..');
 const T = loadScript(path.join(ROOT, 'contents', 'themes', 'ukiyoe', 'theme.js'));
-const NISHIKIE = Boolean(process.env.NISHIKIE);
-const OUT = path.join(ROOT, 'contents', 'themes', 'ukiyoe', NISHIKIE ? 'img-nishikie' : 'img');
+const OUT = path.join(ROOT, 'contents', 'themes', 'ukiyoe', 'img');
 
 // ── grid helpers ─────────────────────────────────────────────
 const mk = (w, h) => Array.from({ length: h }, () => Array(w).fill('.'));
@@ -26,8 +25,9 @@ const get = (g, x, y) => (y >= 0 && y < H_(g) && x >= 0 && x < W_(g)) ? g[y][x] 
 const put = (g, x, y, ch) => { if (y >= 0 && y < H_(g) && x >= 0 && x < W_(g)) g[y][x] = ch; };
 const pts = (g, ch, list) => { for (const [x, y] of list) put(g, x, y, ch); };
 const N4 = [[0, 1], [0, -1], [1, 0], [-1, 0]];
-// ink <-> paper; in the pigment set every pigment becomes ink too, so an inverted fish is a solid ink silhouette
-const swap = g => g.map(r => r.map(c => c === 'k' ? 'p' : c === '.' ? '.' : 'k'));
+const hex = c => [1, 3, 5].map(i => parseInt(c.substr(i, 2), 16));
+const lerp = (a, b, t) => a + (b - a) * t;
+const smooth = t => { t = Math.max(0, Math.min(1, t)); return t * t * (3 - 2 * t); };
 
 // 1-texel outline (4-neighbourhood, so diagonals stay crisp) around every non-empty texel
 function outline(g, ch) {
@@ -43,6 +43,9 @@ function pad(g, l, t, r, b) {
     for (let y = 0; y < H_(g); y++) for (let x = 0; x < W_(g); x++) out[y + t][x + l] = g[y][x];
     return out;
 }
+function blit(dst, src, ox, oy) {
+    for (let y = 0; y < H_(src); y++) for (let x = 0; x < W_(src); x++) if (src[y][x] !== '.') put(dst, ox + x, oy + y, src[y][x]);
+}
 function rng(seed) {
     let a = seed >>> 0;
     return () => {
@@ -52,31 +55,26 @@ function rng(seed) {
         return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
     };
 }
-const hex = c => [1, 3, 5].map(i => parseInt(c.substr(i, 2), 16));
-T.INK_RGB = hex(T.INK);
-T.PAPER_RGB = hex(T.PAPER);
-// Nishiki-e pigments (indigo ink, vermilion, ochre, green, blue, violet) for the optional second texture set
-const PIGMENTS = { k: T.INK_RGB, p: T.PAPER_RGB, r: hex('#d95343'), y: hex('#dc9e32'), g: hex('#5b8c64'), b: hex('#2c688e'), m: hex('#8c629c') };
-const VARIANT_PIGMENT = { stripe: 'r', spot: 'y', solid: 'g', hollow: 'b', check: 'm' };   // fish body per variant
-const pig = ch => NISHIKIE ? ch : 'p';                                                     // body fill of a pigment part
-const rgba = ch => {
-    if (ch === '.') return null;
-    if (!NISHIKIE) return ch === 'k' ? T.INK_RGB : T.PAPER_RGB;
-    return PIGMENTS[ch] || T.PAPER_RGB;
-};
+const inEll = (x, y, cx, cy, rx, ry) => ((x - cx) / rx) ** 2 + ((y - cy) / ry) ** 2 <= 1;
 
-function render(g) {
-    const H = H_(g), W = W_(g), px = Buffer.alloc(W * H * 4);
+// letter -> rgb for a grid; water tones belong to a daylight variant (default: day)
+function palette(variant) {
+    const p = {};
+    for (const k in T.PALETTE) p[k] = hex(T.PALETTE[k]);
+    T.WATER.variants[variant === undefined ? T.WATER.variants.length - 1 : variant].tones.forEach((c, i) => { p[String(i + 1)] = hex(c); });
+    return p;
+}
+function render(g, variant) {
+    const H = H_(g), W = W_(g), px = Buffer.alloc(W * H * 4), pal = palette(variant);
     for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
-        const c = rgba(g[y][x]);
-        if (!c) continue;
+        if (g[y][x] === '.') continue;
+        const c = pal[g[y][x]];
+        if (!c) throw new Error('unknown pigment letter ' + g[y][x]);
         const o = (y * W + x) * 4;
         px[o] = c[0]; px[o + 1] = c[1]; px[o + 2] = c[2]; px[o + 3] = 255;
     }
     return { W, H, px };
 }
-
-const inEll = (x, y, cx, cy, rx, ry) => ((x - cx) / rx) ** 2 + ((y - cy) / ry) ** 2 <= 1;
 
 // 4-connected line (never leaves diagonal-only gaps)
 function line(g, x0, y0, x1, y1, ch) {
@@ -93,15 +91,9 @@ function line(g, x0, y0, x1, y1, ch) {
     }
 }
 
-function dropOrphans(g, chars) {
-    for (let y = 0; y < H_(g); y++) for (let x = 0; x < W_(g); x++) {
-        if (chars.includes(g[y][x]) && !N4.some(([dx, dy]) => get(g, x + dx, y + dy) !== '.')) g[y][x] = '.';
-    }
-}
-
-// ── fish ─────────────────────────────────────────────────────
+// ── fish: koi ────────────────────────────────────────────────
 // Sculpted silhouettes with dorsal fin crest, ventral fin, plump snout (nose right) and forked tail.
-// Frames: 0 neutral, 1 tail up, 2 wide/pectoral beat, 3 tail down.
+// Frames: 0 neutral, 1 tail up, 2 wide/pectoral beat, 3 tail down. Silhouette rows: 'p' = body or fin texel.
 const FISH_ART = {
     large: {
         tl: 4, shift: 2, eye: [10, 3],
@@ -115,11 +107,7 @@ const FISH_ART = {
             'ppp.ppppppppp',
             'pp...ppppppp.',
             'p.....pppp...'
-        ],
-        stripe: [[5, 1, 7], [7, 1, 7], [9, 2, 6]],
-        spot: [[5, 2], [5, 6], [7, 4], [8, 2], [8, 6], [6, 4]],
-        gill: [[9, 2], [8, 3], [8, 4], [8, 5], [9, 6], [6, 1], [7, 1], [6, 5]],
-        check: [4, 8, 1, 7]
+        ]
     },
     mid: {
         tl: 3, shift: 2, eye: [8, 2],
@@ -131,11 +119,7 @@ const FISH_ART = {
             'ppppppppppp',
             'pp..pppppp.',
             'p....ppp...'
-        ],
-        stripe: [[4, 1, 5], [6, 1, 5]],
-        spot: [[4, 2], [4, 4], [6, 3], [7, 5], [5, 1]],
-        gill: [[7, 2], [6, 3], [6, 4], [7, 5], [5, 1]],
-        check: [4, 7, 1, 5]
+        ]
     },
     small: {
         tl: 2, shift: 1, eye: [6, 2],
@@ -146,11 +130,7 @@ const FISH_ART = {
             '.pppppppp',
             'pp.pppppp',
             'p...ppp..'
-        ],
-        stripe: [[3, 1, 4], [5, 1, 4]],
-        spot: [[3, 2], [5, 1], [5, 4], [4, 3]],
-        gill: [[5, 2], [4, 3], [5, 4]],
-        check: [3, 5, 1, 4]
+        ]
     },
     baby: {
         tl: 2, shift: 1, eye: [5, 1],
@@ -160,11 +140,7 @@ const FISH_ART = {
             '.pppppp',
             'ppppppp',
             'p..pp..'
-        ],
-        stripe: [[3, 1, 3]],
-        spot: [[3, 1], [4, 3]],
-        gill: [[4, 2], [4, 3]],
-        check: [2, 4, 1, 3]
+        ]
     },
     mote: {
         tl: 1, shift: 1, eye: [3, 1],
@@ -172,11 +148,7 @@ const FISH_ART = {
             'p.pp',
             '.ppp',
             'p.pp'
-        ],
-        stripe: [[2, 0, 2]],
-        spot: [[2, 1]],
-        gill: [[2, 1]],
-        check: [1, 2, 0, 2]
+        ]
     }
 };
 
@@ -203,67 +175,56 @@ function fishBase(name, frame) {
     return g;
 }
 
+// Koi patterns in normalised body coordinates (u: 0 tail stock .. 1 nose, v: 0 back .. 1 belly). Each variant
+// returns the pigment of a body texel; `spot` is true where the pattern pigment sits (the alarm variant paints it
+// deep vermilion on a vermilion body).
+const patch = (u, v, list) => list.some(([cx, cy, rx, ry]) => inEll(u, v, cx, cy, rx, ry));
+function koiPixel(variant, u, v, x, y) {
+    switch (variant) {
+        case 'kohaku': {                                   // white with red patches (a head cap, a saddle)
+            if (patch(u, v, [[0.86, 0.34, 0.15, 0.42], [0.46, 0.3, 0.2, 0.38], [0.16, 0.5, 0.11, 0.3]])) return ['r', true];
+            return [v > 0.74 ? 'W' : 'w', false];
+        }
+        case 'ogon':                                       // plain gold with a darker back and a pale belly
+            return [v < 0.28 ? 'Y' : (v > 0.76 ? 'S' : 'y'), v < 0.28];
+        case 'sanke': {                                    // white, red patches and sumi black accents
+            if (patch(u, v, [[0.62, 0.62, 0.1, 0.17], [0.3, 0.34, 0.11, 0.22]])) return ['k', true];
+            if (patch(u, v, [[0.84, 0.3, 0.14, 0.4], [0.5, 0.3, 0.18, 0.32]])) return ['r', true];
+            return [v > 0.74 ? 'W' : 'w', false];
+        }
+        case 'asagi':                                      // blue-grey with a net of darker scales, ochre belly
+            if (v > 0.66 && u > 0.1) return ['y', false];
+            return [((x + y) & 1) === 0 && v < 0.62 ? 'B' : 'b', ((x + y) & 1) === 0 && v < 0.62];
+        default:                                           // shusui: deep blue back over a white belly, red cheek
+            if (patch(u, v, [[0.8, 0.74, 0.1, 0.16]])) return ['r', true];
+            if (v < 0.46) return [v < 0.14 ? 'B' : 'B', true];
+            return [v > 0.78 ? 'W' : 'w', false];
+    }
+}
+const FIN = { kohaku: 'w', ogon: 'Y', sanke: 'w', asagi: 'B', shusui: 'w' };
+
 function fishSprite(ci, variant, frame, inverted) {
     const name = T.FISH_CLASSES[ci].name, a = FISH_ART[name], tl = a.tl;
     const g = fishBase(name, frame), W = W_(g), H = H_(g);
-    const body = (x, y) => get(g, x, y) === 'p' && x >= tl;
-    const eye = a.eye;
-    const nearEye = (x, y) => eye && Math.abs(x - eye[0]) <= 1 && Math.abs(y - eye[1]) <= 1;
-
-    if (variant === 'hollow') {
-        // Woodcut contour fish: paper outer rim, ink inner contour ring, paper core + eye
-        const rim = g.map((r, y) => r.map((c, x) => c === 'p' && N4.some(([dx, dy]) => get(g, x + dx, y + dy) !== 'p')));
-        const ring = [];
-        for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
-            if (g[y][x] === 'p' && !rim[y][x] && x >= tl - 1 && N4.some(([dx, dy]) => get(rim, x + dx, y + dy) === true)) {
-                ring.push([x, y]);
-            }
-        }
-        for (const [x, y] of ring) g[y][x] = 'k';
-        if (eye) put(g, eye[0], eye[1], 'k');
-    } else {
-        if (variant === 'stripe') {
-            for (const [c, r0, r1] of a.stripe) for (let y = r0; y <= r1; y++) if (body(c, y) && !nearEye(c, y)) put(g, c, y, 'k');
-        } else if (variant === 'spot') {
-            for (const [x, y] of a.spot) if (body(x, y) && !nearEye(x, y)) put(g, x, y, 'k');
-        } else if (variant === 'solid') {
-            for (const [x, y] of a.gill) if (body(x, y) && !nearEye(x, y)) put(g, x, y, 'k');
-            if (frame === 2 && H >= 7) put(g, tl + 2, Math.floor(H / 2) + 1, 'k'); // pectoral flutter mark
-        } else if (variant === 'check') {
-            const [x0, x1, y0, y1] = a.check;
-            for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) {
-                if ((x + y) % 2 === 0 && body(x, y) && !nearEye(x, y)) put(g, x, y, 'k');
-            }
-        }
-        if (eye) put(g, eye[0], eye[1], 'k');
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+        if (g[y][x] !== 'p') continue;
+        if (x < tl) { g[y][x] = inverted ? 'R' : FIN[variant]; continue; }
+        const u = (x - tl + 0.5) / (W - tl), v = (y + 0.5) / H;
+        const [col, spot] = koiPixel(variant, u, v, x, y);
+        g[y][x] = inverted ? (spot ? 'R' : 'r') : col;
     }
-
-    if (NISHIKIE) for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) if (g[y][x] === 'p') g[y][x] = VARIANT_PIGMENT[variant];
+    const e = a.eye;
+    if (e) put(g, e[0], e[1], inverted ? 'w' : (variant === 'shusui' || variant === 'asagi' ? 'w' : 'k'));
     const out = pad(g, 1, 1, 1, 1);
-    const sil = out.map(r => r.map(c => c !== '.'));
     outline(out, 'k');
-    if (!inverted) return out;
-
-    // Stress state: swap ink and paper so the fish becomes a dark ink silhouette with a bright paper
-    // outline and paper markings; hollow keeps a 2-texel paper contour so all 5 variants stay distinct.
-    const sw = swap(out);
-    for (let y = 0; y < H_(out); y++) for (let x = 0; x < W_(out); x++) {
-        if (sil[y][x] && x - 1 >= tl && N4.some(([dx, dy]) => get(sil, x + dx, y + dy) === false && !(x + dx < 0 || y + dy < 0 || x + dx >= W_(out) || y + dy >= H_(out)))) {
-            sw[y][x] = 'p';
-        }
-    }
-    return sw;
+    return out;
 }
 
 // ── orca ─────────────────────────────────────────────────────
-// Killer whale after the owner's reference, hand-drawn on char grids (nose to the right, the sim flips it):
-// a straight, streamlined ink body (length about 3.5x its depth) with a blunt melon head, a tall back-swept
-// dorsal fin on the middle of the back, a slim tail stock that stays on the body axis and ends in small swept
-// flukes, a broad paddle flipper hanging down-back between white throat and white belly, a slanted eye patch,
-// a saddle behind the fin and the belly patch hooking up toward the flank. The ink is invisible on the ink water,
-// so orcaFromArt() frames it in a 1-texel paper outline plus a rim light on the back in front of the fin (light
-// from above, `rim` = [min x, min y] in the padded sprite). Frames: 0 neutral, 1 flukes tilted up, 2 neutral,
-// 3 flukes tilted down (`flukes` overrides; the small variant shifts its fluke columns via `beat`).
+// Killer whale, hand-drawn on char grids (nose to the right, the sim flips it): a streamlined body (length about
+// 3.5x its depth) with a blunt melon head, a tall back-swept dorsal fin, a slim tail stock ending in small swept
+// flukes, a broad flipper, a slanted eye patch, a saddle behind the fin and a belly patch hooking up toward the
+// flank. 'k' is sumi black, 'p' is washi cream. Frames: 0 neutral, 1 flukes tilted up, 2 neutral, 3 tilted down.
 const ORCA_ART = {
     full: {
         rows: [
@@ -289,9 +250,7 @@ const ORCA_ART = {
             '......................................',
             '......................................'
         ],
-        // columns that beat with the tail: [x0, x1, row shift per frame]
         beat: [],
-        // flukes (columns 0..4) per frame, [first row, rows]: neutral, tilted up, neutral, tilted down
         flukes: [
             [7, ['k....', 'kk...', '.kkk.', '..kkk', '...kk', '..kkk', '.kk..']],
             [6, ['k....', 'kk...', '.kk..', '..kkk', '..kkk', '.kkkk', 'kk...']],
@@ -322,10 +281,7 @@ const ORCA_ART = {
 };
 
 function orcaSprite(frame, small) {
-    return orcaFromArt(small ? ORCA_ART.small : ORCA_ART.full, frame);
-}
-
-function orcaFromArt(A, frame) {
+    const A = small ? ORCA_ART.small : ORCA_ART.full;
     const src = A.rows.map(r => [...r]), g = A.rows.map(r => [...r]);
     for (const [x0, x1, dys] of A.beat) {
         const d = dys[frame & 3];
@@ -336,81 +292,80 @@ function orcaFromArt(A, frame) {
         for (let y = 0; y < g.length; y++) for (let x = 0; x < rows[0].length; x++) g[y][x] = '.';
         rows.forEach((r, i) => [...r].forEach((ch, x) => { g[r0 + i][x] = ch; }));
     }
+    for (const r of g) for (let x = 0; x < r.length; x++) if (r[x] === 'p') r[x] = 'w';
     const out = pad(g, 1, 1, 1, 1);
-    outline(out, 'p');
-    {
-        const add = [];
-        for (let y = 0; y < H_(out) - 1; y++) for (let x = 0; x < W_(out); x++) if (out[y][x] === '.' && out[y + 1][x] !== '.' && (!A.rim || (y >= A.rim[1] && x >= A.rim[0]))) add.push([x, y]);
-        pts(out, 'p', add);
-    }
+    // rim light: the slate outline (a lighter edge than the sumi body, so the black reads on the blue water)
+    outline(out, 'n');
+    const add = [];
+    for (let y = 0; y < H_(out) - 1; y++) for (let x = 0; x < W_(out); x++) if (out[y][x] === '.' && out[y + 1][x] !== '.' && (!A.rim || (y >= A.rim[1] && x >= A.rim[0]))) add.push([x, y]);
+    pts(out, 'n', add);
     return out;
 }
 
 // ── angler ───────────────────────────────────────────────────
-// Deep-sea anglerfish: dark INK body with a bold PAPER outline, dorsal fin rays, bioluminescent lateral
-// speckles, huge tooth-lined jaw cavity, glaring eye ring, and an arching illicium stalk to T.LURE.
+// Deep-sea anglerfish in deep wisteria with a sumi outline, cream teeth, an ochre eye and a lantern lure on an
+// arching illicium (the lure itself is lure-<n>.png, anchored at T.LURE).
 function anglerSprite(frame, small) {
     const W = small ? 11 : 17, H = small ? 10 : 15;
     const g = mk(W, H);
     const dir = [0, -1, 0, 1][frame & 3];
+    const body = 'M';
 
     if (!small) {
-        // Sculpted deep-bodied angler profile (cols 3..16, rows 4..13)
         const aTop = [8, 7, 6, 5, 4, 4, 4, 4, 4, 5, 5, 6, 6, 7]; // x = 3..16
         const aBot = [10, 11, 12, 13, 13, 14, 14, 14, 14, 13, 13, 13, 12, 11];
         for (let i = 0; i < aTop.length; i++) {
             const x = 3 + i;
-            for (let y = aTop[i]; y <= aBot[i]; y++) put(g, x, y, 'k');
+            for (let y = aTop[i]; y <= aBot[i]; y++) put(g, x, y, body);
         }
-        // Spiny dorsal crest (rows 2..3) & ventral fin (row 14)
-        pts(g, 'k', [[6, 3], [7, 2], [7, 3], [8, 3], [9, 3], [7, 14], [8, 14]]);
-        // Webbed tail fan (cols 0..2), sheared by frame
+        pts(g, body, [[6, 3], [7, 2], [7, 3], [8, 3], [9, 3], [7, 14], [8, 14]]);
         const tCols = [[0, [6, 7, 8, 10, 11, 12]], [1, [7, 8, 9, 10, 11]], [2, [8, 9, 10]]];
         for (const [x, rows] of tCols) {
             const sh = x < 2 ? dir : 0;
-            for (const y of rows) put(g, x, Math.max(2, Math.min(H - 1, y + sh)), 'k');
+            for (const y of rows) put(g, x, Math.max(2, Math.min(H - 1, y + sh)), 'm');
         }
-        // Cavernous mouth cut into the front (cols 11..16, rows 9..11) with alternating sharp paper teeth
+        // lit back (upper rim), cavernous mouth with alternating teeth
+        for (let i = 0; i < aTop.length; i++) put(g, 3 + i, aTop[i], 'm');
         for (let x = 11; x <= 16; x++) {
-            put(g, x, 9, (x % 2 === 1) ? 'p' : 'k');
+            put(g, x, 9, (x % 2 === 1) ? 'w' : 'k');
             put(g, x, 10, 'k');
-            put(g, x, 11, (x % 2 === 0) ? 'p' : 'k');
+            put(g, x, 11, (x % 2 === 0) ? 'w' : 'k');
         }
-        // Glaring 3x3 eye with ink pupil (cols 10..12, rows 5..7)
-        for (let y = 5; y <= 7; y++) for (let x = 10; x <= 12; x++) put(g, x, y, 'p');
+        // glaring eye: ochre ring, sumi pupil
+        for (let y = 5; y <= 7; y++) for (let x = 10; x <= 12; x++) put(g, x, y, 'y');
         put(g, 11, 6, 'k');
-        // Woodcut gill rib, pectoral fin & lateral speckles
-        pts(g, 'p', [[8, 8], [7, 9], [8, 10], [5, 7], [6, 11], [9, 12]]);
+        // gill rib, pectoral fin & bioluminescent speckles
+        pts(g, 'm', [[8, 8], [7, 9], [8, 10], [5, 7], [6, 11], [9, 12]]);
     } else {
-        // Small angler (11x10 interior -> 13x12 with outline)
         const sTop = [5, 4, 3, 3, 3, 3, 3, 4, 4]; // x = 2..10
         const sBot = [6, 7, 8, 8, 9, 9, 9, 8, 7];
         for (let i = 0; i < sTop.length; i++) {
-            for (let y = sTop[i]; y <= sBot[i]; y++) put(g, 2 + i, y, 'k');
+            for (let y = sTop[i]; y <= sBot[i]; y++) put(g, 2 + i, y, body);
+            put(g, 2 + i, sTop[i], 'm');
         }
-        pts(g, 'k', [[0, 4 + dir], [0, 5 + dir], [0, 7 + dir], [1, 5], [1, 6]]);
+        pts(g, 'm', [[0, 4 + dir], [0, 5 + dir], [0, 7 + dir], [1, 5], [1, 6]]);
         for (let x = 7; x <= 10; x++) {
-            put(g, x, 6, (x % 2 === 1) ? 'p' : 'k');
-            put(g, x, 7, (x % 2 === 0) ? 'p' : 'k');
+            put(g, x, 6, (x % 2 === 1) ? 'w' : 'k');
+            put(g, x, 7, (x % 2 === 0) ? 'w' : 'k');
         }
-        pts(g, 'p', [[6, 4], [7, 4], [6, 5], [4, 6]]);
+        pts(g, 'y', [[6, 4], [7, 4], [6, 5]]);
+        put(g, 7, 5, 'k');
+        pts(g, 'm', [[4, 6]]);
     }
 
     const out = pad(g, 1, 1, 1, 1);
-    outline(out, 'p');
+    outline(out, 'k');
 
-    // Arching illicium stalk from brow up and forward to the lure bulb anchor
     const lp = T.LURE[small ? 1 : 0][frame & 3];
     const sx = small ? 8 : 11, sy = small ? 3 : 4;
     const mx = Math.round((sx + lp.x) / 2), my = Math.max(0, Math.min(sy, lp.y) - 1);
-    line(out, sx, sy, mx, my, 'p');
-    line(out, mx, my, lp.x, lp.y, 'p');
+    line(out, sx, sy, mx, my, 'm');
+    line(out, mx, my, lp.x, lp.y, 'm');
     return out;
 }
 
 // ── jelly ────────────────────────────────────────────────────
-// Woodcut medusa: domed PAPER bell with vertical INK umbrella canals, upper-left dome highlight,
-// scalloped frill margin, and 3-5 graceful 4-connected tentacles that wave with phase lag.
+// Kurage: a pale wisteria bell with wisteria canals and rim, cream frill and cream tentacles that wave with phase lag.
 const JELLY_ART = {
     t: {
         cols: 9, rows: 15,
@@ -429,39 +384,35 @@ const JELLY_ART = {
     }
 };
 
-function jellyDims(ci) {
-    const a = JELLY_ART[T.JELLY[ci].name];
-    return { cols: a.cols, rows: a.rows };
-}
-
 function jellySprite(ci, frame) {
     const a = JELLY_ART[T.JELLY[ci].name], W = a.cols, H = a.rows;
     const cx = Math.floor((W - 1) / 2);
     const bell = a.bell[[0, 1, 2, 1][frame & 3]], hb = bell.length;
     const g = mk(W, H);
 
-    // Solid paper bell dome with scalloped bottom fringe
     for (let r = 0; r < hb; r++) {
         const hw = bell[r];
         for (let dx = -hw; dx <= hw; dx++) {
             const x = cx + dx;
             if (x <= 0 || x >= W - 1) continue;
             if (r === hb - 1 && Math.abs(dx) % 2 === 1) continue;
-            put(g, x, 1 + r, 'p');
+            put(g, x, 1 + r, r === hb - 1 ? 'w' : 'L');
         }
     }
-    // Interior ink radial canals and sub-marginal frill band (leaving upper-left crown lit)
+    // canals and the sub-marginal frill band (the upper-left crown stays lit)
     for (let r = 2; r < hb - 1; r++) {
         const hw = bell[r];
         if (r === hb - 2) {
-            for (let dx = -hw + 1; dx <= hw - 1; dx++) if (dx % 2 === 0) put(g, cx + dx, 1 + r, 'k');
+            for (let dx = -hw + 1; dx <= hw - 1; dx++) if (dx % 2 === 0) put(g, cx + dx, 1 + r, 'm');
         } else if (W >= 12) {
-            for (const rib of [-2, 2]) if (Math.abs(rib) < hw - 1) put(g, cx + rib, 1 + r, 'k');
+            for (const rib of [-2, 2]) if (Math.abs(rib) < hw - 1) put(g, cx + rib, 1 + r, 'm');
         }
     }
-    outline(g, 'k');
+    // lit crown
+    put(g, cx - 1, 2, 'w');
+    if (hb > 4) put(g, cx - 2, 3, 'w');
+    outline(g, 'm');
 
-    // Graceful 4-connected tentacles with ink shadow where space permits
     a.tent.forEach(([off, len], ti) => {
         let px = Math.max(1, Math.min(W - 2, cx + off));
         for (let k = 0; k < len; k++) {
@@ -469,8 +420,8 @@ function jellySprite(ci, frame) {
             if (y >= H - 1) break;
             const wob = Math.round(0.85 * Math.sin(k * 0.45 + frame * 1.5708 + ti * 1.1) * (k > 1 ? 1 : 0));
             const x = Math.max(1, Math.min(W - 2, cx + off + wob));
-            if (x !== px) put(g, px, y, 'p');
-            put(g, x, y, 'p');
+            if (x !== px) put(g, px, y, 'w');
+            put(g, x, y, 'w');
             px = x;
         }
     });
@@ -478,15 +429,15 @@ function jellySprite(ci, frame) {
 }
 
 // ── worm ─────────────────────────────────────────────────────
-// Segmented wriggling worm (4x9 texels) that shortens and dissolves across 3 life stages.
+// Segmented vermilion worm (4x9 texels) that shortens and dissolves across 3 life stages.
 function wormSprite(stage, frame) {
-    const g = mk(T.WORM.cols, T.WORM.rows), len = [9, 6, 4][stage], f = pig('r');
+    const g = mk(T.WORM.cols, T.WORM.rows), len = [9, 6, 4][stage];
     for (let y = 0; y < len; y++) {
         const x = 1 + Math.round(0.75 * Math.sin(y * 0.75 + frame * Math.PI / 2));
-        put(g, x, y, f);
-        put(g, x + 1, y, (y % 2 === 1 && y < len - 1) ? 'k' : f);
+        put(g, x, y, 'r');
+        put(g, x + 1, y, (y % 2 === 1 && y < len - 1) ? 'R' : 'r');
     }
-    if (stage === 1) put(g, 2, 8, f); // detached dissolving tail speck
+    if (stage === 1) put(g, 2, 8, 'r'); // detached dissolving tail speck
     return g;
 }
 
@@ -494,141 +445,158 @@ function wormSprite(stage, frame) {
 function bubbleSprite(big) {
     const g = big ? mk(4, 4) : mk(2, 2);
     if (big) {
-        pts(g, 'p', [[1, 0], [2, 0], [0, 1], [3, 1], [0, 2], [3, 2], [1, 3], [2, 3], [1, 1]]);
-        pts(g, 'k', [[2, 1], [1, 2], [2, 2]]);
+        pts(g, 'w', [[1, 0], [2, 0], [0, 1], [3, 1], [0, 2], [3, 2], [1, 3], [2, 3]]);
+        put(g, 1, 1, 'W');
     } else {
-        pts(g, 'p', [[0, 0], [1, 0], [0, 1], [1, 1]]);
+        pts(g, 'w', [[0, 0], [1, 0], [0, 1]]);
+        put(g, 1, 1, 'W');
     }
     return g;
 }
 
 function sparkleSprite(frame) {
     const g = mk(T.SPARKLE_SIZE, T.SPARKLE_SIZE);
-    pts(g, 'p', [[2, 1], [1, 2], [2, 2], [3, 2], [2, 3]]);
-    if (frame === 1) pts(g, 'p', [[2, 0], [0, 2], [4, 2], [2, 4]]);
-    outline(g, 'k');
+    pts(g, 'w', [[2, 1], [1, 2], [2, 2], [3, 2], [2, 3]]);
+    if (frame === 1) pts(g, 'y', [[2, 0], [0, 2], [4, 2], [2, 4]]);
     return g;
 }
 
-// Bioluminescent angler lantern (9x9): 0 = dim bulb, 1 = lit lantern, 2 = star flare with halo ticks
+// Angler lantern (9x9): 0 = dim bulb, 1 = lit lantern, 2 = flare with ochre rays
 function lureSprite(level) {
-    const g = mk(T.LURE_SIZE, T.LURE_SIZE), c = Math.floor(T.LURE_SIZE / 2), f = pig('y');
+    const g = mk(T.LURE_SIZE, T.LURE_SIZE), c = Math.floor(T.LURE_SIZE / 2);
     if (level === 0) {
-        pts(g, f, [[c, c - 1], [c - 1, c], [c, c], [c + 1, c], [c, c + 1]]);
-        outline(g, 'k');
+        pts(g, 'r', [[c, c - 1], [c - 1, c], [c, c], [c + 1, c], [c, c + 1]]);
+        outline(g, 'R');
     } else if (level === 1) {
-        for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) put(g, c + dx, c + dy, f);
-        pts(g, f, [[c, c - 2], [c, c + 2], [c - 2, c], [c + 2, c]]);
-        put(g, c, c, 'k');
-        outline(g, 'k');
+        for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) put(g, c + dx, c + dy, 'r');
+        pts(g, 'y', [[c, c - 2], [c, c + 2], [c - 2, c], [c + 2, c]]);
+        put(g, c, c, 'y');
+        outline(g, 'R');
     } else {
-        for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) put(g, c + dx, c + dy, f);
-        pts(g, f, [[c, c - 2], [c, c - 3], [c, c + 2], [c, c + 3], [c - 2, c], [c - 3, c], [c + 2, c], [c + 3, c]]);
-        put(g, c, c, 'k');
-        outline(g, 'k');
-        // Outer lantern rays at the 4 corners (spaced 8 texels apart so they never form fine noise)
-        pts(g, f, [[1, 1], [7, 1], [1, 7], [7, 7]]);
+        for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) put(g, c + dx, c + dy, 'r');
+        pts(g, 'y', [[c, c - 2], [c, c - 3], [c, c + 2], [c, c + 3], [c - 2, c], [c - 3, c], [c + 2, c], [c + 3, c]]);
+        put(g, c, c, 'w');
+        outline(g, 'R');
+        pts(g, 'y', [[1, 1], [7, 1], [1, 7], [7, 7]]);
     }
     return g;
 }
 
-// ── backdrop: Ryuusen water (Hokusai-style wave strokes) ─────
-// beam envelope 0..1 at (x, y); x wraps around the tile width
-function waterBeam(x, y) {
-    const Wt = T.WATER;
-    let best = 0;
-    for (const [c, wf] of Wt.beams) {
-        const hw = (Wt.beamHalf + Wt.beamGrow * y) * wf;
-        let dx = ((x - (c + 0.48 * y)) % Wt.cols + Wt.cols) % Wt.cols;
-        if (dx > Wt.cols / 2) dx -= Wt.cols;
-        const u = Math.abs(dx) / hw;
-        if (u < 1) best = Math.max(best, 1 - u * u);
-    }
-    return best;
-}
-// Ryuusen: vertical offset (texels) of the wave line at column x; the periods divide the 640-texel tile
-const ryuusen = x => Math.round(T.WATER.waveAmp * (1.3 * Math.sin(2 * Math.PI * x / 160 + 0.5) + 0.5 * Math.cos(2 * Math.PI * x / 80 + 1.2)));
-// tone scale of daylight layer n: a stroke with intensity u shows in layer n when u <= waterScale(n)
-function waterScale(n) { return 0.4 + 0.6 * n / (T.WATER.layers - 1); }
-
-// Every band row is a sequence of strokes along x (dash length minD..maxD, gap >= minRun, density cover +
-// beamBoost in a sunbeam). A stroke follows the Ryuusen offset of its columns; where the offset steps, a
-// vertical texel joins the two parts, so a stroke is one connected line. A stroke with intensity u is in
-// daylight layer n when (band is night-visible or n >= 1) and u <= waterScale(n).
-function waterLayers() {
-    const Wt = T.WATER, rnd = rng(Wt.seed);
-    const layers = Array.from({ length: Wt.layers }, () => mk(Wt.cols, Wt.rows));
-    const paint = (n, x, y) => { if (y >= 8 && y < Wt.rows) layers[n][y][((x % Wt.cols) + Wt.cols) % Wt.cols] = 'p'; };
-    for (const b of Wt.bands) {
-        for (let y0 = b.from; y0 <= b.to; y0 += b.pitch) {
-            let x = Math.floor(rnd() * 16);
-            while (x < Wt.cols) {
-                const beam = waterBeam(x, y0);
-                const cov = !b.full && beam <= 0 ? 0 : Math.min(Wt.maxCover, b.cover + b.beamBoost * beam);
-                if (cov <= 0) { x += 8; continue; }
-                const d = Math.round(b.minD + rnd() * (b.maxD - b.minD));
-                const gap = Math.max(Wt.minRun, Math.round(d * (1 - cov) / cov * (0.7 + 0.6 * rnd())));
-                const u = rnd();
-                for (let i = 0; i < d; i++) {
-                    const xx = x + i, yy = y0 + ryuusen(xx);
-                    const prevY = i > 0 ? y0 + ryuusen(xx - 1) : yy;
-                    for (let n = 0; n < Wt.layers; n++) {
-                        if (!(b.night || n >= 1) || u > waterScale(n)) continue;
-                        for (let y = Math.min(prevY, yy); y <= Math.max(prevY, yy); y++) paint(n, xx, y);
-                    }
+// ── backdrop: bokashi water with Seigaiha ────────────────────
+// Seigaiha: scales of radius R texels on a half-radius grid (rows R/2 apart, every second row shifted by R), the
+// rows drawn top to bottom so each lower scale overlaps the one above. Rings `ring` texels wide alternate two
+// tones, the outer arc is a lighter line. Returns the pattern index per texel: 0 none, 1 lighter ring, 2 arc.
+function seigaiha(cols, rows) {
+    const Wt = T.WATER, R = Wt.scale, idx = new Uint8Array(cols * rows), step = R / 2;
+    for (let j = -2; Wt.startRow - R + j * step <= rows + R; j++) {
+        const cy = Wt.startRow + j * step, off = (j & 1) ? R : 0;
+        for (let cx = off - 2 * R; cx < cols + 2 * R; cx += 2 * R) {
+            for (let y = Math.max(0, cy - R); y <= Math.min(rows - 1, cy + R); y++) {
+                for (let x = cx - R; x <= cx + R; x++) {
+                    const d = Math.hypot(x - cx, y - cy);
+                    if (d > R) continue;
+                    const k = Math.floor(d / Wt.ring), xx = ((x % cols) + cols) % cols;
+                    idx[y * cols + xx] = d > R - 1 ? 2 : (k & 1 ? 1 : 0);
                 }
-                x += d + gap;
             }
         }
     }
-    // no fragment shorter than minRun texels survives (8-connected pieces, measured along x around the tile)
-    for (const g of layers) {
-        const seen = new Uint8Array(Wt.cols * Wt.rows);
-        for (let y = 0; y < Wt.rows; y++) for (let x0 = 0; x0 < Wt.cols; x0++) {
-            if (g[y][x0] !== 'p' || seen[y * Wt.cols + x0]) continue;
-            const cells = [], stack = [[x0, y]];
-            seen[y * Wt.cols + x0] = 1;
-            while (stack.length) {
-                const [cx, cy] = stack.pop(); cells.push([cx, cy]);
-                for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
-                    const nx = (cx + dx + Wt.cols) % Wt.cols, ny = cy + dy;
-                    if (ny < 0 || ny >= Wt.rows || g[ny][nx] !== 'p' || seen[ny * Wt.cols + nx]) continue;
-                    seen[ny * Wt.cols + nx] = 1; stack.push([nx, ny]);
-                }
-            }
-            const xs = [...new Set(cells.map(c => c[0]))].sort((a, b) => a - b);
-            let gap = xs[0] + Wt.cols - xs[xs.length - 1];
-            for (let k = 1; k < xs.length; k++) gap = Math.max(gap, xs[k] - xs[k - 1]);
-            const span = Wt.cols - gap + 1;
-            if (span < Wt.minRun) for (const [cx, cy] of cells) g[cy][cx] = '.';
+    return idx;
+}
+// gradient colour of variant v at texel row y (a step of `step` rows: the same value for step rows in a row)
+function gradient(v, y) {
+    const st = T.WATER.variants[v].stops, yq = Math.floor(y / T.WATER.step) * T.WATER.step + Math.floor(T.WATER.step / 2);
+    let i = 0;
+    while (i < st.length - 2 && yq > st[i + 1][0]) i++;
+    const a = st[i], b = st[i + 1], t = Math.max(0, Math.min(1, (yq - a[0]) / (b[0] - a[0])));
+    const ca = hex(a[1]), cb = hex(b[1]);
+    return [0, 1, 2].map(k => lerp(ca[k], cb[k], t));
+}
+function waterImage(v) {
+    const Wt = T.WATER, W = Wt.cols, H = Wt.rows, vr = Wt.variants[v], px = Buffer.alloc(W * H * 4), idx = seigaiha(W, H);
+    for (let y = 0; y < H; y++) {
+        const yq = Math.floor(y / Wt.step) * Wt.step + Math.floor(Wt.step / 2), base = gradient(v, y);
+        const fade = smooth((yq - Wt.startRow) / Wt.fadeIn) * (1 - smooth((yq - Wt.fadeFrom) / (Wt.fadeTo - Wt.fadeFrom)));
+        for (let x = 0; x < W; x++) {
+            const p = idx[y * W + x], d = p === 2 ? vr.arc : p === 1 ? vr.tone : [0, 0, 0], o = (y * W + x) * 4;
+            for (let k = 0; k < 3; k++) px[o + k] = Math.round(base[k] + d[k] * fade);
+            px[o + 3] = 255;
         }
     }
-    return layers;
+    return { W, H, px };
 }
 
-// Hokusai Kanagawa-style surface wave strip with curling foam claws (128x10, tiles horizontally)
-function surfaceTile() {
+// Hokusai Kanagawa-style surface strip (128 texels wide = two wave cells of 64, tiles horizontally): a deep blue
+// wave body that lightens in three flat steps into the sea's top blue, a thick cream foam cap on the crest and
+// tapering foam claws that hang down the curling front, indigo keyblock outlines around everything.
+// Letters '1'..'5' are the variant's five blues; '4' equals the water's top tone so the strip melts into the sea.
+function surfaceStrip() {
     const S = T.SURFACE, W = S.cols, H = S.rows, g = mk(W, H);
-    const waveY = x => 2 + Math.round(1.2 * Math.sin(2 * Math.PI * x / 32 + 0.4) + 0.5 * Math.cos(2 * Math.PI * x / 64));
-    for (let x = 0; x < W; x++) {
-        const y = waveY(x);
-        put(g, x, y, 'p');
-        if (x % 5 !== 0) put(g, x, y + 1, 'p');
-        if (x > 0 && waveY(x - 1) !== y) put(g, x, waveY(x - 1), 'p');
+    const cells = [{ amp: 12.5, xp: 40, trough: 15.4 }, { amp: 10, xp: 37, trough: 15.4 }];
+    cells.forEach((c, ci) => {
+        const x0 = ci * 64;
+        const top = x => {                                   // crest profile: the row of the wave's upper edge
+            if (x <= c.xp) return c.trough - c.amp * Math.pow(Math.sin(Math.PI / 2 * x / c.xp), 1.7) + 0.3 * Math.sin(x * 0.6);
+            const u = Math.min(1, (x - c.xp) / 15);          // the lip curls over and the front face falls steeply
+            return c.trough - c.amp + c.amp * Math.pow(u, 1.9);
+        };
+        const putc = (x, y, ch) => put(g, x0 + x, y, ch);
+        for (let x = 0; x < 64; x++) {
+            const t = top(x), yt = Math.round(t);
+            // foam depth: none on the back slope, a thick cap near the crest, thin along the front face
+            const fd = x < 12 ? 0 : (x < c.xp ? 0.6 + 3.6 * smooth((x - 12) / (c.xp - 12)) : 4.2 * (1 - smooth((x - c.xp) / 14)));
+            for (let y = yt; y < H; y++) {
+                const d = y - t;
+                putc(x, y, d < fd ? 'w' : (d < fd + 5 ? '2' : (d < fd + 9 ? '3' : '4')));
+            }
+        }
+        // foam claws: tapering fingers hanging from the crest lip down the front face, curling forward
+        const claws = [[c.xp - 3, 8.5, 0.1], [c.xp + 1, 10, 0.5], [c.xp + 5, 8.5, 0.9], [c.xp + 9, 6, 1.2]];
+        for (const [cx, len, curl] of claws) {
+            const cy = top(cx) + 1.5;
+            for (let s2 = 0; s2 <= len * 3; s2++) {
+                const t = s2 / (len * 3), px = cx + 1.2 * t * len * 0.35 + curl * 2.2 * t * t, py = cy + len * t;
+                const rad = 1.55 * (1 - 0.8 * t) + 0.25;
+                for (let y = Math.floor(py - rad); y <= Math.ceil(py + rad); y++) for (let x = Math.floor(px - rad); x <= Math.ceil(px + rad); x++) {
+                    if (Math.hypot(x - px, y - py) <= rad) putc(x, y, 'w');
+                }
+            }
+        }
+        // spray: a few detached cream flecks ahead of the crest
+        for (const [fx, fy] of [[c.xp + 12, 3], [c.xp + 15, 5], [c.xp + 9, 1], [c.xp + 17, 2]]) putc(fx, fy, 'w');
+    });
+    // keyblock outlines: indigo around the whole shape and between foam and blue
+    const add = [];
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+        const c = g[y][x];
+        for (const [dx, dy] of N4) {
+            const n = get(g, (x + dx + W) % W, y + dy);
+            if (c === '.' && n !== '.') { add.push([x, y]); break; }
+            if (c !== 'w' && c !== '.' && n === 'w') { add.push([x, y]); break; }
+        }
     }
-    // curling foam claws at each wave peak (every 32 cols: x = 6, 38, 70, 102)
-    for (const pk of [6, 38, 70, 102]) pts(g, 'p', [[pk - 1, 0], [pk, 0], [pk + 1, 0], [pk + 2, 1]]);
-    // undertow contour 5 rows below the main crest
-    for (const [x0, len] of [[3, 15], [25, 12], [46, 17], [71, 13], [93, 16], [115, 10]]) {
-        for (let i = 0; i < len; i++) { const xx = (x0 + i) % W; put(g, xx, Math.min(H - 1, waveY(xx) + 5), 'p'); }
-    }
+    for (const [x, y] of add) g[y][x] = 'i';
     return g;
 }
 
-// Layered woodcut seabed (640x32):
-// - Rolling far hills (`farTop`) with contour hatching
-// - Sculpted reef boulders, brain corals, branching fan corals and starfish
-// - Near foreground dune crest (`T.seabedTop`) with wide-pitched woodcut sediment contours
+// ── seabed ───────────────────────────────────────────────────
+// Matsushima: ochre/brown rock islands with tiered pine tufts, vermilion coral, and cream-ochre dunes with printed
+// wave contours (continuous bands that follow the dune, not dashes), keyblock outlines in dark brown (640x32).
+function pineSprite(w) {
+    const g = mk(w + 2, 9), cx = Math.floor((w + 2) / 2);
+    put(g, cx, 8, 'O'); put(g, cx, 7, 'O'); put(g, cx, 6, 'O');
+    const tiers = [[7, 5, w], [5, 3, w - 2], [3, 1, w - 4]];
+    for (const [yb, yt, tw] of tiers) {
+        for (let y = yt; y <= yb - 2; y++) {
+            const hw = Math.max(1, Math.round((tw / 2) * (0.55 + 0.45 * (y - yt) / Math.max(1, yb - 2 - yt))));
+            for (let x = cx - hw; x <= cx + hw; x++) put(g, x, y, 'g');
+        }
+        for (let x = cx - Math.floor(tw / 2); x <= cx + Math.floor(tw / 2); x++) put(g, x, yb - 1, 'G');
+    }
+    for (let x = cx - 1; x <= cx; x++) put(g, x, 1, 'g');
+    outline(g, 'G');
+    return g;
+}
 function seabedTile() {
     const W = T.SEABED.cols, H = T.SEABED.rows, g = mk(W, H), rnd = rng(109);
     const nearTop = x => T.seabedTop(x);
@@ -638,107 +606,75 @@ function seabedTile() {
     };
     const putW = (x, y, ch) => put(g, ((x % W) + W) % W, y, ch);
 
-    // 1. Fill far hills and near dunes with ink, plus crisp paper ridge crests
+    // 1. far dunes (sand shade) and near dunes (cream ochre), brown crest lines, printed wave contours
     for (let x = 0; x < W; x++) {
         const ft = farTop(x), nt = nearTop(x);
-        for (let y = ft; y < H; y++) g[y][x] = 'k';
-        put(g, x, ft, 'p');
-        if (x % 7 !== 0) put(g, x, nt, 'p');
-        put(g, x, nt + 1, 'p');
+        for (let y = ft; y < H; y++) g[y][x] = 's';
+        put(g, x, ft, 'o');
+        for (let y = nt; y < H; y++) g[y][x] = 'S';
+        put(g, x, nt, 'o');
+        for (const depth of [4, 8]) { const y = nt + depth; if (y < H - 1) g[y][x] = 's'; }   // contours follow the dune
     }
 
-    // 2. Far-hill woodcut contour hatching (strictly 4 rows below farTop and >= 3 rows above nearTop)
-    let fx = 6;
-    while (fx < W) {
-        const d = 7 + Math.floor(rnd() * 10), gap = 8 + Math.floor(rnd() * 10);
-        for (let i = 0; i < d; i++) {
-            const xx = (fx + i) % W, yy = farTop(xx) + 4;
-            if (yy <= nearTop(xx) - 3) put(g, xx, yy, 'p');
-        }
-        fx += d + gap;
-    }
-
-    // 3. Reef boulders sitting on the ridges (ink mass, paper upper-left rim & contour arc)
+    // 2. rock islands: brown body, lit ochre upper-left crescent, strata arcs, dark brown outline, pine tufts
     const rocks = [
-        [44, 9, 5, true], [56, 5, 3, true], [148, 10, 6, false], [162, 6, 4, false],
-        [248, 11, 6, true], [338, 8, 5, false], [418, 10, 5, true], [432, 5, 3, true],
-        [522, 9, 5, false], [596, 8, 5, true]
+        [44, 9, 5, true, 2], [56, 5, 3, true, 0], [148, 10, 6, false, 2], [162, 6, 4, false, 1],
+        [248, 11, 6, true, 2], [338, 8, 5, false, 1], [418, 10, 5, true, 2], [432, 5, 3, true, 0],
+        [522, 9, 5, false, 2], [596, 8, 5, true, 1]
     ];
     const rockCells = new Set(), key = (x, y) => (((x % W) + W) % W) + ',' + y;
     for (const [cx, rx, ry, onNear] of rocks) {
         const cy = (onNear ? nearTop(cx) : farTop(cx)) + 2;
-        for (let y = cy - ry - 1; y <= cy + 2; y++) {
-            for (let x = cx - rx - 1; x <= cx + rx + 1; x++) {
-                if (inEll(x, y, cx, cy, rx + 0.3, ry + 0.3)) {
-                    rockCells.add(key(x, y));
-                    putW(x, y, 'k');
-                }
-            }
+        for (let y = cy - ry - 1; y <= cy + 2; y++) for (let x = cx - rx - 1; x <= cx + rx + 1; x++) {
+            if (!inEll(x, y, cx, cy, rx + 0.3, ry + 0.3)) continue;
+            rockCells.add(key(x, y));
+            putW(x, y, inEll(x, y, cx + 2, cy + 1.5, rx - 0.5, ry - 0.2) ? 'o' : 'Y');
+            if (!inEll(x, y, cx, cy + 3, rx * 1.3, ry * 1.1) && false) putW(x, y, 'O');
         }
+        // strata arcs
+        if (rx >= 8) for (let dx = -rx + 3; dx <= rx - 3; dx++) if (inEll(cx + dx, cy - Math.floor(ry * 0.2), cx, cy, rx * 0.9, ry * 0.9) && rockCells.has(key(cx + dx, cy - Math.floor(ry * 0.2)))) putW(cx + dx, cy - Math.floor(ry * 0.2) + 1, 'O');
     }
     for (const c of rockCells) {
         const [x, y] = c.split(',').map(Number);
-        for (const [dx, dy] of N4) {
-            if (!rockCells.has(key(x + dx, y + dy)) && dy <= 0) putW(x + dx, y + dy, 'p');
-        }
+        for (const [dx, dy] of N4) if (!rockCells.has(key(x + dx, y + dy))) putW(x + dx, y + dy, 'O');
     }
-    for (const [cx, rx, ry, onNear] of rocks) {
-        if (rx >= 8) {
-            const cy = (onNear ? nearTop(cx) : farTop(cx)) + 2;
-            for (let dx = -Math.floor(rx * 0.5); dx <= Math.floor(rx * 0.2); dx++) {
-                putW(cx + dx, cy - Math.floor(ry * 0.45), 'p');
-            }
-        }
+    for (const [cx, rx, ry, onNear, pines] of rocks) {
+        const cy = (onNear ? nearTop(cx) : farTop(cx)) + 2, topY = cy - ry - 1;
+        if (pines >= 1) { const pw = pines === 2 ? 9 : 7; blit(g, pineSprite(pw), cx - Math.floor((pw + 2) / 2) + (pines === 2 ? -2 : 0), topY - 7); }
+        if (pines >= 2) blit(g, pineSprite(7), cx + 3, topY - 5);
     }
 
-    // 4. Branching staghorn corals & sea anemones along the reef crest (2-texel thick paper branches)
-    const corals = [96, 206, 304, 468, 558];
-    for (const cx of corals) {
-        const by = farTop(cx);
-        for (let h = 1; h <= 7; h++) {
-            putW(cx, by - h, 'p'); putW(cx + 1, by - h, 'p');
-            if (h >= 3 && h <= 6) {
-                putW(cx - h + 1, by - h, 'p'); putW(cx - h + 2, by - h, 'p');
-                putW(cx + h, by - h, 'p'); putW(cx + h - 1, by - h, 'p');
+    // 3. branching vermilion corals on the far ridge (2-texel branches, darker right edge)
+    for (const cx of [96, 206, 304, 468, 558]) {
+        const by = farTop(cx), br = mk(21, 10);
+        for (let h = 1; h <= 8; h++) {
+            put(br, 10, 9 - h, 'r'); put(br, 11, 9 - h, 'R');
+            if (h >= 3 && h <= 7) {
+                put(br, 10 - h + 2, 9 - h, 'r'); put(br, 11 - h + 2, 9 - h, 'r');
+                put(br, 10 + h - 1, 9 - h, 'r'); put(br, 11 + h - 1, 9 - h, 'R');
             }
         }
+        blit(g, br, cx - 10, by - 8);
     }
-
-    // 5. Near-dune woodcut sediment contour dashes (depths +5 and +9 below nearTop -> pitch >= 4 texels)
-    const dash = (depth, cover, minL, maxL) => {
-        let x = Math.floor(rnd() * 18);
-        while (x < W) {
-            const d = Math.round(minL + rnd() * (maxL - minL));
-            const gap = Math.max(7, Math.round(d * (1 - cover) / cover * (0.7 + 0.6 * rnd())));
-            for (let i = 0; i < d; i++) {
-                const xx = (x + i) % W, y = nearTop(xx) + depth;
-                if (y < H - 1 && !rockCells.has(xx + ',' + y)) g[y][xx] = 'p';
-            }
-            x += d + gap;
-        }
-    };
-    dash(5, 0.55, 8, 20);
-    dash(9, 0.38, 6, 15);
-
-    // 6. Starfish & shells resting on the foreground sand
+    // 4. starfish & shells on the near sand
     for (const sx of [122, 378, 618]) {
         const sy = Math.min(H - 3, nearTop(sx) + 5);
-        pts(g, 'p', [[sx, sy], [sx - 1, sy], [sx + 1, sy], [sx, sy - 1], [sx, sy + 1], [sx - 2, sy + 1], [sx + 2, sy + 1]]);
+        pts(g, 'r', [[sx, sy], [sx - 1, sy], [sx + 1, sy], [sx, sy - 1], [sx, sy + 1], [sx - 2, sy + 1], [sx + 2, sy + 1]]);
+        pts(g, 'R', [[sx - 2, sy + 2], [sx + 2, sy + 2]]);
     }
     return g;
 }
 
-// Wakame kelp: fronds with carved midrib veins (ink line in the blade), 2-texel stipe, 1-texel ink outline
+// Wakame kelp: malachite fronds with darker midrib veins and deep malachite outlines, 2-texel stipe
 function kelpSprite(ci, frame) {
     const K = T.KELP[ci], h = K.rows, W = K.cols, g = mk(W, h);
     const bx = Math.floor(W / 2) - 1;
     const ph = frame * Math.PI / 2, A = 1.1 + ci * 0.45;
     const sway = y => Math.round(Math.sin((h - y) * 0.11 + ph) * A * Math.pow((h - y) / h, 1.35) * 1.5);
-    const fillCh = pig('g');
     for (let y = 2; y < h; y++) {
         const x = bx + sway(y);
-        put(g, x, y, fillCh); put(g, x + 1, y, fillCh);
-        if (y > 2) { const xp = bx + sway(y - 1); if (xp !== x) { put(g, xp, y, fillCh); put(g, xp + 1, y, fillCh); } }
+        put(g, x, y, 'g'); put(g, x + 1, y, 'G');
+        if (y > 2) { const xp = bx + sway(y - 1); if (xp !== x) { put(g, xp, y, 'g'); put(g, xp + 1, y, 'G'); } }
     }
     let side = (ci % 2 === 0) ? 1 : -1;
     for (let y = h - 8; y >= 9; y -= 9) {
@@ -748,25 +684,25 @@ function kelpSprite(ci, frame) {
             const dx = side > 0 ? 2 + i : -1 - i;
             const arch = Math.round(-i * 0.55 + (i >= len - 2 ? 0.6 : 0));
             const th = i === 0 ? 2 : (i < len - 2 ? 3 : 2);
-            for (let t = 0; t < th; t++) put(g, x + dx, y + arch - t, fillCh);
-            if (th === 3 && i >= 1 && i <= len - 3) put(g, x + dx, y + arch - 1, 'k');   // leaf midrib vein
+            for (let t = 0; t < th; t++) put(g, x + dx, y + arch - t, 'g');
+            if (th === 3 && i >= 1 && i <= len - 3) put(g, x + dx, y + arch - 1, 'G');   // leaf midrib vein
         }
         side = -side;
     }
     const tx = bx + sway(2);
-    pts(g, fillCh, [[tx, 1], [tx + 1, 1], [tx - 1, 2], [tx + 2, 2], [tx, 3], [tx + 1, 3]]);
-    outline(g, 'k');
+    pts(g, 'g', [[tx, 1], [tx + 1, 1], [tx - 1, 2], [tx + 2, 2], [tx, 3], [tx + 1, 3]]);
+    outline(g, 'G');
     return g;
 }
 
 // ── all images ───────────────────────────────────────────────
 function allImages() {
     const imgs = {};
-    const add = (name, g, cols, rows) => {
+    const add = (name, g, cols, rows, variant) => {
         if (cols !== undefined && (W_(g) !== cols || H_(g) !== rows)) {
             (process.env.DIMS ? console.log : (m => { throw new Error(m); }))(name + ' is ' + W_(g) + 'x' + H_(g) + ', theme.js says ' + cols + 'x' + rows);
         }
-        imgs[name] = render(g);
+        imgs[name] = render(g, variant);
     };
     T.FISH_CLASSES.forEach((c, ci) => {
         for (const v of T.FISH_VARIANTS) for (let f = 0; f < T.FISH_FRAMES; f++) for (const inv of [false, true]) {
@@ -776,7 +712,7 @@ function allImages() {
     for (let f = 0; f < 4; f++) {
         T.ORCA.forEach((o, i) => add(T.orcaFile(i, f), orcaSprite(f, i === 1), o.cols, o.rows));
         T.ANGLER.forEach((o, i) => add(T.anglerFile(i, f), anglerSprite(f, i === 1), o.cols, o.rows));
-        T.JELLY.forEach((c, ci) => { const d = jellyDims(ci); add(T.jellyFile(ci, f), jellySprite(ci, f), c.cols, c.rows); });
+        T.JELLY.forEach((c, ci) => add(T.jellyFile(ci, f), jellySprite(ci, f), c.cols, c.rows));
         for (let s = 0; s < 3; s++) add('worm-' + s + '-' + f + '.png', wormSprite(s, f), T.WORM.cols, T.WORM.rows);
         for (let k = 0; k < T.KELP.length; k++) add('kelp-' + k + '-' + f + '.png', kelpSprite(k, f), T.KELP[k].cols, T.KELP[k].rows);
     }
@@ -785,18 +721,11 @@ function allImages() {
     for (let f = 0; f < 2; f++) add('sparkle-' + f + '.png', sparkleSprite(f), T.SPARKLE_SIZE, T.SPARKLE_SIZE);
     for (let l = 0; l < 3; l++) add('lure-' + l + '.png', lureSprite(l), T.LURE_SIZE, T.LURE_SIZE);
 
-    const wl = waterLayers();
-    wl.forEach((g, l) => {
-        const u = mk(T.WATER.cols, T.WATER.rows);
-        for (let k = 0; k <= l; k++) {
-            for (let y = 0; y < T.WATER.rows; y++) for (let x = 0; x < T.WATER.cols; x++) {
-                if (wl[k][y][x] === 'p') u[y][x] = 'p';
-            }
-        }
-        add(T.waterFile(l), u, T.WATER.cols, T.WATER.rows);
+    T.WATER.variants.forEach((vr, v) => {
+        imgs[T.waterFile(v)] = waterImage(v);
+        add(T.surfaceFile(v), surfaceStrip(), T.SURFACE.cols, T.SURFACE.rows, v);
     });
     add('seabed.png', seabedTile(), T.SEABED.cols, T.SEABED.rows);
-    add('surface.png', surfaceTile(), T.SURFACE.cols, T.SURFACE.rows);
     return imgs;
 }
 
@@ -815,20 +744,19 @@ function sheet(imgs, file) {
     rows.push(['t', 's', 'l'].map(n => fr(f => 'jelly-' + n + '-' + f + '.png', 4)).reduce((a, b) => a.concat(b), []));
     rows.push([0, 1, 2].map(s => fr(f => 'worm-' + s + '-' + f + '.png', 4)).reduce((a, b) => a.concat(b), []));
     rows.push([0, 1, 2].map(k => fr(f => 'kelp-' + k + '-' + f + '.png', 4)).reduce((a, b) => a.concat(b), []));
-    rows.push(['seabed.png', 'surface.png']);
+    rows.push(['seabed.png', 'surface-2.png']);
     if (process.env.ONLY) {
         const re = new RegExp(process.env.ONLY);
         rows = rows.map(r => r.filter(n => re.test(n))).filter(r => r.length);
     }
+    const bg = hex(T.WATER.variants[2].tones[2]);
     const dims = rows.map(r => ({
         w: r.reduce((a, n) => a + imgs[n].W * S + PAD * S, PAD * S),
         h: Math.max(...r.map(n => imgs[n].H * S)) + 2 * PAD * S
     }));
     const SW = Math.max(...dims.map(d => d.w)), SH = dims.reduce((a, d) => a + d.h, 0);
     const px = Buffer.alloc(SW * SH * 4);
-    for (let i = 0; i < SW * SH; i++) {
-        px[i * 4] = T.INK_RGB[0]; px[i * 4 + 1] = T.INK_RGB[1]; px[i * 4 + 2] = T.INK_RGB[2]; px[i * 4 + 3] = 255;
-    }
+    for (let i = 0; i < SW * SH; i++) { px[i * 4] = bg[0]; px[i * 4 + 1] = bg[1]; px[i * 4 + 2] = bg[2]; px[i * 4 + 3] = 255; }
     let oy = 0;
     rows.forEach((r, ri) => {
         let ox = PAD * S;

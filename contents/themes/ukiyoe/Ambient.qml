@@ -1,10 +1,10 @@
 import QtQuick
 import "theme.js" as T
 
-// Backdrop of the "ukiyoe" theme, in texel space (see Scene.qml). Indigo ocean with Ryuusen wave strokes in
-// four depth bands and five sunbeams (water-<n>.png layers, more of them by day), a Hokusai-style surface
-// wave strip with foam claws, a layered reef seabed with boulders/corals/starfish, and 9 wakame kelp plants
-// arranged in multi-depth reef groves.
+// Backdrop of the "ukiyoe" theme, in texel space (see Scene.qml): a bokashi sea (deep indigo at the floor, lighter
+// Prussian blue at the surface) printed with the Seigaiha wave-scale pattern in its upper part (water-<n>.png,
+// three variants by daylight), a Hokusai-style surface strip of curling crests and foam claws, 9 wakame kelp
+// plants and a Matsushima seabed of rocks, pines, coral and dunes. All flat colour, no lines of water strokes.
 // Nothing here flickers or scrolls: the only motion is the kelp swaying one texel at a time (one frame
 // step every 2 s per plant = 0.5 Hz). There are no drifting specks.
 // One Timer at 2 Hz drives it; nothing animates while `paused`.
@@ -26,23 +26,24 @@ Item {
         onTriggered: root.tick++
     }
 
-    // ── water: Ryuusen wave strokes & sunbeams; water-<n>.png holds layers 0..n by daylight ──
+    // ── water: bokashi + Seigaiha; one of three baked variants (night, dusk, day) ──
+    readonly property int level: T.waterLevel(root.dl)
     Image {
         width: root.width
         height: T.WATER.rows
         fillMode: Image.Tile
         smooth: false
-        source: T.DIR + T.waterFile(T.waterLevel(root.dl))
+        source: T.DIR + T.waterFile(root.level)
     }
 
-    // ── braided wave line at the surface ──
+    // ── surface: curling wave crests with foam claws (same variant, so it melts into the sea) ──
     Image {
         y: T.SURFACE.y
         width: root.width
         height: T.SURFACE.rows
         fillMode: Image.Tile
         smooth: false
-        source: T.DIR + "surface.png"
+        source: T.DIR + T.surfaceFile(root.level)
     }
 
     // ── kelp forests: 9 plants in 3 depth/height classes standing on the seabed ridges ──
@@ -73,5 +74,15 @@ Item {
             smooth: false
             source: T.DIR + "seabed.png"
         }
+    }
+
+    // ── night: the sea floor and the plants sink into the indigo (steps with daylight, static) ──
+    Rectangle {
+        anchors.bottom: parent.bottom
+        width: root.width
+        height: T.SEABED.rows + 80
+        color: T.DEEP
+        opacity: 0.4 * (1 - root.dl)
+        visible: opacity > 0
     }
 }

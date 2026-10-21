@@ -2,10 +2,9 @@ import QtQuick
 import "sync.js" as UkiyoeSync
 import "theme.js" as T
 
-// Scene of the "ukiyoe" theme (Ukiyo-e): Bero-ai indigo ink on washi paper (two colours by default; the
-// Nishiki-e pigment set is selected by theme.js PALETTE_SET).
-// The backdrop (Ambient.qml: wave-hatched water, volumetric sunbeams, botanical kelp forests, layered
-// reef seabed) lives in a world of texels scaled by a whole number of device pixels (3 px per texel at
+// Scene of the "ukiyoe" theme (Ukiyo-e, nishiki-e): flat traditional pigments with sumi keyblock outlines.
+// The backdrop (Ambient.qml: bokashi sea with the Seigaiha pattern, Hokusai wave crests, wakame kelp,
+// Matsushima seabed) lives in a world of texels scaled by a whole number of device pixels (3 px per texel at
 // 1080p) with nearest-neighbour textures. Creatures (pooled UkiyoeSprite) are placed in screen pixels
 // so they glide smoothly between simulation ticks while rendering at the exact same texel scale.
 // Scene contract: ui/code/themes.js
@@ -28,12 +27,14 @@ Item {
 
     // creatures stay below the waves: the simulation's upper limit is the wave strip plus the fish's half height
     function sync(s) {
-        s.top = T.SURFACE.floor * ps;
-        UkiyoeSync.sync(s, entities, entities, ps, Math.max(1, dpr));
+        // ps from the simulation's own height until the scene has been laid out (height is 0 on the first frames)
+        var p = height > 0 ? ps : T.texelDevice((s.height > 0 ? s.height : 1080) * Math.max(1, dpr)) / Math.max(1, dpr);
+        s.top = T.SURFACE.floor * p;
+        UkiyoeSync.sync(s, entities, entities, p, Math.max(1, dpr));
     }
 
     clip: true
-    Rectangle { anchors.fill: parent; color: T.INK }
+    Rectangle { anchors.fill: parent; color: T.DEEP }
 
     Item {
         id: world
