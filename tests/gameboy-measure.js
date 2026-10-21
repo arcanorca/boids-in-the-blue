@@ -17,6 +17,7 @@ const ROOT = path.join(__dirname, '..');
 const DIR = path.join(ROOT, 'contents', 'themes', 'gameboy');
 const which = (process.argv[2] || 'all').toUpperCase();
 const outDir = process.argv[3] || fs.mkdtempSync(path.join(os.tmpdir(), 'gb-measure-'));
+if (!process.argv[3]) process.on('exit', () => { try { fs.rmSync(outDir, { recursive: true, force: true }); } catch (e) {} });   // delete our own temp dir
 fs.mkdirSync(outDir, { recursive: true });
 const ENV = Object.assign({}, process.env, { QT_QPA_PLATFORM: 'offscreen', QT_FORCE_STDERR_LOGGING: '1' });
 const SHADES = ['#0f380f', '#306230', '#8bac0f', '#9bbc0f'].map(c => [1, 3, 5].map(i => parseInt(c.substr(i, 2), 16)));

@@ -21,6 +21,7 @@ const T = loadScript(path.join(DIR, 'theme.js'));
 const args = process.argv.slice(2);
 const oi = args.indexOf('--out');
 const OUT = oi >= 0 ? args.splice(oi, 2)[1] : fs.mkdtempSync(path.join(os.tmpdir(), 'ukiyoe-measure-'));
+if (oi < 0) process.on('exit', () => { try { fs.rmSync(OUT, { recursive: true, force: true }); } catch (e) {} });   // delete our own temp dir
 const want = args.length ? args : ['A', 'B', 'C', 'D', 'S'];
 const quiet = !!process.env.QUIET;
 let fail = 0;

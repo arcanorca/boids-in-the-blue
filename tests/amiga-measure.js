@@ -13,6 +13,7 @@ const what = argv.find(a => !a.startsWith('--') && !/^\//.test(a)) || 'all';
 const opt = n => { const i = argv.indexOf('--' + n); return i >= 0 ? argv[i + 1] : null; };
 const theme = opt('theme') || 'amiga';
 const WORK = opt('keep') || fs.mkdtempSync(path.join(os.tmpdir(), 'amiga-measure-'));
+if (!opt('keep')) process.on('exit', () => { try { fs.rmSync(WORK, { recursive: true, force: true }); } catch (e) {} });   // delete our own temp dir
 const REF = { fishW: 36, fishH: 26 };       // 1080p reference sizes (screen px)
 
 function run(mode, dir) {
