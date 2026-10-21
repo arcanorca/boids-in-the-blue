@@ -21,12 +21,10 @@ Item {
     readonly property int vh: Math.ceil(height / ps)
     readonly property string state: T.bgState(daylight)
     readonly property var pal: T.BG[state]
-    readonly property var lay: T.waterLayout(vh)
 
     property int tick: 0
     readonly property int kelpFrame: (tick >> 1) & 1            // kelp sways every 2 ticks (1 s per frame)
     readonly property int groundV: vh - (T.SEABED.rows * 8 - 64)
-    function shadeColor(shade) { return T.hexOf(shade < 3 ? pal.pal[0][shade] : pal.u); }
 
     clip: true
 
@@ -37,39 +35,11 @@ Item {
         onTriggered: root.tick++
     }
 
-    // water: four shades in solid bands (palette 0 + the universal colour), each boundary one row of
-    // ordered dither (static)
-    Repeater {
-        model: root.lay.bands
-        delegate: Rectangle {
-            x: 0
-            y: modelData.y0 * root.ps
-            width: root.width
-            height: (modelData.y1 - modelData.y0) * root.ps
-            color: root.shadeColor(modelData.shade)
-        }
-    }
-    Repeater {
-        model: root.lay.seams
-        delegate: Item {
-            readonly property int seamW: T.SEAM_COLS * root.ps
-            readonly property int k: modelData.k
-            x: 0
-            y: modelData.y * root.ps
-            width: root.width
-            height: root.ps
-            clip: true
-            Repeater {
-                model: Math.ceil(root.width / parent.seamW)
-                delegate: Image {
-                    x: index * parent.seamW
-                    width: parent.seamW
-                    height: root.ps
-                    smooth: false
-                    source: T.DIR + T.seamFile(root.state, parent.k)
-                }
-            }
-        }
+    // water: one dithered gradient texture per palette state (see gen-nes-theme.js, T.WATER)
+    Image {
+        anchors.fill: parent
+        smooth: false
+        source: T.DIR + T.waterFile(root.state)
     }
 
     // waterline: 256-px nametable, static

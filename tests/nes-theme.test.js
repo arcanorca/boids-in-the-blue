@@ -38,7 +38,7 @@ test('every nes frame the renderer requests exists, in every palette state', () 
     for (const f of ['sparkle-0.png', 'sparkle-1.png']) assert.ok(exists(f), f);
     for (const st of T.BG_STATES) {
         assert.ok(exists(T.surfaceFile(st)));
-        for (let k = 0; k < 3; k++) assert.ok(exists(T.seamFile(st, k)));
+        assert.ok(exists(T.waterFile(st)), 'water ' + st);
         for (let f = 0; f < 2; f++) assert.ok(exists(T.seabedFile(st, f)) && exists(T.glintFile(st, f)));
     }
     for (const f of ['NesSprite.qml', 'EntityLayer.qml', 'Ambient.qml', 'Scene.qml', 'sync.js', 'README.md', 'preview.png']) assert.ok(fs.existsSync(path.join(DIR, f)), f);
@@ -94,17 +94,22 @@ test('nes: palette state follows daylight, and the integer pixel scale grows wit
     assert.strictEqual(T.bgState(1), 'day'); assert.strictEqual(T.bgState(0.5), 'dusk'); assert.strictEqual(T.bgState(0), 'night');
     assert.strictEqual(T.pxFor(1080), 4); assert.strictEqual(T.pxFor(1440), 6); assert.strictEqual(T.pxFor(2160), 9); assert.strictEqual(T.pxFor(360), 2);
     for (const h of [300, 480, 720, 1080, 1440, 2160]) { const p = T.pxFor(h); assert.strictEqual(p % 1, 0); assert.ok(h / p >= 240 || p === 2); }
-    for (const vh of [240, 270, 360]) {
-        const L = T.waterLayout(vh);
-        assert.strictEqual(L.bands.length, 4); assert.strictEqual(L.seams.length, 3);
-        // bands and seams tile the screen top to bottom, each seam is one row between two bands
-        let y = 0;
-        L.bands.forEach((b, i) => {
-            assert.strictEqual(b.y0, y); assert.ok(b.y1 > b.y0 + 8, 'band is more than a few rows'); y = b.y1;
-            if (i < 3) { assert.strictEqual(L.seams[i].y, b.y1); assert.strictEqual(L.seams[i].k, i); y = b.y1 + 1; }
-        });
-        assert.strictEqual(y, vh, 'bands end at the bottom of the screen');
-    }
+});
+test('nes water: 12 bands of one-step density from the surface shade to the floor shade, soft seams, no black', () => {
+    assert.strictEqual(T.WATER.bands, 12); assert.ok(T.WATER.seam >= 2 && T.WATER.seam <= 3, 'seam of 2-3 rows');
+    const im = load(T.waterFile('day'));
+    assert.deepStrictEqual([im.W, im.H], [T.WATER.w, T.WATER.h]);
+    const at = (x, y) => hex(im.px[(y * im.W + x) * 4], im.px[(y * im.W + x) * 4 + 1], im.px[(y * im.W + x) * 4 + 2]);
+    const surface = T.NES[T.BG.day.pal[0][0]], floor = T.NES[T.BG.day.pal[0][1]];
+    assert.strictEqual(at(0, 0), surface, 'the surface is the lightest water shade');
+    assert.strictEqual(at(im.W - 1, im.H - 1), floor, 'the floor is the deepest water shade');
+    // share of floor-shade pixels per 4-row block (one 4x4 dither cell high): never decreases with depth
+    const frac = [];
+    for (let y = 0; y + 4 <= im.H; y += 4) { let n = 0; for (let k = 0; k < 4; k++) for (let x = 0; x < im.W; x++) if (at(x, y + k) === floor) n++; frac.push(n / (4 * im.W)); }
+    for (let i = 1; i < frac.length; i++) assert.ok(frac[i] >= frac[i - 1] - 1e-9, 'block ' + i + ' is shallower than the block above');
+    let plateaus = 1; for (let i = 1; i < frac.length; i++) if (Math.abs(frac[i] - frac[i - 1]) > 1e-9) plateaus++;
+    assert.ok(plateaus >= 10, 'enough distinct bands: ' + plateaus);
+    for (const st of T.BG_STATES) for (const c of colours(load(T.waterFile(st)))) assert.ok(c !== '#000000' && c !== '#0000FC', st + ' water has no black or bright blue: ' + c);
 });
 
 test('nes sync: palette swap per individual, shake, alarm cycling, 2-frame animation, unsnapped positions', () => {
@@ -180,7 +185,7 @@ function opaque(im) {
 
 test('nes sprites: at most 3 opaque colours per sprite (one palette, colour 0 transparent)', () => {
     for (const f of fs.readdirSync(path.join(DIR, T.DIR))) {
-        if (/^(seam|seabed|surface|glint)-/.test(f)) continue;      // background tiles: 4 palettes, checked above
+        if (/^(water|seabed|surface|glint)-/.test(f)) continue;      // background tiles: 4 palettes, checked above
         const cs = new Set(opaque(load(f)).map(p => p[2]));
         // the angler is two metasprite parts (body palette + lure palette): 3 + 3 colours
         assert.ok(cs.size <= (f.startsWith('angler-') ? 6 : 3), f + ' has ' + cs.size + ' colours');
@@ -226,8 +231,7 @@ test('nes scene: seabed band at most 9 % and tallest kelp at most 20 % of a 270-
     assert.ok(kelp / 270 <= 0.20, 'tallest kelp ' + (kelp / 270 * 100).toFixed(1) + ' %');
 });
 
-test('nes calm: water seams are one row, the seabed differs between frames by at most 2 % of a screen', () => {
-    for (const st of T.BG_STATES) for (let k = 0; k < 3; k++) assert.strictEqual(load(T.seamFile(st, k)).H, 1, 'seam ' + k);
+test('nes calm: the seabed differs between frames by at most 2 % of a screen', () => {
     for (const st of T.BG_STATES) {
         const a = load(T.seabedFile(st, 0)), b = load(T.seabedFile(st, 1));
         let diff = 0;

@@ -326,13 +326,32 @@ class Plane {
 }
 const BAYER2 = [[0, 2], [3, 1]];
 
-// water seams: ONE row of ordered dither (checkerboard) between two neighbouring water shades. Shade k
-// is palette 0 colour k+1 (shade 3 is the universal colour). Only row 0 of the 8x8 tile is used, so the
-// PNG is 8x1; the QML repeats it along the water boundary.
-function seamPlane(k) {
-    const p = new Plane(8, 8), a = k + 1, b = k + 2;           // colour index of shade k and k+1
-    const upper = a <= 3 ? a : 0, lower = b <= 3 ? b : 0;
-    for (let x = 0; x < 8; x++) p.set(x, 0, 0, x % 2 === 0 ? upper : lower);
+// water: a gradient texture (T.WATER.w x T.WATER.h). Its depth is cut into T.WATER.bands bands; band b has
+// a floor-shade density b / (bands - 1) (0 = all surface shade, 1 = all floor shade), and each band
+// boundary is a T.WATER.seam-row transition where the density is interpolated. A pixel is floor
+// shade where its 4x4 ordered-dither threshold is below the density of its row. The water uses one
+// palette (colours 1 and 2 of palette 0), so no 16x16 area can mix palettes.
+const BAYER4 = [[0, 8, 2, 10], [12, 4, 14, 6], [3, 11, 1, 9], [15, 7, 13, 5]];
+function waterDensity(y) {
+    const N = T.WATER.bands, S = T.WATER.seam, H = T.WATER.h, half = (S - 1) / 2;
+    const yb = [];
+    for (let k = 0; k < N - 1; k++) yb.push(Math.round((k + 1) * H / N));
+    for (let k = 0; k < N - 1; k++) {                                    // inside the seam below band k?
+        if (Math.abs(y - yb[k]) <= half) {
+            const f = (y - yb[k] + half + 1) / (S + 1);
+            return (k + f) / (N - 1);
+        }
+    }
+    let b = 0;
+    for (let k = 0; k < N - 1; k++) if (y > yb[k] + half) b = k + 1;
+    return b / (N - 1);
+}
+function waterPlane(state) {
+    const W = T.WATER.w, H = T.WATER.h, p = new Plane(W, H);
+    for (let y = 0; y < H; y++) {
+        const d = waterDensity(y);
+        for (let x = 0; x < W; x++) p.set(x, y, 0, (BAYER4[y & 3][x & 3] + 0.5) / 16 < d ? 2 : 1);
+    }
     return p;
 }
 
@@ -466,12 +485,12 @@ function allImages() {
     for (const c of ['s', 'm', 'l']) out[T.spriteFile('bubble', c)] = single(BUBBLES[c], ['teal']);
     SPARKLE.forEach((idx, f) => { out['sparkle-' + f + '.png'] = single(idx, ['teal']); });
     const sPlane = surfacePlane(); sPlane.attributes('surface', BG_CHR);
-    const dPlanes = [0, 1, 2].map(seamPlane); dPlanes.forEach((d, k) => d.attributes('seam ' + k, BG_CHR));
+
     const gPlanes = [0, 1].map(glintPlane); gPlanes.forEach((g, f) => g.attributes('glint ' + f, BG_CHR));
     const bPlanes = [0, 1].map(seabedPlane);
     for (const st of T.BG_STATES) {
         out[T.surfaceFile(st)] = sPlane.render(st, true);
-        dPlanes.forEach((d, k) => { const im = d.render(st, true), W = im.W; out[T.seamFile(st, k)] = { W: W, H: 1, px: im.px.subarray(0, W * 4) }; });
+        out[T.waterFile(st)] = waterPlane(st).render(st, true);
         bPlanes.forEach((b, f) => { out[T.seabedFile(st, f)] = b.render(st, false); });
         gPlanes.forEach((g, f) => { out[T.glintFile(st, f)] = g.render(st, false); });
     }
@@ -523,7 +542,7 @@ function sheet(imgs, file) {
 }
 function bgSheet(imgs, file) {
     const S = 2, GAP = 12, parts = [];
-    for (const st of T.BG_STATES) { parts.push(imgs[T.surfaceFile(st)]); for (let f = 0; f < 2; f++) parts.push(imgs[T.seabedFile(st, f)]); for (let k = 0; k < 3; k++) parts.push(imgs[T.seamFile(st, k)]); }
+    for (const st of T.BG_STATES) { parts.push(imgs[T.surfaceFile(st)]); for (let f = 0; f < 2; f++) parts.push(imgs[T.seabedFile(st, f)]); parts.push(imgs[T.waterFile(st)]); }
     const SW = 512 * S, SH = parts.reduce((a, p) => a + p.H * S + GAP, 0), px = Buffer.alloc(SW * SH * 4);
     for (let i = 0; i < SW * SH; i++) { px[i * 4] = 40; px[i * 4 + 1] = 40; px[i * 4 + 2] = 40; px[i * 4 + 3] = 255; }
     let oy = 0;

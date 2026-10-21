@@ -55,9 +55,13 @@ var ALARM_PERIOD_MS = 1000;                        // one state lasts 1 s: the a
 //   2 kelp    weed
 //   3 surface foam of the waterline (colour 1 = the top water shade so it joins seamlessly)
 function _fade(c) { return c >= 0x10 ? c - 0x10 : 0x0F; }          // the classic NES fade step (unused now)
-var BG_DAY = { u: 0x0F, pal: [[0x2C, 0x1C, 0x0C], [0x08, 0x18, 0x36], [0x0A, 0x1A, 0x2A], [0x2C, 0x3B, 0x30]] };
-var BG_DUSK = { u: 0x0F, pal: [[0x1C, 0x0C, 0x0D], [0x08, 0x07, 0x18], [0x0A, 0x0A, 0x1A], [0x1C, 0x2C, 0x3B]] };
-var BG_NIGHT = { u: 0x0F, pal: [[0x1C, 0x0C, 0x0C], [0x0D, 0x08, 0x00], [0x0A, 0x0B, 0x0A], [0x1C, 0x2C, 0x3B]] };
+// Water (palette 0): colour 1 = the surface shade, colour 2 = the floor shade, colour 3 unused (= floor).
+// The NES teal / navy family has only these two muted entries ($1C mid teal, $0C deep navy), so the
+// water ramp between them is ordered dither (see WATER). There is no black water: the universal colour
+// is the floor shade too, and black ($0D/$0F) is only used by sprite outlines and eyes.
+var BG_DAY = { u: 0x0C, pal: [[0x1C, 0x0C, 0x0C], [0x08, 0x18, 0x36], [0x0A, 0x1A, 0x2A], [0x1C, 0x3B, 0x30]] };
+var BG_DUSK = { u: 0x0C, pal: [[0x1C, 0x0C, 0x0C], [0x08, 0x07, 0x18], [0x0A, 0x0A, 0x1A], [0x1C, 0x3B, 0x30]] };
+var BG_NIGHT = { u: 0x02, pal: [[0x0C, 0x02, 0x02], [0x0D, 0x08, 0x00], [0x0A, 0x0B, 0x0A], [0x0C, 0x1C, 0x3B]] };
 var BG = { day: BG_DAY, dusk: BG_DUSK, night: BG_NIGHT };
 var BG_STATES = ["day", "dusk", "night"];
 // daylight (0 night .. 1 day) -> palette state
@@ -116,31 +120,19 @@ function spriteFile(kind, cls, variant, frame, extra) {
 var TILE = 8;
 var SEABED = { cols: 64, rows: 10 };               // seabed nametable (2 screens wide), bottom aligned
 var SURFACE = { cols: 32, rows: 2 };               // waterline nametable (static)
-var SEAM_COLS = 8;                                 // one seam texture = 8 virtual px wide, repeated along the boundary
 
 function seabedFile(state, frame) { return "seabed-" + state + "-" + frame + ".png"; }
 function surfaceFile(state) { return "surface-" + state + ".png"; }
 function glintFile(state, f) { return "glint-" + state + "-" + f + ".png"; }
-function seamFile(state, k) { return "seam-" + state + "-" + k + ".png"; }   // k = 0..2: 1-row dither seam
 
-// ── water bands (in virtual rows, top to bottom) ──
-// Four water shades (palette 0 colours 1..3, then the universal colour) in bands. Each boundary is one
-// virtual row of ordered dither (a checkerboard of the two shades, seam-<state>-<k>.png), so the
-// gradient reads as smooth without a band per row. Boundaries are fractions of the screen height and
-// may fall on any row: every band uses the same BG palette, so the attribute table has nothing to split.
-// Returns bands [{y0, y1, shade}] (rows [y0, y1), shade 0..3) and seams [{y, k}] (one row each).
-var WATER_SPLITS = [0.11, 0.36, 0.80];
-function waterLayout(vh) {
-    var s = WATER_SPLITS.map(function (f) { return Math.round(f * vh); });
-    var bands = [], seams = [], y0 = 0;
-    for (var k = 0; k < 4; k++) {
-        var y1 = k < 3 ? s[k] : vh;
-        bands.push({ y0: y0, y1: y1, shade: k });
-        if (k < 3) seams.push({ y: s[k], k: k });
-        y0 = y1 + 1;
-    }
-    return { bands: bands, seams: seams };
-}
+// ── water (in virtual rows, top to bottom) ──
+// One texture per palette state, WATER.w x WATER.h virtual px (a 1080p screen is 480x270 at 4x; other
+// sizes stretch it, which a smooth gradient hides). The depth is cut into WATER.bands bands; each band
+// has one density of floor-shade pixels (a 4x4 ordered-dither matrix: 0 = surface, 1 = floor) and
+// neighbouring bands differ by one step of density. Each boundary is a WATER.seam-row transition whose
+// density is interpolated, so there are no hard edges between bands.
+var WATER = { w: 480, h: 270, bands: 12, seam: 3 };
+function waterFile(state) { return "water-" + state + ".png"; }
 
 // ambient bubbles rising from the seabed: [tile column of the 64-tile bed, speed class]
 var VENTS = [[7, 5], [8, 3], [23, 4], [37, 6], [38, 4], [51, 5]];
