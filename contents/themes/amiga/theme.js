@@ -139,19 +139,21 @@ var RAYS = { w: 480, h: 270 };                     // static soft light shafts (
 // Static strips (tile horizontally, bottom aligned): far hills, seabed
 var FAR    = { tw: 640, h: 26 };
 var GROUND = { tw: 640, h: 26 };
-// Plants are built from SLICES stacked slices that lean (shear) a little, slowly, around their base.
-var SLICES = 3;
+// Plants are stacks of SLICE_H-row slices; QML shifts each slice sideways by whole screen pixels (0..~5 px at
+// the tip, slowly) so the plant sways without any texture resampling.
+var SLICE_H = 6;
 // species -> { w, h (art px, per whole plant), layer: back | front | fg }
 var PLANTS = {
     kelpA:  { w: 16, h: 66, layer: "front" },
     kelpB:  { w: 14, h: 48, layer: "front" },
-    kelpC:  { w: 12, h: 33, layer: "front" },
+    kelpC:  { w: 12, h: 36, layer: "front" },
     weedA:  { w: 12, h: 24, layer: "front" },
-    hazeA:  { w: 14, h: 45, layer: "back" },
-    hazeB:  { w: 12, h: 33, layer: "back" },
-    fgA:    { w: 18, h: 45, layer: "fg" },
-    fgB:    { w: 14, h: 33, layer: "fg" }
+    hazeA:  { w: 14, h: 42, layer: "back" },
+    hazeB:  { w: 12, h: 36, layer: "back" },
+    fgA:    { w: 18, h: 42, layer: "fg" },
+    fgB:    { w: 14, h: 36, layer: "fg" }
 };
+function sliceCount(name) { return PLANTS[name].h / SLICE_H; }
 function plantFile(name, slice) { return "plant-" + name + "-" + slice + ".png"; }
 
 // Deterministic placement of plants over `wArt` art pixels of width: [{n, x, flip, ph}] (x = left edge, art px)

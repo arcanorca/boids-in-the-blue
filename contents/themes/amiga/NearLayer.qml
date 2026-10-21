@@ -18,7 +18,7 @@ Item {
             sway: root.sway
             ph: modelData.ph + 0.3
             flip: modelData.flip
-            amp: 0.03
+            lean: 0.03
             x: modelData.x * root.vp
             y: root.height + 2 * root.vp
         }

@@ -4,7 +4,7 @@ import "theme.js" as T
 // Backdrop of the "amiga" theme, back to front:
 //   copper lists (night | dusk | day | stress, cross-faded only when the scene changes, never pulsing),
 //   static soft light shafts, far hills, hazy back plants, kelp, sand (+ rocks, corals), marine snow.
-// Everything is static art except: the plants lean slowly (one 14 s loop, a few pixels), a few specks of
+// Everything is static art except: the plants sway slowly (one 14 s loop, a few whole pixels), a few specks of
 // marine snow drift down. Nothing is colour-cycled, nothing flashes; all of it stops when `paused`.
 Item {
     id: root
@@ -14,17 +14,27 @@ Item {
     property bool paused: false
     property real daylight: 1
     property real stress: 0                // palette-swap step 0..1 (quarters)
-    property real sway: 0                  // 0..1, one slow loop (plants, specks)
+    property real sway: 0                  // 0..1, one slow loop (plants)
 
     clip: true
 
     readonly property var w: T.copperWeights(daylight)
     readonly property bool running: !paused && width > 0
 
-    NumberAnimation on sway {
+    // the plants' sway clock (one 14 s loop), updated 10x/s: their offsets are whole screen pixels anyway
+    Timer {
+        interval: 100
+        repeat: true
+        running: root.running
+        triggeredOnStart: true
+        onTriggered: root.sway = (Date.now() % 14000) / 14000
+    }
+    // the specks' sideways drift (smooth, one 7 s loop)
+    property real drift: 0
+    NumberAnimation on drift {
         from: 0
         to: 1
-        duration: 14000
+        duration: 7000
         loops: Animation.Infinite
         running: root.running
     }
@@ -65,7 +75,7 @@ Item {
             sway: root.sway
             ph: modelData.ph
             flip: modelData.flip
-            amp: 0.02
+            lean: 0.02
             x: modelData.x * root.vp
             y: root.height - 7 * root.vp
         }
@@ -100,7 +110,7 @@ Item {
             height: root.vp
             color: "#cfe"
             opacity: 0.22 + 0.2 * ((index * 7) % 5) / 4
-            x: Math.round(bx + 7 * Math.sin(6.2831853 * (root.sway * 2 + index * 0.137)))
+            x: Math.round(bx + 7 * Math.sin(6.2831853 * (root.drift + index * 0.137)))
             y: Math.round(((p + index * 0.1618) % 1) * range)
             NumberAnimation on p {
                 from: 0

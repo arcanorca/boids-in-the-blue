@@ -1,10 +1,10 @@
 import QtQuick
 import "theme.js" as T
 
-// One plant: SLICES stacked textures, each sheared a little around its own base, so the plant bends
-// smoothly (a few pixels at the tip, well below 0.5 Hz). The root item's origin is the plant's base
-// (bottom centre of the art). Positions stay on whole screen pixels where the texture is placed; only the
-// lean is continuous. `sway` (0..1, one slow loop) comes from the owner and stops with it when paused.
+// One plant: a stack of 6-row slices that are shifted sideways by WHOLE SCREEN PIXELS (0 at the base, up to
+// `tip` px at the top, slowly), so it sways a few pixels without any texture resampling or shearing (which
+// shimmers). The root item's origin is the plant's base (bottom centre of the art). `sway` (0..1, one slow
+// loop) comes from the owner, which stops updating it when paused.
 Item {
     id: s
     property string species: "kelpA"
@@ -12,34 +12,30 @@ Item {
     property real sway: 0
     property real ph: 0
     property bool flip: false
-    property real amp: 0.025                      // lean per slice: px of sideways travel per px of height
+    property real lean: 0.025                    // tip travel in px per px of plant height
     readonly property var spec: T.PLANTS[species]
-    readonly property int sh: spec.h / T.SLICES * vp          // slice height (screen px)
+    readonly property int n: spec.h / T.SLICE_H
+    readonly property int sh: T.SLICE_H * vp                   // slice height (screen px)
     readonly property int iw: spec.w * vp
-    readonly property int ih: sh + vp                            // image height: 1 art row of overlap
+    readonly property real tip: lean * spec.h * vp
+    readonly property real wave: {
+        var p = 6.2831853 * (sway + ph);
+        return Math.sin(p) + 0.45 * Math.sin(2 * p + 1);
+    }
     width: iw
     height: 0
     transform: Scale { origin.x: s.iw / 2; xScale: s.flip ? -1 : 1 }
 
-    function lean(i) {
-        var p = 6.2831853 * (sway + ph);
-        return amp * (Math.sin(p + i * 0.8) + 0.45 * Math.sin(2 * p + i * 1.3 + 1));
-    }
-    Item {
-        id: l0
-        transform: Matrix4x4 { matrix: Qt.matrix4x4(1, -s.lean(0), 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1) }
-        Image { y: -s.ih; width: s.iw; height: s.ih; smooth: false; source: T.DIR + T.plantFile(s.species, 0) }
-        Item {
-            id: l1
-            y: -s.sh
-            transform: Matrix4x4 { matrix: Qt.matrix4x4(1, -s.lean(1), 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1) }
-            Image { y: -s.ih; width: s.iw; height: s.ih; smooth: false; source: T.DIR + T.plantFile(s.species, 1) }
-            Item {
-                id: l2
-                y: -s.sh
-                transform: Matrix4x4 { matrix: Qt.matrix4x4(1, -s.lean(2), 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1) }
-                Image { y: -s.ih; width: s.iw; height: s.ih; smooth: false; source: T.DIR + T.plantFile(s.species, 2) }
-            }
+    Repeater {
+        model: s.n
+        delegate: Image {
+            required property int index
+            x: Math.round(s.tip * s.wave * Math.pow(index / Math.max(1, s.n - 1), 1.5))
+            y: -(index + 1) * s.sh - s.vp
+            width: s.iw
+            height: s.sh + s.vp                  // 1 art row of overlap with the slice above
+            smooth: false
+            source: T.DIR + T.plantFile(s.species, index)
         }
     }
 }

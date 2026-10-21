@@ -96,8 +96,8 @@ module.exports = function (H) {
     }
 
     // ── PLANTS ───────────────────────────────────────────────
-    // Drawn upright on a canvas of the species' size (base = bottom centre), then cut into T.SLICES slices
-    // (each with 1 extra row of overlap) so QML can lean them a little. l lit (left), b body, d shade, h tip light.
+    // Drawn upright on a canvas of the species' size (base = bottom centre), then cut into slices
+    // (SLICE_H rows each, plus 1 extra row of overlap) so QML can shift them sideways a little. l lit (left), b body, d shade, h tip light.
     const PALETTES = {
         front: mkPal({ o: '#043', d: '#065', b: '#1a7', l: '#4c8', h: '#9fa' }),
         back:  mkPal({ d: ['#197', 105], b: ['#2a8', 105], l: ['#5cb', 115], h: ['#7dc', 120] }),
@@ -148,8 +148,8 @@ module.exports = function (H) {
         if (layer !== sp.layer) throw new Error('layer mismatch ' + name);
         const g = fn(sp, o);
         if (layer !== 'back') outline(g, () => true, 'o', 'o');
-        const sh = sp.h / T.SLICES;
-        for (let i = 0; i < T.SLICES; i++) {
+        const sh = T.SLICE_H;
+        for (let i = 0; i < T.sliceCount(name); i++) {
             const rows = [];
             for (let r = 0; r < sh + 1; r++) { const src = sp.h - (i + 1) * sh - 1 + r; rows.push(src >= 0 ? g[src].slice() : Array(sp.w).fill('.')); }
             out[T.plantFile(name, i)] = render(rows, PALETTES[layer]);

@@ -19,6 +19,7 @@ Item {
     property int live: 0
     property real t: 1                     // tween between the last two sim ticks
     property double _last: 0
+    property real _ema: 40                  // smoothed real interval between ticks (ms)
 
     property var _free: [[], [], [], [], [], [], []]       // indexed by delegate type
     property double _zc: 0                                 // newest sprite on top, as in the other renderers
@@ -35,12 +36,15 @@ Item {
         running: false
     }
 
-    // called by sync.js at the start of every tick: restart the tween over the real tick interval
+    // called by sync.js at the start of every tick: restart the tween. Its length is 1.35x the smoothed tick
+    // interval, so a late or early tick (timers fire on frame boundaries) neither stalls nor jumps the sprites:
+    // they always have somewhere to glide to, at an almost constant speed.
     function beginTick() {
-        var now = Date.now(), dt = _last > 0 ? now - _last : 40;
+        var now = Date.now();
+        if (_last > 0) _ema = _ema * 0.85 + Math.max(10, Math.min(150, now - _last)) * 0.15;
         _last = now;
         tween.stop();
-        tween.duration = Math.max(16, Math.min(120, dt));
+        tween.duration = Math.round(_ema * 1.35);
         t = 0;
         if (!paused) tween.start(); else t = 1;
     }
