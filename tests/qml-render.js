@@ -47,6 +47,7 @@ if (cmd === 'compare') {
     const hashes = {};
     for (const th of THEMES) for (const sc of scenes) {
         if (th === 'classic' && sc === 'night') continue;   // classic colours come from main.qml, not the scene
+        if (th === 'onebit' && sc === 'night') continue;     // flat ink water: night is identical to day by design
         const R = render(th, sc, path.join(outDir, th, sc + '.png'));
         const px = R.img.px, N = R.img.W * R.img.H;
         const seen = new Set();
