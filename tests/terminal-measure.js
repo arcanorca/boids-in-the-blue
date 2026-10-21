@@ -34,7 +34,8 @@ function qml(file, argv, timeout) {
     return r.stdout + r.stderr;
 }
 const png32 = file => { const im = png.decode(fs.readFileSync(file)); return { W: im.W, H: im.H, px: im.px, u: new Uint32Array(im.px.buffer, im.px.byteOffset, im.W * im.H) }; };
-const Q = T.texelDevice(1080);                  // device px per texel at 1080p
+const Q = T.texelDevice(1080);                  // device px per texel at 1080p: the water and the bubbles
+const QC = T.creatureTexelDevice(1080);         // device px per texel of the creatures (larger text)
 
 // ── A: calm backdrop ─────────────────────────────────────────
 function measureA() {
@@ -139,29 +140,33 @@ function renderScenes() {
 }
 function measureC() {
     const files = renderScenes();
-    console.log('C  1920x1080, texel = ' + Q + ' px (cells 12 x 24 px)');
+    console.log('C  1920x1080, water texel = ' + Q + ' px (cells 12 x 24 px), creature texel = ' + QC + ' px (cells 18 x 36 px)');
     for (const name in files) {
-        const im = png32(files[name]), L = lumaStats(im), B = busyWindows(im, Q, 24);
+        const im = png32(files[name]), L = lumaStats(im);
+        // the backdrop rule: no busy 24 x 24 window on the water's own texel grid (2 px). Creature glyphs are fine detail
+        // at their own texel (3 px): their windows are reported (INFO), they are the creatures, not backdrop noise.
+        const B = busyWindows(im, Q, 24), BC = busyWindows(im, QC, 24);
         check(L.gamma < 0.25 && B.flagged === 0, 'C ' + name.padEnd(9) + ' mean luma ' + (L.gamma * 100).toFixed(1) + '% (linear ' + (L.linear * 100).toFixed(1) + '%), colours ' + L.colours +
-              ', busy 24x24 windows: ' + B.flagged + '/' + B.total + ' (max busy share ' + (B.max * 100).toFixed(0) + '% at ' + B.at + ')' + (B.flagged ? ' flagged at ' + B.list.join(' ') : ''));
+              ', busy 24x24 windows on the water texel: ' + B.flagged + '/' + B.total + (B.flagged ? ' flagged at ' + B.list.join(' ') : ''));
+        console.log('     INFO creature texel busy windows ' + BC.flagged + '/' + BC.total + ' (' + (BC.flagged / BC.total * 100).toFixed(2) + '%), max share ' + (BC.max * 100).toFixed(0) + '% at ' + BC.at + ': glyph detail of the creatures (and of the seabed row at the bottom)');
     }
 }
 
 // ── D: proportions ───────────────────────────────────────────
 function pngSize(f) { const im = png.decode(fs.readFileSync(path.join(DIR, T.DIR, f))); return { w: im.W, h: im.H }; }
 function measureD() {
-    const px = (f, mag) => { const s = pngSize(f); return { w: s.w * Q * (mag || 1), h: s.h * Q * (mag || 1) }; };
-    const fish = px(T.fishFile(2, 'stripe', 0, 'r', 'g'));                  // mid class at the default size
+    const px = (f, scale) => { const s = pngSize(f); return { w: s.w * scale, h: s.h * scale }; };
+    const fish = px(T.fishFile(2, 'stripe', 0, 'r', 'g'), QC);                  // mid class at the default size
     const rows = {
-        fish: fish, 'fish (small)': px(T.fishFile(1, 'stripe', 0, 'r', 'g')), 'fish (large)': px(T.fishFile(3, 'stripe', 0, 'r', 'g')),
-        angler: px(T.anglerFile(0, 'r', 'g')), orca: px(T.orcaFile(0, 'r', 'g')), jelly: px(T.jellyFile(1, 0, 'g')),
-        worm: px(T.wormFile(0, 0, 'g')), 'bubble small': px(T.bubbleFile(1.5, 'g')), 'bubble big': px(T.bubbleFile(3, 'g')),
-        'kelp (tallest)': px(T.kelpFile(2, 0, 'g'))
+        fish: fish, 'fish (small)': px(T.fishFile(1, 'stripe', 0, 'r', 'g'), QC), 'fish (large)': px(T.fishFile(3, 'stripe', 0, 'r', 'g'), QC),
+        angler: px(T.anglerFile(0, 'r', 'g'), QC), orca: px(T.orcaFile(0, 'r', 'g'), QC), jelly: px(T.jellyFile(1, 0, 'g'), QC),
+        worm: px(T.wormFile(0, 0, 'g'), QC), 'bubble small': px(T.bubbleFile(1.5, 'g'), Q), 'bubble big': px(T.bubbleFile(3, 'g'), Q),
+        'kelp (tallest)': px(T.kelpFile(2, 0, 'g'), Q)
     };
     console.log('D  screen px at 1080p, default settings (fish ' + fish.w + 'x' + fish.h + ')');
     for (const k in rows) console.log('     ' + k.padEnd(16) + rows[k].w + ' x ' + rows[k].h + '  (' + (rows[k].w / fish.w).toFixed(2) + ' x fish length)');
     const within = (v, ref, tol) => Math.abs(v / ref - 1) <= (tol || 0.15);
-    check(within(fish.w, 36) && within(fish.h, 26), 'D1 fish ' + fish.w + 'x' + fish.h + ' vs 36x26');
+    check(within(fish.w, 54) && within(fish.h, 36), 'D1 fish ' + fish.w + 'x' + fish.h + ' vs 54x36');
     check(within(rows.angler.w, 1.5 * fish.w), 'D2 angler length ' + rows.angler.w + ' vs 1.5 x fish ' + (1.5 * fish.w));
     check(within(rows.orca.w, 3 * fish.w), 'D3 orca length ' + rows.orca.w + ' vs 3 x fish ' + (3 * fish.w));
     check(rows.orca.h <= 75, 'D3b orca height ' + rows.orca.h + ' px (limit 75)');

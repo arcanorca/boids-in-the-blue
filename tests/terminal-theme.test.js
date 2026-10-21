@@ -59,25 +59,35 @@ test('every texel is a palette colour of its set (fully opaque or fully clear)',
     }
 });
 
-test('proportions at 1080p: fish 36 x 24 px, angler 1.5 x, orca 3 x (height <= 75), jelly, worm, bubbles, seabed and kelp limits', () => {
-    const Q = T.texelDevice(1080);
-    const size = f => { const im = png.decode(fs.readFileSync(path.join(DIR, T.DIR, f))); return { w: im.W * Q, h: im.H * Q }; };
-    const fish = size(T.fishFile(2, 'stripe', 0, 'r', 'g'));
-    assert.deepStrictEqual([fish.w, fish.h], [36, 24], 'mid fish');
-    assert.ok(Math.abs(fish.h / 26 - 1) <= 0.15, 'mid fish height within 15 % of 26');
+test('proportions at 1080p: fish 54 x 36 px, angler 1.5 x, orca 3 x (height <= 75), jelly, worm, bubbles, seabed and kelp limits', () => {
+    const QC = T.creatureTexelDevice(1080);     // creatures: 3 px per texel
+    const QB = T.texelDevice(1080);             // the water and the bubbles: 2 px per texel
+    const size = (f, q) => { const im = png.decode(fs.readFileSync(path.join(DIR, T.DIR, f))); return { w: im.W * q, h: im.H * q }; };
+    const fish = size(T.fishFile(2, 'stripe', 0, 'r', 'g'), QC);
+    assert.deepStrictEqual([fish.w, fish.h], [54, 36], 'mid fish');
     const within = (v, ref) => Math.abs(v / ref - 1) <= 0.15;
-    assert.ok(within(size(T.anglerFile(0, 'r', 'g')).w, 1.5 * fish.w), 'angler length');
-    const orca = size(T.orcaFile(0, 'r', 'g'));
-    assert.ok(within(orca.w, 3 * fish.w) && orca.w >= 100 && orca.w <= 116, 'orca length ~110 px (3 fish)');
+    assert.ok(within(size(T.anglerFile(0, 'r', 'g'), QC).w, 1.5 * fish.w), 'angler length ~1.5 fish');
+    const orca = size(T.orcaFile(0, 'r', 'g'), QC);
+    assert.ok(within(orca.w, 3 * fish.w) && orca.w >= 140 && orca.w <= 170, 'orca length ~160 px (3 fish)');
     assert.ok(orca.h <= 75, 'orca height ' + orca.h + ' <= 75');
-    assert.ok(within(size(T.jellyFile(1, 0, 'g')).w, fish.w), 'jelly bell about one fish wide');
-    assert.ok(within(size(T.wormFile(0, 0, 'g')).w, 0.3 * fish.w), 'worm about 0.3 fish wide');
-    for (const b of [1.5, 3]) { const w = size(T.bubbleFile(b, 'g')).w; assert.ok(w >= 6 && w <= 14, 'bubble ' + w); }
-    assert.ok(T.SEABED.rows * Q / 1080 <= 0.09, 'seabed <= 9 % of the height');
-    assert.ok(Math.max(...T.KELP.map(k => k.rows)) * T.CELL_H * Q / 1080 <= 0.20, 'tallest kelp <= 20 %');
+    assert.ok(within(size(T.jellyFile(1, 0, 'g'), QC).w, fish.w), 'jelly bell about one fish wide');
+    assert.ok(within(size(T.wormFile(0, 0, 'g'), QC).w, 0.3 * fish.w), 'worm about 0.3 fish wide');
+    for (const b of [0, 1]) { const w = size(T.bubbleFile(b ? 3 : 1.5, 'g'), QB).w; assert.ok(w >= 6 && w <= 14, 'bubble ' + w); }
+    assert.ok(T.SEABED.rows * QB / 1080 <= 0.09, 'seabed <= 9 % of the height');
+    assert.ok(Math.max(...T.KELP.map(k => k.rows)) * T.CELL_H * QB / 1080 <= 0.20, 'tallest kelp <= 20 %');
     // every fish class is whole cells, and the classes order by size
-    const widths = T.FISH_CLASSES.map((c, i) => size(T.fishFile(i, 'stripe', 0, 'r', 'g')).w);
+    const widths = T.FISH_CLASSES.map((c, i) => size(T.fishFile(i, 'stripe', 0, 'r', 'g'), QC).w);
     assert.ok(widths[0] <= widths[1] && widths[1] < widths[2] && widths[2] < widths[3], 'classes ' + widths);   // fry and small: two cells each
+});
+
+test('the texture sizes are the sizes theme.js declares', () => {
+    const dims = f => { const im = png.decode(fs.readFileSync(path.join(DIR, T.DIR, f))); return [im.W, im.H]; };
+    assert.deepStrictEqual(dims(T.orcaFile(0, 'r', 'g')), [T.ORCA.cols, T.ORCA.rows]);
+    assert.deepStrictEqual(dims(T.anglerFile(0, 'r', 'g')), [T.ANGLER.cols, T.ANGLER.rows]);
+    for (let c = 0; c < T.JELLY.length; c++) assert.deepStrictEqual(dims(T.jellyFile(c, 0, 'g')), [T.JELLY[c].cols, T.JELLY[c].rows], 'jelly ' + c);
+    for (let c = 0; c < T.FISH_CLASSES.length; c++) assert.deepStrictEqual(dims(T.fishFile(c, 'stripe', 0, 'r', 'g')), [T.FISH_CLASSES[c].cells * T.CELL_W, T.CELL_H], 'fish ' + c);
+    for (let st = 0; st < 3; st++) assert.deepStrictEqual(dims(T.wormFile(st, 0, 'g')), [T.WORM.cols, T.WORM.rowsByStage[st]], 'worm ' + st);
+    for (let b = 0; b < 2; b++) assert.deepStrictEqual(dims(T.bubbleFile(b ? 3 : 1.5, 'g')), [T.BUBBLE[b].cols, T.BUBBLE[b].rows], 'bubble ' + b);
 });
 
 test('facing is the file: right-facing art for right-moving fish, the orca flag is inverted, both sync rules are in sync.js', () => {
