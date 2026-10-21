@@ -112,7 +112,7 @@ def text_row(text, roles):
     return [(mask_of(c), r, None) for c, r in zip(text, roles)]
 
 
-MIRROR = {'<': '>', '>': '<', '(': ')', ')': '(', '/': '\\', '\\': '/', '{': '}', '}': '{', '[': ']', ']': '[',
+MIRROR = {'`': "'", "'": '`', '<': '>', '>': '<', '(': ')', ')': '(', '/': '\\', '\\': '/', '{': '}', '}': '{', '[': ']', ']': '[',
           'd': 'b', 'b': 'd', 'q': 'p', 'p': 'q'}
 
 
@@ -121,8 +121,9 @@ def mirror_text(text, roles):
     return ''.join(MIRROR.get(c, c) for c in reversed(text)), roles[::-1]
 
 
-def render(rows, pal, inv=False):
-    """rows: a list of rows of cells -> RGBA image. inv: every texel opaque (ink on a red box, the alarm look)."""
+def render(rows, pal, inv=False, opaque=False):
+    """rows: a list of rows of cells -> RGBA image. inv: every texel opaque (ink on a red box, the alarm look).
+    opaque: the cell's background is the water colour (BG), so a creature box covers what is behind it."""
     H = len(rows) * CH
     W = len(rows[0]) * CW
     im = Image.new('RGBA', (W, H), (0, 0, 0, 0))
@@ -137,8 +138,11 @@ def render(rows, pal, inv=False):
                     else:
                         role = fg if on else bg
                         if role is None:
-                            continue
-                        c = pal[role]
+                            if not opaque:
+                                continue
+                            c = BG
+                        else:
+                            c = pal[role]
                     px[cx * CW + x, cy * CH + y] = hex_rgba(c)
     return im
 
@@ -240,77 +244,27 @@ def kelp_rows(cls, frame):
     return [text_row('{' if (y + frame) % 2 == 0 else '}', 'd') for y in range(KELP_HEIGHT[cls])]
 
 
-# ── orca: block-character art, 9 x 2 cells (162 x 72 px at 1080p) ──
-# A hand-drawn map of 18 x 16 units (3 texels across, 1.5 texels down each; a cell is 2 x 8 units). Each 6 x 12 cell is
-# quantised to the best block shape (all quadrant patterns and the eighth blocks) with two colours: the black body is
-# normal green, the saddle, the eye patch, the belly and the chin are bright. Frame 1 lifts the flukes by one unit.
-ORCA_TONES = {'W': 'b', 'G': 'b', 'B': 'n'}      # map character -> colour role
-ORCA_MAP = [
-    '.........BB.......',
-    '........BBBB......',
-    '.......BBBBBB.....',
-    '......BBBBBBBB....',
-    '.....BBBBBBBBBB...',
-    '....BBBBBBBBBBBB..',
-    'BB..BBBBBBBBBBBBBB',
-    'BBB.BBBBBBBBBWWWBB',
-    '..BBBBBBBBBBWWWBBB',
-    '..BBBBBBBBBBBBBBBB',
-    '..BBBBBWWWWWWWWWWB',
-    '..BBBBBWBBWWWWWWWW',
-    '...BBBBWBBWWWWWW..',
-    'BB..BBBWWWWWW.....',
-    'BB...BBWWWWW......',
-    '.B.....BB.........',
+# ── orca: text art (every cell is a glyph of the font), 10 x 4 cells (180 x 144 px at 1080p), facing right ──
+# Outline in normal green, the eye patch, the belly and the saddle in bright green. Frame 0: flukes on rows 1 and 3;
+# frame 1: the upper fluke lifts one row (the tail goes up). The left-facing art is the same rows mirrored.
+ORCA_TEXT = [
+    (["   ,/|    ", "\\__/ |__.`", "<_____o__>", " /-.___,-'"],
+     ["   nnn    ", "nnnnnnnnnn", "nnnnnbbbnn", "nnnnbbbnnn"]),
+    (["\\  ,/|    ", " __/ |__.`", "<_____o__>", " /-.___,-'"],
+     ["n  nnn    ", "nnnnnnnnnn", "nnnnnbbbnn", "nnnnbbbnnn"]),
 ]
-assert len(ORCA_MAP) == 16 and all(len(r) == 18 for r in ORCA_MAP), 'orca map must be 18 x 16 units'
-
-
-def orca_map(frame):
-    m = [list(r) for r in ORCA_MAP]
-    if frame == 1:
-        # the flukes (the three left units) lift by one unit
-        for y in range(16):
-            for x in range(3):
-                m[y][x] = ORCA_MAP[y + 1][x] if y + 1 < 16 else '.'
-    return m
-
-
-def _quantise(labels):
-    """labels: 12 x 6 texels of None / 'b' / 'n' / 'd'. The cell (mask, fg, bg) with the fewest wrong texels; ties prefer
-    fewer coloured sides, then the earlier candidate (stable output)."""
-    best = None
-    for mask in BLOCK_CANDIDATES:
-        for fg in (None, 'd', 'n', 'b'):
-            for bg in (None, 'd', 'n', 'b'):
-                err = 0
-                for y in range(CH):
-                    for x in range(CW):
-                        if (fg if mask[y][x] else bg) != labels[y][x]:
-                            err += 1
-                key = (err, (fg is not None) + (bg is not None))
-                if best is None or key < best[0]:
-                    best = (key, (mask, fg, bg))
-    return best[1]
+for _t, _r in ORCA_TEXT:
+    assert len(_t) == 4 and len(_r) == 4 and all(len(x) == 10 and len(y) == 10 for x, y in zip(_t, _r)), 'orca rows are 10 cells'
 
 
 def orca_rows(frame, face):
-    amap = orca_map(frame)
-    labels = [[None] * 54 for _ in range(24)]          # 24 texel rows x 54 texel columns
-    for ty in range(24):
-        uy = min(15, int(ty * 2 / 3))                  # a unit is 1.5 texels down
-        for tx in range(54):
-            labels[ty][tx] = ORCA_TONES.get(amap[uy][tx // 3])
-    cells = []
-    for cy in range(2):
-        row = []
-        for cx in range(9):
-            sub = [labels[cy * CH + y][cx * CW:(cx + 1) * CW] for y in range(CH)]
-            row.append(_quantise(sub))
-        cells.append(row)
-    if face == 'l':
-        cells = [[(mirror_mask(m), f, b) for (m, f, b) in reversed(r)] for r in cells]
-    return cells
+    text, roles = ORCA_TEXT[frame]
+    rows = []
+    for t, r in zip(text, roles):
+        if face == 'l':
+            t, r = mirror_text(t, r)
+        rows.append(text_row(t, r))
+    return rows
 
 
 # the lure: a '*' (normal at rest, bright when it flares; a '+' at the flare), the stalk stays normal green
@@ -401,20 +355,20 @@ def gen_all():
                 for f in (0, 1):
                     for face in ('r', 'l'):
                         out['fish-%s-%s-%d-%s-%s.png' % (cls, v, f, face, s)] = \
-                            render(fish_rows(v, cls, f, face), pal, inv=(s == 'ri'))
+                            render(fish_rows(v, cls, f, face), pal, inv=(s == 'ri'), opaque=True)
         for f in (0, 1):
             for face in ('r', 'l'):
-                out['fish-fry-%d-%s-%s.png' % (f, face, s)] = render(fry_rows(f, face), pal, inv=(s == 'ri'))
+                out['fish-fry-%d-%s-%s.png' % (f, face, s)] = render(fry_rows(f, face), pal, inv=(s == 'ri'), opaque=True)
     for s in BASE_SETS:
         pal = PAL[s]
         for f in (0, 1):
             for face in ('r', 'l'):
-                out['orca-%d-%s-%s.png' % (f, face, s)] = render(orca_rows(f, face), pal)
-                out['angler-%d-%s-%s.png' % (f, face, s)] = render(angler_rows(f, face), pal)
+                out['orca-%d-%s-%s.png' % (f, face, s)] = render(orca_rows(f, face), pal, opaque=True)
+                out['angler-%d-%s-%s.png' % (f, face, s)] = render(angler_rows(f, face), pal, opaque=True)
             for cls in FISH_CLASSES:
-                out['jelly-%s-%d-%s.png' % (cls, f, s)] = render(jelly_rows(cls, f) if cls in JELLY else [], pal)
+                out['jelly-%s-%d-%s.png' % (cls, f, s)] = render(jelly_rows(cls, f) if cls in JELLY else [], pal, opaque=True)
             for stage in range(3):
-                out['worm-%d-%d-%s.png' % (stage, f, s)] = render(worm_rows(stage, f), pal)
+                out['worm-%d-%d-%s.png' % (stage, f, s)] = render(worm_rows(stage, f), pal, opaque=True)
             out['sparkle-%d-%s.png' % (f, s)] = render(sparkle_rows(f), pal)
         for lvl in range(3):
             out['lure-%d-%s.png' % (lvl, s)] = render(lure_rows(lvl), pal)

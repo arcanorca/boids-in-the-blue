@@ -80,7 +80,7 @@ function fishFile(cls, variant, frame, face, set) {
 // ── the rest of the cast (cols x rows in texels, cells of 6 x 12) ──
 // Reference at 1080p: orca 108 x 72 px (about 3 fish long), angler 60 x 72 px (about 1.7 fish), jelly bell
 // 36 px wide (one fish), worm 12 px wide (about 0.3 fish), bubbles 12 px boxes with a 6-12 px ink.
-var ORCA = { cols: 54, rows: 24 };                  // 9 x 2 cells of block art (162 x 72 px at 1080p)
+var ORCA = { cols: 60, rows: 48 };                  // 10 x 4 cells of text art (180 x 144 px at 1080p)
 var ANGLER = { cols: 30, rows: 36 };                // 5 x 3 cells
 var ANGLER_LURE = { x: 24, y: 0 };                 // the lure cell of the right-facing art (left-facing: x 0)
 var JELLY = [
@@ -123,9 +123,9 @@ function bubbleFile(scale, set) { return bubbleClass(scale) ? "bubble-b-" + set 
 function sparkleFile(frame, set) { return "sparkle-" + frame + "-" + set + ".png"; }
 
 // ── backdrop, in texel rows (multiples of CELL_H) ───────────
-var SURFACE = { y: 24, rows: 12, floor: 63 };     // waves: text row 2 (about 48 px from the top, below a 46 px panel);
-                                                  // the creatures' centres stay below floor texels (126 px): the waves
-                                                  // plus half of the tallest creature (a jelly, 108 px)
+var SURFACE = { y: 24, rows: 12, floor: 72 };     // waves: text row 2 (about 48 px from the top, below a 46 px panel);
+                                                  // the creatures' centres stay below floor texels (144 px): the waves
+                                                  // plus half of the tallest creature (the orca, 144 px)
 var SEABED = { cols: 80, rows: 48, y: 492 };       // 4 text rows on the bottom: 96 px = 8.9 % of 1080
 var PROMPT = { x: CELL_W, y: 528, cols: 17, rows: CELL_H };                   // "$ boids --watch " + block cursor
 var STATUS = { cols: 32, rows: CELL_H, y: 528 };                             // "[||||| ... ] load  50%" at the bottom right
