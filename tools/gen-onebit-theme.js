@@ -570,10 +570,15 @@ function waterLayers() {
             if (e - c < 6) for (let i = c; i < e; i++) on[i] = 0;
             c = e;
         }
-        for (let c = 0; c < Wt.cols; c++) {
-            if (!on[c]) continue;
-            const yy = yBase + swell(c);
-            if (yy >= 6 && yy < Wt.rows - 2) layers[layer][yy][c] = 'p';
+        // Each dash keeps one swell offset (taken at its left end) so it never splits across two rows
+        for (let c = 0; c < Wt.cols;) {
+            if (!on[c]) { c++; continue; }
+            const off = swell(c);
+            let e = c;
+            while (e < Wt.cols && on[e]) e++;
+            const yy = yBase + off;
+            if (yy >= 6 && yy < Wt.rows - 2) for (let i = c; i < e; i++) layers[layer][yy][i] = 'p';
+            c = e;
         }
     };
 
