@@ -74,7 +74,7 @@ var THEMES = [
     {
         id: "terminal",
         name: "Terminal",
-        description: "A green-phosphor terminal: the sea is made of text characters, with a blocky black-and-white orca, a calm kelp seabed, a prompt line and a load bar that turns fish amber and red under stress.",
+        description: "A green-phosphor CRT: the sea is a calm field of text, fish, jellyfish, an anglerfish and a black-and-white orca drawn from characters, a kelp seabed, a prompt line and a load bar that turns fish amber and red under stress.",
         usesDayNight: true,
         usesWaterColors: false
     }

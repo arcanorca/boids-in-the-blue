@@ -69,12 +69,11 @@ function _sync(sim, parent, component, ps, dpr, night, psBg) {
             } else {
                 component.target(dg, ent.x, ent.y);
             }
-            var pScale = kind === 'bubble' ? psBg : ps;      // creatures at the creature scale, bubbles are water: background scale
-            if (dg.ps !== pScale) dg.ps = pScale;
+            if (dg.ps !== ps) dg.ps = ps;                  // one cell scale for everything
 
             var fr, mag, face, key, spd, a;
             if (kind === 'fish') {
-                var cls = T.fishClass(size), c = T.FISH_CLASSES[cls];
+                var cls = T.fishClass(size);
                 mag = T.fishMag(size);
                 face = ent.facingRight ? 'r' : 'l';
                 spd = Math.sqrt(ent.vx * ent.vx + ent.vy * ent.vy);
@@ -93,7 +92,6 @@ function _sync(sim, parent, component, ps, dpr, night, psBg) {
                 if (dg.key !== key) {
                     dg.key = key;
                     dg.src = T.fishFile(cls, variant, fr, face, set);
-                    dg.cw = c.cells * T.CELL_W; dg.ch = T.CELL_H;
                     if (dg.mag !== mag) dg.mag = mag;
                 }
                 // newborns sparkle while spiralling out (birthAnim runs 0..60), slowly: about 0.8 Hz
@@ -116,7 +114,7 @@ function _sync(sim, parent, component, ps, dpr, night, psBg) {
                 if (dg.key !== key) {
                     dg.key = key;
                     dg.src = T.orcaFile(fr, face, set0);
-                    dg.cw = T.ORCA.cols; dg.ch = T.ORCA.rows; dg.mag = mag;
+                    dg.mag = mag;
                 }
             } else if (kind === 'angler') {
                 face = ent.facingRight ? 'r' : 'l';
@@ -129,8 +127,9 @@ function _sync(sim, parent, component, ps, dpr, night, psBg) {
                 if (dg.key !== key) {
                     dg.key = key;
                     dg.src = T.anglerFile(fr, face, set0);
-                    dg.cw = T.ANGLER.cols; dg.ch = T.ANGLER.rows; dg.mag = mag;
-                    dg.lureX = face === 'r' ? T.ANGLER_LURE.x : 0; dg.lureY = T.ANGLER_LURE.y;
+                    dg.mag = mag;
+                    var lp = T.ANGLER_LURE[face];
+                    dg.lureX = lp.x * T.CELL_W; dg.lureY = lp.y * T.CELL_H;
                 }
                 // lure: two slow incommensurate sines -> 0 dim, 1 normal, 2 bright (a change every few seconds)
                 dg.tick++;
@@ -149,7 +148,7 @@ function _sync(sim, parent, component, ps, dpr, night, psBg) {
                 if (dg.key !== key) {
                     dg.key = key;
                     dg.src = T.jellyFile(jc, fr, set0);
-                    dg.cw = T.JELLY[jc].cols; dg.ch = T.JELLY[jc].rows; dg.mag = mag;
+                    dg.mag = mag;
                 }
             } else if (kind === 'worm') {
                 mag = T.wormMag(size);
@@ -159,11 +158,11 @@ function _sync(sim, parent, component, ps, dpr, night, psBg) {
                 if (dg.key !== key) {
                     dg.key = key;
                     dg.src = T.wormFile(stage, fr, set0);
-                    dg.cw = T.WORM.cols; dg.ch = T.WORM.rowsByStage[stage]; dg.mag = mag;
+                    dg.mag = mag;
                 }
             } else if (kind === 'bubble') {
-                var bc = T.bubbleClass(ent.scale), bf = T.bubbleFile(ent.scale, set0);
-                if (dg.src !== bf) { dg.src = bf; dg.cw = T.BUBBLE[bc].cols; dg.ch = T.BUBBLE[bc].rows; }
+                var bf = T.bubbleFile(ent.scale, set0);
+                if (dg.src !== bf) dg.src = bf;
             }
         }
     }

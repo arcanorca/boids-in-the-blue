@@ -33,8 +33,6 @@ Item {
 
     // theme state (written by sync.js)
     property string src: ""
-    property int cw: 1                  // texture size in texels
-    property int ch: 1
     property int mag: 1                 // whole-texel magnification of the sprite
     property real ps: 2                 // screen px per texel
     property real phase: 0              // adapter-private animation accumulators
@@ -52,13 +50,15 @@ Item {
     property var rec: null              // glide record owned by the layer (targets, pool slot)
 
     readonly property real _u: ps * mag                    // screen px per texel of this sprite
-    readonly property real _w: cw * _u
-    readonly property real _h: ch * _u
-    readonly property real _ox: -Math.floor(cw / 2) * _u + shakeX * ps
-    readonly property real _oy: -Math.floor(ch / 2) * _u + shakeY * ps
+    // the box is trimmed to the ink, so every texture brings its own size; the sprite is centred on it
+    readonly property real _w: body.implicitWidth * _u
+    readonly property real _h: body.implicitHeight * _u
+    readonly property real _ox: -Math.floor(body.implicitWidth / 2) * _u + shakeX * ps
+    readonly property real _oy: -Math.floor(body.implicitHeight / 2) * _u + shakeY * ps
 
     // body: the art texture (its facing is in the file name)
     Image {
+        id: body
         x: root._ox
         y: root._oy
         width: root._w
@@ -67,23 +67,25 @@ Item {
         smooth: false
         source: visible ? T.DIR + root.src : ""
     }
-    // angler lure: one text cell (a '*' in three intensities) on the tip of the stalk
+    // angler lure: one text cell (a '*' in three intensities, with its glow) on the tip of the stalk
     Image {
+        id: lure
         visible: root.lureLevel >= 0
-        x: root._ox + root.lureX * root._u
-        y: root._oy + root.lureY * root._u
-        width: T.CELL_W * root._u
-        height: T.CELL_H * root._u
+        x: root._ox + (root.lureX - T.LURE_PAD) * root._u
+        y: root._oy + (root.lureY - T.LURE_PAD) * root._u
+        width: lure.implicitWidth * root._u
+        height: lure.implicitHeight * root._u
         smooth: false
         source: visible ? T.DIR + root.lureSrc : ""
     }
     // newborn sparkle: one text cell above the head
     Image {
+        id: sparkleImg
         visible: root.sparkle > 0
         x: root._ox + (root._w - T.CELL_W * root._u) / 2
         y: root._oy - T.CELL_H * root._u
-        width: T.CELL_W * root._u
-        height: T.CELL_H * root._u
+        width: sparkleImg.implicitWidth * root._u
+        height: sparkleImg.implicitHeight * root._u
         smooth: false
         source: visible ? T.DIR + root.sparkleSrc : ""
     }
