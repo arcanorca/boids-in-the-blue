@@ -1,55 +1,56 @@
-# 1-Bit
+# 1-Bit (woodcut engraving ocean)
 
-Two colours, nothing else: muted paper `#d9d2bc` on soft ink `#10151f`, light on dark. Every texel of every
-texture is one of them (or transparent); there are no blends, no opacity, no filtering, no dither and no noise.
-`tests/onebit-theme.test.js` checks that for each PNG, and `tests/onebit-measure.js` measures the comfort
-criteria below on real offscreen renders.
+Two colours and transparency, nothing else: ink `#0e1520` on ivory paper `#dfd7c2`. Every texel of every
+texture in `img/` is one of those two or fully transparent. Nothing is blended, filtered, dithered or noised.
+`tests/onebit-theme.test.js` checks the texels, and `tests/onebit-measure.js` measures the comfort criteria on
+offscreen renders.
 
-## Principles
+## Palette and scale
 
-- **Creatures are the brightest, heaviest things on screen.** Every creature is a SOLID paper shape on the dark
-  water with its details in ink inside (eye, gill, stripes, spots, checker, belly line, teeth), and a 1 texel ink
-  outline only to separate overlapping sprites. The backdrop stays quiet: few, short, widely spaced dashes.
-- **Calm first.** A wallpaper is looked at for hours. The screen is flat dark ink; tone comes from a few static
-  horizontal hatch lines (1 texel thick, short irregular dashes, pitch 8-23 texels), never from a stipple. Mean
-  luminance is about 11 % (limit 25 %), and no 24x24 px region contains a period-2 pattern.
-- **Four bands, three seams.** Near the surface the hatching runs across the screen under a gentle wave line
-  and above a solid seam. Below it the same hatching is confined to five narrow diagonal light shafts (lean 1
-  column per 2 rows, clean stair-step edges, a dashed diagonal on the lit side), and its pitch widens with depth; the deep water is flat ink. Day shows all six line layers, night only the surface band
-  and the shaft edges (layers switch one dash row at a time, so a day/night cycle never flashes).
-- **One texel scale.** The screen is 360 texels tall; a texel is a whole number of device pixels (3 px at 1080p).
-  Every sprite is drawn at that scale (big size sliders use 2x/3x whole texels, small ones a smaller variant).
-- **Silhouette and line weight.** Light from the upper left. Fish are solid paper with ink marks (stripe, spot,
-  plain with a gill line, outline = an ink contour line inside the rim, checker); orca = solid paper silhouette with
-  an ink back and dorsal-fin core, paper belly, chin, eye patch and saddle and solid flukes; angler = solid paper
-  body, ink eye and mouth with paper teeth, a bold stalk and a bright bulb; jelly = solid dome with an ink frill band,
-  scalloped rim and 3 clear tentacles; worm and ring bubbles; solid kelp fronds 2-3 texels thick (five plants) and
-  a seabed with a 2 texel paper ridge, hatch dashes below it and ink boulders (broken, so passing fish keep contrast).
-- **Sizes at 1080p** (default settings): fish 36x27 px (30..42 with the size variation), angler 54x51, orca
-  111x60, jelly bell 39 wide, worm 12x24, bubbles 6 and 12 px, seabed 8 % of the height, tallest kelp 16 %.
-- **Smooth motion, crisp art.** The simulation ticks at 25 Hz; every sprite glides to its new position with a
-  40 ms linear animation (like the classic theme) and `x/y` are rounded to whole *screen* pixels, so textures are
-  never blended and motion is uniform at display rate. Positions are not snapped to the texel grid.
-- **Few, slow frames.** Fish, orca, angler: 4 tail frames (neutral, up, neutral, down) at 2-3 frames/s. Jelly:
-  pulse from the simulation's wobble phase (about 1.4 frames/s). Worm: 4 wiggle frames, shortening in three steps
-  as it dies. The backdrop moves only as kelp sway (one texel per step, a step about every 2 s per plant) and a
-  few specks sinking one texel every few seconds, from one 2 Hz timer. Nothing moves while `paused`.
-- **Stress in 1-bit language** (fish only, never full-screen): from 0.25 a growing share of the fish is
-  inverted (ink body, paper pattern, a 2 texel paper contour: they turn hollow and dimmer but still read); from 0.5 a share
-  trembles by one texel with a new offset at most every 0.5 s; above 1.2 about a third alternates between
-  inverted and normal at 0.8 Hz, each with its own phase.
-- **Babies** use the small size classes and show a slow two-frame sparkle (0.8 Hz) while they spiral out.
+- One texel is a whole number of device pixels: the screen is `GRID_ROWS = 360` texels tall (3 px per texel at 1080p).
+- Backdrop textures are drawn at that scale in a texel world (`Ambient.qml`); creatures are placed in screen
+  pixels so they glide, but are drawn at the same texel size.
 
-## What changed from the first version
+## Water: how the volume is built
 
-The first version covered the whole screen with a blue-noise stipple gradient (bright paper at the top), animated
-on a 200 ms timer, snapped positions to the art grid and blinked stressed fish at 1.4 Hz. That was tiring,
-shimmered, drowned the creatures and made proportions inconsistent. Now: flat ink water with hatch lines, 2 Hz
-backdrop, interpolated positions, a slow stress state, and redrawn cast with consistent sizes.
+- `tools/gen-onebit-theme.js` builds six static layers `water-0..5.png` (640x280 texels). Each layer adds one
+  step of daylight, so `water-0` is night and `water-5` is full day. A layer changes only when the daylight
+  crosses a 1/6 step, so a day/night cycle never flashes.
+- Hatching is horizontal, undulating, 1-texel dashes of at least 6 texels, in four depth bands with pitch 5, 5, 7
+  and 10 texels and coverage falling with depth. Rows are never closer than 3 texels, and each dash keeps one
+  swell offset so it never splits.
+- Five diagonal sunbeams add denser hatch in their cores (`beams` in `theme.js`); the cores are about twice as
+  dense as the open water, and beams widen with depth.
+- A braided wave strip (`surface.png`) closes the top, and the seabed and kelp sit on the bottom.
 
-## Files
+## Seabed and kelp
 
-`theme.js` (descriptor: sizes, classes, backdrop layout), `sync.js` (adapter), `Scene.qml`, `Ambient.qml`,
-`EntityLayer.qml` (pool), `OneBitSprite.qml`, `img/` (generated: `node tools/gen-onebit-theme.js`,
-`--sheet out.png` for a contact sheet with `SCALE=8`, `--check` to verify), `preview.png` (480x270).
-Measurements: `node tests/onebit-measure.js [A B C D S]`.
+- `seabed.png` is a 640x32 layered strip: a paper ridge, sculpted ink boulders, hatch dunes and coral clumps.
+  It stays at 8.9 % of the screen height.
+- Nine kelp plants (`kelp-<class>-<frame>.png`, three height classes, 17.8 % of the height at most) are placed in
+  `Ambient.qml` on the ridge line (`seabedTop`), so their bases sit on the seabed.
+
+## Creatures
+
+- Fish have five size classes and five patterns (stripe, spot, solid, hollow, check). The reference mid fish is
+  13x9 texels, 39x27 px at 1080p. Their colour is not used: the variant is the pattern.
+- Creatures are paper shapes with ink markings and ink outlines inside their rim, so they stay the heaviest,
+  brightest things against the hatch. Orca and angler carry the largest paper areas.
+- Orca 114x60 px (about 3 fish long), angler 57x51 px, jelly bell 42 px wide, worm 12x27 px, bubbles 6 and 12 px.
+
+## Motion and rates
+
+- The simulation steps 25 times per second; each sprite interpolates between steps, so motion is smooth.
+- Fish animate about 2-3 frames per second; orca and angler slower; jelly bell pulses about 1.4 frames per second.
+- The backdrop timer runs every 500 ms. Kelp changes frame every 4 ticks (2 s per frame, 0.5 Hz). Marine snow
+  specks sink one texel every 1.5-3 s. Nothing else in the backdrop moves.
+- Stress only inverts a growing share of fish from stress 0.25 (ink body, paper pattern), trembles a share by one
+  texel from stress 0.5, and above stress 1.2 about a third of the fish alternate between normal and inverted at
+  0.8 Hz (at most 2 flips per second per fish). Nothing flashes across the screen, and everything stops on pause.
+
+## Measured (1920x1080, default settings)
+
+- Calm backdrop: at most 0.49 % of pixels differ between frames sampled 0.1-10 s apart (limit 2 %); no pixel
+  changes faster than 2 Hz.
+- Mean luminance 10-13 % in day, night, crowded, stress, feeding (limit 25 %). No 24x24 px window with a period <= 2 pattern.
+- Sizes: see above; seabed 8.9 % and tallest kelp 17.8 % of the screen height.

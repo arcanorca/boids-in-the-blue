@@ -67,7 +67,7 @@ var THEMES = [
     {
         id: "onebit",
         name: "1-Bit",
-        description: "Two colours only: muted paper on soft ink. Calm hatch-line water and light shafts, a solid seabed, line-art creatures, patterned fish that turn hollow when stressed.",
+        description: "Two colours only: ivory paper on deep ink. Engraved hatch-line water with diagonal sunbeams, a layered reef with kelp, bold line-art creatures; fish invert when stressed.",
         usesDayNight: true,
         usesWaterColors: false
     }
