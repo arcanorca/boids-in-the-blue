@@ -1,14 +1,14 @@
 import QtQuick
 import "theme.js" as T
 
-// Background of the "nes" theme, built like an NES screen: a universal backdrop colour, four water
-// shades in bands with one-row dither seams, a static waterline and a seabed nametable. The day /
+// Background of the "nes" theme, built like an NES screen: a universal backdrop colour, a water gradient
+// (a dithered texture of two NES teal / navy entries, see theme.js WATER), a static waterline and a seabed nametable. The day /
 // dusk / night looks are palette swaps (textures baked per palette state). It is calm: the water,
 // the waterline and the seabed never move. One 2 Hz tick (a Timer that stops while `paused`) steps
 // the kelp sway (a bank switch, 1 Hz), the glints and the few ambient bubbles, in whole virtual
 // pixels and never faster than 2 Hz; nothing else animates.
 //
-// Cost: 4 water rects + 3 seams + a few surface/seabed tiles + 8 glints + 6 bubbles, no per-frame
+// Cost: one water texture + a few surface/seabed tiles + 8 glints + 6 bubbles, no per-frame
 // JavaScript beyond the 2 Hz tick.
 Item {
     id: root

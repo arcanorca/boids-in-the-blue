@@ -48,19 +48,17 @@ var ALARM_PERIOD_MS = 1000;                        // one state lasts 1 s: the a
 
 // ── background palettes (attribute table, per 16x16 area) ──
 // u = the universal backdrop colour ($3F00); pal[n] = BG palette n colours 1..3.
-//   0 water   the water shades top .. deep (the deepest shade is the universal colour); all water
-//             uses this one palette, so the bands may change height on any row
+//   0 water   the surface and floor shades (WATER); the dither between them is drawn into the water texture
 //   1 sand    sand, rocks, boulders
 //   2 kelp    weed
 //   3 surface foam of the waterline (colour 1 = the top water shade so it joins seamlessly)
-function _fade(c) { return c >= 0x10 ? c - 0x10 : 0x0F; }          // the classic NES fade step (unused now)
 // Water (palette 0): colour 1 = the surface shade, colour 2 = the floor shade, colour 3 unused (= floor).
 // The NES teal / navy family has only these two muted entries ($1C mid teal, $0C deep navy), so the
 // water ramp between them is ordered dither (see WATER). There is no black water: the universal colour
 // is the floor shade too, and black ($0D/$0F) is only used by sprite outlines and eyes.
 var BG_DAY = { u: 0x0C, pal: [[0x1C, 0x0C, 0x0C], [0x08, 0x18, 0x36], [0x0A, 0x1A, 0x2A], [0x1C, 0x3B, 0x30]] };
 var BG_DUSK = { u: 0x0C, pal: [[0x1C, 0x0C, 0x0C], [0x08, 0x07, 0x18], [0x0A, 0x0A, 0x1A], [0x1C, 0x3B, 0x30]] };
-var BG_NIGHT = { u: 0x02, pal: [[0x0C, 0x02, 0x02], [0x0D, 0x08, 0x00], [0x0A, 0x0B, 0x0A], [0x0C, 0x1C, 0x3B]] };
+var BG_NIGHT = { u: 0x0C, pal: [[0x0C, 0x0C, 0x0C], [0x08, 0x08, 0x2D], [0x0A, 0x0B, 0x0A], [0x0C, 0x1C, 0x3B]] };
 var BG = { day: BG_DAY, dusk: BG_DUSK, night: BG_NIGHT };
 var BG_STATES = ["day", "dusk", "night"];
 // daylight (0 night .. 1 day) -> palette state
