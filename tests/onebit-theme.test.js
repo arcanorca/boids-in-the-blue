@@ -104,9 +104,16 @@ test('the backdrop is calm and dark: dots only, each dot clear of the others, lo
             }
             comps.push(cells);
         }
+        // the width is measured around the tile seam: x wraps at W
+        const span = vals => {
+            const u = [...new Set(vals)].sort((a, b) => a - b);
+            let gap = u[0] + W - u[u.length - 1];
+            for (let k = 1; k < u.length; k++) gap = Math.max(gap, u[k] - u[k - 1]);
+            return W - gap + 1;
+        };
         for (const cells of comps) {
             const xs = cells.map(c => c % W), ys = cells.map(c => Math.floor(c / W));
-            const bw = Math.max(...xs) - Math.min(...xs) + 1, bh = Math.max(...ys) - Math.min(...ys) + 1;
+            const bw = span(xs), bh = Math.max(...ys) - Math.min(...ys) + 1;
             assert.ok(bw <= 3 && bh <= 3, 'water layer ' + l + ': a paper shape is ' + bw + 'x' + bh + ' texels (dots are at most 3x3)');
         }
         // distinct dots keep at least 3 texels (Euclidean) between their nearest texels

@@ -259,13 +259,13 @@ function orcaSprite(frame, small) {
     const g = mk(W, H);
     const dir = [0, -1, 0, 1][frame & 3];
     const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
-    const BODY_CY = 10.4;
-    const inBody = (u, v) => ((u - 22.5) / 14) ** 2 + ((v - BODY_CY) / 5.6) ** 2 <= 1;        // stocky, rounded head at the right
+    const BODY_CY = 10.6;
+    const inBody = (u, v) => ((u - 22.5) / 14) ** 2 + ((v - BODY_CY) / 6.6) ** 2 <= 1;        // stocky, rounded head at the right
     const inPeduncle = (u, v) => u >= 4.5 && u <= 11 && Math.abs(v - BODY_CY) <= 2.4;       // narrow tail stock
     const inFin = (u, v) => {                                                              // tall triangular dorsal fin, swept back
-        if (v < 1.6 || v > 5.2) return false;
-        const t = (v - 1.6) / 3.6;
-        return u >= 19.8 - 3.3 * t && u <= 19.8 + 5.7 * t;
+        if (v < 1.5 || v > 5.6) return false;
+        const t = (v - 1.5) / 4.1;
+        return u >= 19.6 - 3.4 * t && u <= 19.6 + 5.8 * t;
     };
     const inFlukes = (u, v) => {                                                           // crescent flukes with a central notch
         if (u < 1.0 || u > 8.6) return false;
@@ -275,15 +275,15 @@ function orcaSprite(frame, small) {
         return !(u < 3.2 && Math.abs(vv - BODY_CY) < 1.3);
     };
     const flipCy = 14.2 + (frame & 1) * 0.5;
-    const inFlipper = (u, v) => ((u - 24.0) / 3.2) ** 2 + ((v - flipCy) / 2.6) ** 2 <= 1;   // rounded paddle
-    const inFlipRing = (u, v) => !inFlipper(u, v) && ((u - 24.0) / 4.0) ** 2 + ((v - flipCy) / 3.4) ** 2 <= 1;
+    const inFlipper = (u, v) => ((u - 23.8) / 3.6) ** 2 + ((v - flipCy) / 2.9) ** 2 <= 1;   // rounded paddle
+    const inFlipRing = (u, v) => !inFlipper(u, v) && ((u - 23.8) / 4.4) ** 2 + ((v - flipCy) / 3.7) ** 2 <= 1;
     const inLobe = (u, v) => {                                                             // pointed white flank lobe
         if (v < 7.6 || v > 11.5) return false;
         const hw = (v - 7.6) / 3.9 * 5.0;
         return Math.abs(u - 18.6) <= hw;
     };
     const boundary = u => 11.5 - 1.5 * clamp((u - 31) / 5, 0, 1);                         // mouth line at the snout, flat along the flank
-    const inEyePatch = (u, v) => ((u - 28.4) / 2.6) ** 2 + ((v - 7.0) / 1.6) ** 2 <= 1;
+    const inEyePatch = (u, v) => ((u - 28.2) / 3.0) ** 2 + ((v - 6.8) / 1.9) ** 2 <= 1;
     const inSaddle = (u, v) => ((u - 12.6) / 3.4) ** 2 + ((v - 7.4) / 2.1) ** 2 <= 1;
     const silhouette = (u, v) => inBody(u, v) || inPeduncle(u, v) || inFin(u, v) || inFlukes(u, v) || inFlipper(u, v);
 
@@ -299,7 +299,7 @@ function orcaSprite(frame, small) {
         put(g, x, y, ch);
     }
     // the eye: a single ink texel in the white patch edge, ringed by paper so it reads at small size
-    const ex = Math.round(31 / sx - 0.5), ey = Math.round(9.0 / sy - 0.5);
+    const ex = Math.round(30.8 / sx - 0.5), ey = Math.round(8.4 / sy - 0.5);
     if (!small) { put(g, ex, ey, 'k'); pts(g, 'p', [[ex - 1, ey], [ex + 1, ey], [ex, ey - 1], [ex, ey + 1]]); }
 
     outline(g, 'p');

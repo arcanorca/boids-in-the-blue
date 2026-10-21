@@ -11,17 +11,27 @@ offscreen renders.
 - Backdrop textures are drawn at that scale in a texel world (`Ambient.qml`); creatures are placed in screen
   pixels so they glide, but are drawn at the same texel size.
 
-## Water: how the volume is built
+## Water: dots, not lines
 
-- `tools/gen-onebit-theme.js` builds six static layers `water-0..5.png` (640x280 texels). Each layer adds one
-  step of daylight, so `water-0` is night and `water-5` is full day. A layer changes only when the daylight
-  crosses a 1/6 step, so a day/night cycle never flashes.
-- Hatching is horizontal, undulating, 1-texel dashes of at least 6 texels, in four depth bands with pitch 5, 5, 7
-  and 10 texels and coverage falling with depth. Rows are never closer than 3 texels, and each dash keeps one
-  swell offset so it never splits.
-- Five diagonal sunbeams add denser hatch in their cores (`beams` in `theme.js`); the cores are about twice as
-  dense as the open water, and beams widen with depth.
-- A braided wave strip (`surface.png`) closes the top, and the seabed and kelp sit on the bottom.
+The water is built only from single-texel and small dots on a fixed lattice or fixed candidate set, with no
+randomness. Tone is carried by dot count and dot size, and nothing forms a stroke. `BACKGROUND_STYLE` in
+`theme.js` picks one of two looks; the default is `"contours"`.
+
+- `"contours"` (default): a smooth swell field (three low-frequency sines, periods that divide the 648-texel
+  tile) is drawn as isolines in steps of 0.25. Each isoline is made of single-texel dots, at least 4 texels
+  apart (greedy, strongest first). A second set of diagonal isolines appears inside the five sunbeams. Contours
+  fade with depth and are empty below 62 % of the screen height.
+- `"halftone"`: a Ben-Day halftone on a 45-degree lattice (x and y multiples of 6 with (x/6 + y/6) even, so
+  neighbours are 8.5 texels apart). Dot size 0 to 3 (none, single texel, plus of 5, solid 3x3) comes from a
+  smooth tone field: strongest just under the surface, boosted in the sunbeams, faded to nothing below 62 % of
+  the height, with a gentle low-frequency swell.
+
+Daylight: `water-0.png` (night) .. `water-5.png` (full day) are six nested layers. Layer n holds the dots that
+show at tone scale `waterScale(n)` (0.4 at night rising linearly to 1.0 in day), so a dot appears once and never moves, and the night layer keeps a faint pattern near the surface and the beam edges. Every
+layer is a fixed texture; nothing in the backdrop animates except the slow kelp and marine snow.
+
+Measured: paper share of the full-day water 0.63 % (contours) or 2.55 % (halftone); no dot shape larger than
+3x3 texels; distinct dots at least 4 texels apart centre to centre (3 empty texels between solid dots).
 
 ## Seabed and kelp
 
@@ -35,8 +45,12 @@ offscreen renders.
 - Fish have five size classes and five patterns (stripe, spot, solid, hollow, check). The reference mid fish is
   13x9 texels, 39x27 px at 1080p. Their colour is not used: the variant is the pattern.
 - Creatures are paper shapes with ink markings and ink outlines inside their rim, so they stay the heaviest,
-  brightest things against the hatch. Orca and angler carry the largest paper areas.
-- Orca 114x60 px (about 3 fish long), angler 57x51 px, jelly bell 42 px wide, worm 12x27 px, bubbles 6 and 12 px.
+  brightest things against the dots.
+- Orca (38x20 texels, 114x60 px) is drawn with its paper areas: the white underside below the mouth line with
+  a pointed flank lobe, a white oval eye patch above and behind the eye, a sparse paper-dotted saddle behind the
+  dorsal fin, a rounded paddle with an ink rim, a tall dorsal fin and crescent flukes. The black back is only
+  its 1-texel paper outline, because it is ink on ink water.
+- Angler 57x51 px, jelly bell 42 px wide, worm 12x27 px, bubbles 6 and 12 px.
 
 ## Motion and rates
 
