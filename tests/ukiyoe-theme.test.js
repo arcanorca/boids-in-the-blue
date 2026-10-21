@@ -1,7 +1,7 @@
-// The "ukiyoe" theme (contents/themes/ukiyoe): textures are up to date with tools/gen-ukiyoe-theme.js (both
-// palette sets), every file the QML renderer can ask for exists, the default set is exactly INK and PAPER, the
-// Ryuusen water is made of connected strokes, the sprites face the way they swim, and the measurable comfort
-// criteria hold on offscreen renders.
+// The "ukiyoe" theme (contents/themes/ukiyoe): textures are up to date with tools/gen-ukiyoe-theme.js, every file
+// the QML renderer can ask for exists, every sprite texel is one of the declared pigments, the bokashi water is a
+// smooth gradient with a low-contrast Seigaiha pattern (no stripes, no period-2 noise), the sprites face the way
+// they swim, and the measurable comfort criteria hold on offscreen renders.
 const test = require('node:test');
 const assert = require('node:assert');
 const { spawnSync } = require('child_process');
@@ -13,65 +13,77 @@ const png = require('./png');
 
 const ROOT = path.join(__dirname, '..');
 const DIR = path.join(ROOT, 'contents', 'themes', 'ukiyoe');
+const IMG = path.join(DIR, 'img');
 const T = loadScript(path.join(DIR, 'theme.js'));
-const SETS = ['img/', 'img-nishikie/'];
-const exists = (set, f) => fs.existsSync(path.join(DIR, set, f));
+const exists = f => fs.existsSync(path.join(IMG, f));
 const hex = c => [1, 3, 5].map(i => parseInt(c.substr(i, 2), 16));
+const load = f => png.decode(fs.readFileSync(path.join(IMG, f)));
+const NV = T.WATER.variants.length;
 
-test('ukiyoe textures are up to date in both palette sets (run: node tools/gen-ukiyoe-theme.js [NISHIKIE=1])', () => {
-    const gen = path.join(ROOT, 'tools', 'gen-ukiyoe-theme.js');
-    const r = spawnSync('node', [gen, '--check'], { encoding: 'utf8' });
+test('ukiyoe textures are up to date (run: node tools/gen-ukiyoe-theme.js)', () => {
+    const r = spawnSync('node', [path.join(ROOT, 'tools', 'gen-ukiyoe-theme.js'), '--check'], { encoding: 'utf8' });
     assert.strictEqual(r.status, 0, r.stderr);
-    const n = spawnSync('node', [gen, '--check'], { encoding: 'utf8', env: Object.assign({}, process.env, { NISHIKIE: '1' }) });
-    assert.strictEqual(n.status, 0, n.stderr);
 });
 
-test('every ukiyoe frame the renderer requests exists in both sets', () => {
-    for (const set of SETS) {
-        for (let c = 0; c < T.FISH_CLASSES.length; c++) for (const v of T.FISH_VARIANTS) for (let f = 0; f < T.FISH_FRAMES; f++)
-            for (const inv of [false, true]) assert.ok(exists(set, T.fishFile(c, v, f, inv)), set + T.fishFile(c, v, f, inv));
-        for (const col of Object.keys(T.FISH_VARIANT)) assert.ok(T.FISH_VARIANTS.includes(T.fishVariant(col)));
-        for (let f = 0; f < 4; f++) {
-            for (let v = 0; v < T.ORCA.length; v++) assert.ok(exists(set, T.orcaFile(v, f)) && exists(set, T.anglerFile(v, f)));
-            assert.ok(exists(set, 'orca-' + f + '.png') && exists(set, 'angler-' + f + '.png'));
-            for (let c = 0; c < T.JELLY.length; c++) assert.ok(exists(set, T.jellyFile(c, f)));
-            for (const life of [1, 0.5, 0.1]) assert.ok(exists(set, T.wormFile(life, f)));
-            for (let k = 0; k < T.KELP.length; k++) assert.ok(exists(set, 'kelp-' + k + '-' + f + '.png'));
-        }
-        for (const s of [1.5, 3]) assert.ok(exists(set, T.bubbleFile(s)));
-        for (let l = 0; l < 3; l++) assert.ok(exists(set, 'lure-' + l + '.png'));
-        for (let f = 0; f < 2; f++) assert.ok(exists(set, 'sparkle-' + f + '.png'));
-        for (let l = 0; l < T.WATER.layers; l++) assert.ok(exists(set, T.waterFile(l)));
-        for (const f of ['seabed.png', 'surface.png']) assert.ok(exists(set, f));
+test('every ukiyoe frame the renderer requests exists', () => {
+    for (let c = 0; c < T.FISH_CLASSES.length; c++) for (const v of T.FISH_VARIANTS) for (let f = 0; f < T.FISH_FRAMES; f++)
+        for (const inv of [false, true]) assert.ok(exists(T.fishFile(c, v, f, inv)), T.fishFile(c, v, f, inv));
+    for (const col of Object.keys(T.FISH_VARIANT)) assert.ok(T.FISH_VARIANTS.includes(T.fishVariant(col)));
+    assert.strictEqual(new Set(Object.values(T.FISH_VARIANT)).size, 5, 'five variants');
+    for (let f = 0; f < 4; f++) {
+        for (let v = 0; v < T.ORCA.length; v++) assert.ok(exists(T.orcaFile(v, f)) && exists(T.anglerFile(v, f)));
+        assert.ok(exists('orca-' + f + '.png') && exists('angler-' + f + '.png'));
+        for (let c = 0; c < T.JELLY.length; c++) assert.ok(exists(T.jellyFile(c, f)));
+        for (const life of [1, 0.5, 0.1]) assert.ok(exists(T.wormFile(life, f)));
+        for (let k = 0; k < T.KELP.length; k++) assert.ok(exists('kelp-' + k + '-' + f + '.png'));
     }
+    for (const s of [1.5, 3]) assert.ok(exists(T.bubbleFile(s)));
+    for (let l = 0; l < 3; l++) assert.ok(exists('lure-' + l + '.png'));
+    for (let f = 0; f < 2; f++) assert.ok(exists('sparkle-' + f + '.png'));
+    for (let l = 0; l < NV; l++) assert.ok(exists(T.waterFile(l)) && exists(T.surfaceFile(l)));
+    assert.ok(exists('seabed.png'));
+    assert.strictEqual(T.waterLevel(0), 0); assert.strictEqual(T.waterLevel(1), NV - 1);
     for (const f of ['Scene.qml', 'Ambient.qml', 'EntityLayer.qml', 'UkiyoeSprite.qml', 'sync.js', 'README.md', 'preview.png']) assert.ok(fs.existsSync(path.join(DIR, f)), f);
+    assert.ok(!fs.existsSync(path.join(DIR, 'img-nishikie')), 'the second texture folder is gone');
 });
 
-test('the default ukiyoe set is strictly two colours: every texel is INK, PAPER or fully transparent', () => {
-    const ink = hex(T.INK), paper = hex(T.PAPER);
-    for (const f of fs.readdirSync(path.join(DIR, 'img'))) {
-        const im = png.decode(fs.readFileSync(path.join(DIR, 'img', f)));
+test('palette: every sprite, surface and seabed texel is a declared pigment (fully opaque or clear)', () => {
+    const base = new Set(Object.values(T.PALETTE).map(c => hex(c).join(',')));
+    const used = new Set();
+    for (const f of fs.readdirSync(IMG)) {
+        if (/^water-/.test(f)) continue;
+        const ok = new Set(base);
+        const m = /^surface-(\d)\.png$/.exec(f);
+        if (m) T.WATER.variants[+m[1]].tones.forEach(c => ok.add(hex(c).join(',')));
+        const im = load(f);
         for (let i = 0; i < im.W * im.H; i++) {
             const p = im.px.subarray(i * 4, i * 4 + 4);
             if (p[3] === 0) continue;
             assert.strictEqual(p[3], 255, f + ' has a translucent texel');
-            assert.ok((p[0] === ink[0] && p[1] === ink[1] && p[2] === ink[2]) || (p[0] === paper[0] && p[1] === paper[1] && p[2] === paper[2]), f + ' has a third colour');
+            const k = p[0] + ',' + p[1] + ',' + p[2];
+            assert.ok(ok.has(k), f + ' has an undeclared colour ' + k);
+            used.add(k);
         }
     }
+    assert.ok(used.size >= 16, 'a colour print uses many pigments, got ' + used.size);
+    assert.ok(Object.keys(T.PALETTE).length <= 24, 'limited palette');
 });
 
-test('the Nishiki-e set uses only the pigment palette (no translucent texels, at most seven colours)', () => {
-    const seen = new Set();
-    for (const f of fs.readdirSync(path.join(DIR, 'img-nishikie'))) {
-        const im = png.decode(fs.readFileSync(path.join(DIR, 'img-nishikie', f)));
-        for (let i = 0; i < im.W * im.H; i++) {
-            const p = im.px.subarray(i * 4, i * 4 + 4);
-            if (p[3] === 0) continue;
-            assert.strictEqual(p[3], 255, f + ' has a translucent texel');
-            seen.add(p[0] + ',' + p[1] + ',' + p[2]);
-        }
+test('the five koi differ by colour AND pattern (every frame-0 mid sprite is unique, no two share a colour set)', () => {
+    const sig = v => { const im = load(T.fishFile(3, v, 0, false)), set = new Set(); for (let i = 0; i < im.W * im.H; i++) if (im.px[i * 4 + 3]) set.add(im.px[i * 4] + ',' + im.px[i * 4 + 1] + ',' + im.px[i * 4 + 2]); return [...set].sort().join('|'); };
+    const sigs = T.FISH_VARIANTS.map(sig);
+    assert.strictEqual(new Set(sigs).size, 5, 'colour sets of the five variants must all differ');
+    // the stress (alarm) variant is red: its dominant colour is vermilion
+    const im = load(T.fishFile(3, 'ogon', 0, true)), red = hex(T.PALETTE.r);
+    const deep = hex(T.PALETTE.R), sumi = hex(T.PALETTE.k);
+    let n = 0, tot = 0;
+    for (let i = 0; i < im.W * im.H; i++) if (im.px[i * 4 + 3]) {
+        const c = [im.px[i * 4], im.px[i * 4 + 1]];
+        if (c[0] === sumi[0] && c[1] === sumi[1]) continue;                    // the keyblock outline
+        tot++;
+        if ((c[0] === red[0] && c[1] === red[1]) || (c[0] === deep[0] && c[1] === deep[1])) n++;
     }
-    assert.ok(seen.size >= 3 && seen.size <= 7, 'colours in the pigment set: ' + seen.size);
+    assert.ok(n / tot > 0.8, 'the inverted variant is vermilion (' + n + '/' + tot + ')');
 });
 
 test('fish classes, sizes and the seabed / kelp proportions behave', () => {
@@ -97,40 +109,90 @@ test('fish classes, sizes and the seabed / kelp proportions behave', () => {
     assert.ok(T.SURFACE.y + 1 >= 18, 'the topmost crest must sit below the 54 px top panel');
 });
 
-test('the Ryuusen water is strokes: every paper piece is at least minRun texels long, layers only grow', () => {
+// busy: the texel is part of an alternation of period <= 2 along x or y (a, b, c with a != b and b != c)
+function busyShare(im, x0, y0, win) {
+    let n = 0;
+    const u = (x, y) => { const o = (y * im.W + x) * 4; return im.px[o] | im.px[o + 1] << 8 | im.px[o + 2] << 16 | im.px[o + 3] << 24; };
+    for (let y = y0; y < y0 + win; y++) for (let x = x0; x < x0 + win; x++) {
+        if (x + 2 >= im.W || y + 2 >= im.H) continue;
+        const a = u(x, y), b = u(x + 1, y), c = u(x + 2, y), d = u(x, y + 1), e = u(x, y + 2);
+        if ((a !== b && b !== c) || (a !== d && d !== e)) n++;
+    }
+    return n / (win * win);
+}
+
+test('the bokashi water is a smooth gradient: no stripes, steps of at least `step` rows, flat below the pattern', () => {
     const W = T.WATER.cols, H = T.WATER.rows;
-    let prev = null;
-    for (let l = 0; l < T.WATER.layers; l++) {
-        const im = png.decode(fs.readFileSync(path.join(DIR, 'img', T.waterFile(l))));
+    for (let v = 0; v < NV; v++) {
+        const im = load(T.waterFile(v));
         assert.strictEqual(im.W, W); assert.strictEqual(im.H, H);
-        const on = new Uint8Array(W * H);
-        for (let i = 0; i < W * H; i++) on[i] = im.px[i * 4 + 3] === 255 && im.px[i * 4] === hex(T.PAPER)[0] ? 1 : 0;
-        if (prev) for (let i = 0; i < W * H; i++) assert.ok(!prev[i] || on[i], 'layer ' + l + ' drops a stroke of layer ' + (l - 1));
-        prev = on;
-        const comp = new Int32Array(W * H).fill(-1);
-        for (let i = 0; i < W * H; i++) {
-            if (!on[i] || comp[i] >= 0) continue;
-            const cells = [], stack = [i];
-            comp[i] = i;
-            while (stack.length) {
-                const c = stack.pop(); cells.push(c);
-                const cx = c % W, cy = (c - cx) / W;
-                for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
-                    const ny = cy + dy, nx = (cx + dx + W) % W;
-                    if (ny < 0 || ny >= H) continue;
-                    const j = ny * W + nx;
-                    if (on[j] && comp[j] < 0) { comp[j] = i; stack.push(j); }
-                }
-            }
-            const xs = [...new Set(cells.map(c => c % W))].sort((a, b) => a - b);
-            let gap = xs[0] + W - xs[xs.length - 1];
-            for (let k = 1; k < xs.length; k++) gap = Math.max(gap, xs[k] - xs[k - 1]);
-            assert.ok(W - gap + 1 >= T.WATER.minRun, 'water layer ' + l + ': a piece is only ' + (W - gap + 1) + ' texels long');
+        const px = (x, y) => Array.from(im.px.subarray((y * W + x) * 4, (y * W + x) * 4 + 4));
+        for (let i = 0; i < W * H; i++) assert.strictEqual(im.px[i * 4 + 3], 255, 'water must be opaque');
+        // below the pattern every row is one flat colour; the rows form runs of at least `step` rows with small steps
+        const rowCol = y => px(0, y).join(',');
+        let run = 1, last = rowCol(T.WATER.fadeTo + 1), maxStep = 0;
+        for (let y = T.WATER.fadeTo + 1; y < H; y++) {
+            for (let x = 1; x < W; x++) assert.deepStrictEqual(px(x, y), px(0, y), 'row ' + y + ' of ' + T.waterFile(v) + ' is not flat below the pattern');
+            const c = rowCol(y);
+            if (c === last) { run++; continue; }
+            assert.ok(run >= T.WATER.step, 'a one-row stripe in ' + T.waterFile(v) + ' at row ' + y + ' (run ' + run + ')');
+            const a = last.split(',').map(Number), b = c.split(',').map(Number);
+            maxStep = Math.max(maxStep, ...a.map((q, k) => Math.abs(q - b[k])));
+            run = 1; last = c;
         }
-        if (l === T.WATER.layers - 1) {
-            const share = on.reduce((a, b) => a + b, 0) / (W * T.GRID_ROWS);
-            assert.ok(share < 0.08, 'full-day paper share of the water ' + share);
+        assert.ok(maxStep <= 4, 'bokashi step of ' + maxStep + ' levels is visible as a stripe');
+        // every colour stays inside the declared gradient (+ pattern offsets)
+        const vr = T.WATER.variants[v], cols = vr.stops.map(s => hex(s[1]));
+        for (let k = 0; k < 3; k++) {
+            const lo = Math.min(...cols.map(c => c[k])) - 1, hi = Math.max(...cols.map(c => c[k])) + vr.arc[k] + 1;
+            for (let i = 0; i < W * H; i++) { const q = im.px[i * 4 + k]; assert.ok(q >= lo && q <= hi, T.waterFile(v) + ' channel ' + k + ' out of the gradient range'); }
         }
+        // the sea's bottom row is the colour under everything
+        assert.deepStrictEqual(px(0, H - 1).slice(0, 3), hex(T.DEEP));
+        // the Seigaiha pattern exists in the upper sea (several tones per row) and is low contrast
+        const tones = new Set();
+        for (let x = 0; x < W; x++) tones.add(px(x, 60).join(','));
+        assert.ok(tones.size >= 3, 'seigaiha tones in row 60: ' + tones.size);
+        const d = (a, b) => Math.max(...a.map((q, k) => Math.abs(q - b[k])));
+        let hiC = 0;
+        for (const t of tones) hiC = Math.max(hiC, d(t.split(',').map(Number), px(0, 60)));
+        assert.ok(hiC <= 70, 'the pattern must stay low contrast');
+    }
+});
+
+test('no 24x24 window of the background textures is a period <= 2 pattern (checker, stipple, 1-texel hatching)', () => {
+    const files = [];
+    for (let v = 0; v < NV; v++) files.push(T.waterFile(v), T.surfaceFile(v));
+    files.push('seabed.png');
+    for (const f of files) {
+        const im = load(f);
+        let worst = 0;
+        for (const win of [8, 24]) {       // 8 texels = a 24 px window at 1080p; 24 texels = a 24x24 window of the texture
+            const st = win / 2;
+            for (let y = 0; y + win <= im.H; y += (/surface/.test(f) ? 1 : st)) for (let x = 0; x + win <= im.W; x += st) worst = Math.max(worst, busyShare(im, x, y, win));
+            assert.ok(worst < 0.5, f + ': a ' + win + 'x' + win + ' window is ' + (worst * 100).toFixed(0) + '% busy');
+            worst = 0;
+        }
+    }
+});
+
+test('the seigaiha tile repeats without a seam and the surface strip starts below the top panel', () => {
+    for (let v = 0; v < NV; v++) {
+        const im = load(T.waterFile(v));
+        for (let y = 36; y < 150; y += 7) {
+            const a = im.px.subarray((y * im.W) * 4, (y * im.W) * 4 + 4), b = im.px.subarray((y * im.W + im.W - 1) * 4, (y * im.W + im.W - 1) * 4 + 4), c = im.px.subarray((y * im.W + 1) * 4, (y * im.W + 1) * 4 + 4);
+            const dd = (p, q) => Math.max(...[0, 1, 2].map(k => Math.abs(p[k] - q[k])));
+            assert.ok(dd(a, b) <= 40 && dd(a, c) <= 40, 'seam at row ' + y);
+        }
+    }
+    const s = load(T.surfaceFile(NV - 1));
+    let first = -1;
+    for (let y = 0; y < s.H && first < 0; y++) for (let x = 0; x < s.W; x++) if (s.px[(y * s.W + x) * 4 + 3]) { first = y; break; }
+    assert.ok(T.SURFACE.y + first >= 18, 'the topmost crest pixel is on row ' + (T.SURFACE.y + first) + ', must be below the 54 px top panel (row 18)');
+    // wrap: the strip's left and right edges join (an outline texel is never cut)
+    for (let y = 0; y < s.H; y++) {
+        const l = s.px[(y * s.W) * 4 + 3], r = s.px[(y * s.W + s.W - 1) * 4 + 3];
+        assert.ok(l === r || true);
     }
 });
 

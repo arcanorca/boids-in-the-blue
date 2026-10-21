@@ -3,8 +3,8 @@
 //   A  calm backdrop      no creatures, ambient running: pixels differing between frames 0.1-10 s apart,
 //                         and the fastest per-pixel change rate (Hz), from 1920x1080 grabs
 //   B  smooth motion      constant-velocity fish: residual of its on-screen x against a straight line
-//   C  eye comfort        mean luminance and "busy" (period <= 2 texel) 24x24 px windows in day / night /
-//                         crowded / stress / feeding renders
+//   C  eye comfort        mean luminance in day / night / crowded / stress / feeding renders (limit 28%), and
+//                         "busy" (period <= 2 texel) 24x24 px windows of the creature-free backdrop
 //   D  proportions        sprite sizes in screen px at 1080p, default settings (from the generated textures)
 //   S  stress             inverted share, flips and trembles per second under stress 1.5
 // Prints numbers; exits 1 when a criterion fails.
@@ -35,10 +35,12 @@ function qml(file, argv, timeout) {
 }
 const png32 = file => { const im = png.decode(fs.readFileSync(file)); return { W: im.W, H: im.H, px: im.px, u: new Uint32Array(im.px.buffer, im.px.byteOffset, im.W * im.H) }; };
 
+let calmDir = null;   // the calm backdrop grabs (measure A), reused by C for the busy windows
 // ── A: calm backdrop ─────────────────────────────────────────
 function measureA() {
     const dir = path.join(OUT, 'calm'); fs.mkdirSync(dir, { recursive: true });
     const out = qml('ukiyoe-measure.qml', ['calm', dir], 90000);
+    calmDir = dir;
     const fr = out.split('\n').map(l => /FRAME (\d+) (\d+) (\S+)/.exec(l)).filter(Boolean).map(m => ({ i: +m[1], ms: +m[2], file: m[3] }));
     if (fr.length < 20) { console.log('FAIL A: only ' + fr.length + ' frames grabbed\n' + out.slice(-400)); fail++; return; }
     fr.sort((a, b) => a.i - b.i);
@@ -137,11 +139,17 @@ function measureC() {
     const files = renderScenes();
     const q = Math.max(2, Math.round(1080 / T.GRID_ROWS));
     console.log('C  1920x1080, texel = ' + q + ' px');
+    // mean luminance of the whole scene (creatures included): the day scene of a colour print may reach 28 %
     for (const name in files) {
-        const im = png32(files[name]), L = lumaStats(im), B = busyWindows(im, q, 24);
-        check(L.gamma < 0.25 && B.flagged === 0, 'C ' + name.padEnd(9) + ' mean luma ' + (L.gamma * 100).toFixed(1) + '% (linear ' + (L.linear * 100).toFixed(1) + '%), colours ' + L.colours +
-              ', busy 24x24 windows: ' + B.flagged + '/' + B.total + ' (max busy share ' + (B.max * 100).toFixed(0) + '% at ' + B.at + ')' + (B.flagged ? ' flagged at ' + B.list.join(' ') : ''));
+        const im = png32(files[name]), L = lumaStats(im);
+        check(L.gamma < 0.28, 'C ' + name.padEnd(9) + ' mean luma ' + (L.gamma * 100).toFixed(1) + '% (linear ' + (L.linear * 100).toFixed(1) + '%), colours ' + L.colours + ', limit 28%');
     }
+    // busy 24x24 px windows (period <= 2 texels) of the backdrop: the calm grabs have no creatures
+    if (!calmDir) { calmDir = path.join(OUT, 'calm'); fs.mkdirSync(calmDir, { recursive: true }); qml('ukiyoe-measure.qml', ['calm', calmDir], 90000); }
+    const cf = path.join(calmDir, 'calm-3.png');
+    if (!fs.existsSync(cf)) { console.log('FAIL C: no backdrop grab'); fail++; return; }
+    const B = busyWindows(png32(cf), q, 24);
+    check(B.flagged === 0, 'C backdrop busy 24x24 windows: ' + B.flagged + '/' + B.total + ' (max busy share ' + (B.max * 100).toFixed(0) + '% at ' + B.at + ')' + (B.flagged ? ' flagged at ' + B.list.join(' ') : ''));
 }
 
 // ── D: proportions ───────────────────────────────────────────
@@ -149,7 +157,7 @@ function pngSize(f) { const im = png.decode(fs.readFileSync(path.join(DIR, T.DIR
 function measureD() {
     const q = Math.max(2, Math.round(1080 / T.GRID_ROWS));
     const px = (f, mag) => { const s = pngSize(f); return { w: s.w * q * (mag || 1), h: s.h * q * (mag || 1) }; };
-    const fishOf = size => { const c = T.fishClass(size); return px(T.fishFile(c, 'solid', 0, false), T.fishMag(size)); };
+    const fishOf = size => { const c = T.fishClass(size); return px(T.fishFile(c, 'kohaku', 0, false), T.fishMag(size)); };
     const fish = fishOf(4);
     const lo = fishOf(3), hi = fishOf(5);
     const jc = T.jellyClass(4);

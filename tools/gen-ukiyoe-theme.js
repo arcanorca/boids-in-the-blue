@@ -182,7 +182,7 @@ const patch = (u, v, list) => list.some(([cx, cy, rx, ry]) => inEll(u, v, cx, cy
 function koiPixel(variant, u, v, x, y) {
     switch (variant) {
         case 'kohaku': {                                   // white with red patches (a head cap, a saddle)
-            if (patch(u, v, [[0.86, 0.34, 0.15, 0.42], [0.46, 0.3, 0.2, 0.38], [0.16, 0.5, 0.11, 0.3]])) return ['r', true];
+            if (patch(u, v, [[0.86, 0.34, 0.15, 0.42], [0.46, 0.3, 0.2, 0.38], [0.16, 0.5, 0.11, 0.3]])) return [v > 0.5 ? 'R' : 'r', true];
             return [v > 0.74 ? 'W' : 'w', false];
         }
         case 'ogon':                                       // plain gold with a darker back and a pale belly
@@ -194,7 +194,7 @@ function koiPixel(variant, u, v, x, y) {
         }
         case 'asagi':                                      // blue-grey with a net of darker scales, ochre belly
             if (v > 0.66 && u > 0.1) return ['y', false];
-            return [((x + y) & 1) === 0 && v < 0.62 ? 'B' : 'b', ((x + y) & 1) === 0 && v < 0.62];
+            { const net = (x + y) % 3 === 0 && v < 0.62; return [net ? 'B' : 'b', net]; }
         default:                                           // shusui: deep blue back over a white belly, red cheek
             if (patch(u, v, [[0.8, 0.74, 0.1, 0.16]])) return ['r', true];
             if (v < 0.46) return [v < 0.14 ? 'B' : 'B', true];
@@ -485,7 +485,7 @@ function lureSprite(level) {
 // ── backdrop: bokashi water with Seigaiha ────────────────────
 // Seigaiha: scales of radius R texels on a half-radius grid (rows R/2 apart, every second row shifted by R), the
 // rows drawn top to bottom so each lower scale overlaps the one above. Rings `ring` texels wide alternate two
-// tones, the outer arc is a lighter line. Returns the pattern index per texel: 0 none, 1 lighter ring, 2 arc.
+// tones, the outer arc is a lighter band 2 texels wide (never a 1-texel line). Returns the pattern index per texel: 0 none, 1 lighter ring, 2 arc.
 function seigaiha(cols, rows) {
     const Wt = T.WATER, R = Wt.scale, idx = new Uint8Array(cols * rows), step = R / 2;
     for (let j = -2; Wt.startRow - R + j * step <= rows + R; j++) {
@@ -496,7 +496,7 @@ function seigaiha(cols, rows) {
                     const d = Math.hypot(x - cx, y - cy);
                     if (d > R) continue;
                     const k = Math.floor(d / Wt.ring), xx = ((x % cols) + cols) % cols;
-                    idx[y * cols + xx] = d > R - 1 ? 2 : (k & 1 ? 1 : 0);
+                    idx[y * cols + xx] = d > R - 2 ? 2 : (k & 1 ? 1 : 0);
                 }
             }
         }
@@ -544,26 +544,27 @@ function surfaceStrip() {
         for (let x = 0; x < 64; x++) {
             const t = top(x), yt = Math.round(t);
             // foam depth: none on the back slope, a thick cap near the crest, thin along the front face
-            const fd = x < 12 ? 0 : (x < c.xp ? 0.6 + 3.6 * smooth((x - 12) / (c.xp - 12)) : 4.2 * (1 - smooth((x - c.xp) / 14)));
+            const fd = x < 13 ? 0 : (x < c.xp ? 2 + 2.2 * smooth((x - 13) / (c.xp - 13)) : 4.2 * (1 - smooth((x - c.xp) / 9)));
             for (let y = yt; y < H; y++) {
                 const d = y - t;
-                putc(x, y, d < fd ? 'w' : (d < fd + 5 ? '2' : (d < fd + 9 ? '3' : '4')));
+                const foamHere = fd >= 0.9 && d < fd;
+                putc(x, y, foamHere ? 'w' : (d < fd + 5 ? '2' : (d < fd + 9 ? '3' : '4')));
             }
         }
         // foam claws: tapering fingers hanging from the crest lip down the front face, curling forward
-        const claws = [[c.xp - 3, 8.5, 0.1], [c.xp + 1, 10, 0.5], [c.xp + 5, 8.5, 0.9], [c.xp + 9, 6, 1.2]];
+        const claws = [[c.xp - 5, 7.5, 0.0], [c.xp + 0, 10, 0.4], [c.xp + 5, 9, 0.8], [c.xp + 10, 6, 1.1]];
         for (const [cx, len, curl] of claws) {
             const cy = top(cx) + 1.5;
             for (let s2 = 0; s2 <= len * 3; s2++) {
                 const t = s2 / (len * 3), px = cx + 1.2 * t * len * 0.35 + curl * 2.2 * t * t, py = cy + len * t;
-                const rad = 1.55 * (1 - 0.8 * t) + 0.25;
+                const rad = 1.7 * (1 - 0.75 * t) + 0.3;
                 for (let y = Math.floor(py - rad); y <= Math.ceil(py + rad); y++) for (let x = Math.floor(px - rad); x <= Math.ceil(px + rad); x++) {
                     if (Math.hypot(x - px, y - py) <= rad) putc(x, y, 'w');
                 }
             }
         }
-        // spray: a few detached cream flecks ahead of the crest
-        for (const [fx, fy] of [[c.xp + 12, 3], [c.xp + 15, 5], [c.xp + 9, 1], [c.xp + 17, 2]]) putc(fx, fy, 'w');
+        // spray: two detached 2x2 cream flecks ahead of the crest
+        for (const [fx, fy] of [[c.xp + 12, 3], [c.xp + 16, 1]]) for (const [dx, dy] of [[0, 0], [1, 0], [0, 1], [1, 1]]) putc(fx + dx, fy + dy, 'w');
     });
     // keyblock outlines: indigo around the whole shape and between foam and blue
     const add = [];
@@ -583,18 +584,16 @@ function surfaceStrip() {
 // Matsushima: ochre/brown rock islands with tiered pine tufts, vermilion coral, and cream-ochre dunes with printed
 // wave contours (continuous bands that follow the dune, not dashes), keyblock outlines in dark brown (640x32).
 function pineSprite(w) {
-    const g = mk(w + 2, 9), cx = Math.floor((w + 2) / 2);
-    put(g, cx, 8, 'O'); put(g, cx, 7, 'O'); put(g, cx, 6, 'O');
-    const tiers = [[7, 5, w], [5, 3, w - 2], [3, 1, w - 4]];
-    for (const [yb, yt, tw] of tiers) {
-        for (let y = yt; y <= yb - 2; y++) {
-            const hw = Math.max(1, Math.round((tw / 2) * (0.55 + 0.45 * (y - yt) / Math.max(1, yb - 2 - yt))));
-            for (let x = cx - hw; x <= cx + hw; x++) put(g, x, y, 'g');
+    // Matsushima pine: a 2-texel trunk and two flat cloud tiers; lit malachite on top (2 rows), deep malachite
+    // below (1 row). Flat shapes only: no 1-texel outline and no period-2 stacking.
+    const g = mk(w + 2, 8), cx = Math.floor((w + 2) / 2);
+    for (let y = 6; y <= 7; y++) pts(g, 'O', [[cx - 1, y], [cx, y]]);
+    for (const [yt, tw] of [[0, w - 3], [3, w]]) {
+        for (let k = 0; k < 3; k++) {
+            const hw = Math.round((tw / 2) * (0.7 + 0.15 * k));
+            for (let x = cx - hw; x <= cx + hw - 1; x++) put(g, x, yt + k, k === 2 ? 'G' : 'g');
         }
-        for (let x = cx - Math.floor(tw / 2); x <= cx + Math.floor(tw / 2); x++) put(g, x, yb - 1, 'G');
     }
-    for (let x = cx - 1; x <= cx; x++) put(g, x, 1, 'g');
-    outline(g, 'G');
     return g;
 }
 function seabedTile() {
@@ -616,7 +615,7 @@ function seabedTile() {
         for (const depth of [4, 8]) { const y = nt + depth; if (y < H - 1) g[y][x] = 's'; }   // contours follow the dune
     }
 
-    // 2. rock islands: brown body, lit ochre upper-left crescent, strata arcs, dark brown outline, pine tufts
+    // 2. rock islands: brown body, lit ochre upper-left crescent, dark brown outline, pine tufts
     const rocks = [
         [44, 9, 5, true, 2], [56, 5, 3, true, 0], [148, 10, 6, false, 2], [162, 6, 4, false, 1],
         [248, 11, 6, true, 2], [338, 8, 5, false, 1], [418, 10, 5, true, 2], [432, 5, 3, true, 0],
@@ -629,10 +628,7 @@ function seabedTile() {
             if (!inEll(x, y, cx, cy, rx + 0.3, ry + 0.3)) continue;
             rockCells.add(key(x, y));
             putW(x, y, inEll(x, y, cx + 2, cy + 1.5, rx - 0.5, ry - 0.2) ? 'o' : 'Y');
-            if (!inEll(x, y, cx, cy + 3, rx * 1.3, ry * 1.1) && false) putW(x, y, 'O');
         }
-        // strata arcs
-        if (rx >= 8) for (let dx = -rx + 3; dx <= rx - 3; dx++) if (inEll(cx + dx, cy - Math.floor(ry * 0.2), cx, cy, rx * 0.9, ry * 0.9) && rockCells.has(key(cx + dx, cy - Math.floor(ry * 0.2)))) putW(cx + dx, cy - Math.floor(ry * 0.2) + 1, 'O');
     }
     for (const c of rockCells) {
         const [x, y] = c.split(',').map(Number);
@@ -640,21 +636,22 @@ function seabedTile() {
     }
     for (const [cx, rx, ry, onNear, pines] of rocks) {
         const cy = (onNear ? nearTop(cx) : farTop(cx)) + 2, topY = cy - ry - 1;
-        if (pines >= 1) { const pw = pines === 2 ? 9 : 7; blit(g, pineSprite(pw), cx - Math.floor((pw + 2) / 2) + (pines === 2 ? -2 : 0), topY - 7); }
+        if (pines >= 1) { const pw = pines === 2 ? 9 : 7; blit(g, pineSprite(pw), cx - Math.floor((pw + 2) / 2) + (pines === 2 ? -2 : 0), topY - 6); }
         if (pines >= 2) blit(g, pineSprite(7), cx + 3, topY - 5);
     }
 
-    // 3. branching vermilion corals on the far ridge (2-texel branches, darker right edge)
+    // 3. branching vermilion corals on the far ridge (3-texel branches, darker right edge)
     for (const cx of [96, 206, 304, 468, 558]) {
-        const by = farTop(cx), br = mk(21, 10);
-        for (let h = 1; h <= 8; h++) {
-            put(br, 10, 9 - h, 'r'); put(br, 11, 9 - h, 'R');
-            if (h >= 3 && h <= 7) {
-                put(br, 10 - h + 2, 9 - h, 'r'); put(br, 11 - h + 2, 9 - h, 'r');
-                put(br, 10 + h - 1, 9 - h, 'r'); put(br, 11 + h - 1, 9 - h, 'R');
+        const by = farTop(cx), br = mk(23, 11);
+        for (let h = 1; h <= 9; h++) {
+            pts(br, 'r', [[10, 10 - h], [11, 10 - h]]); put(br, 12, 10 - h, 'R');
+            if (h >= 4 && h <= 8) {
+                const o = h - 3;
+                pts(br, 'r', [[10 - o, 10 - h], [11 - o, 10 - h], [9 - o, 10 - h]]);
+                pts(br, 'r', [[11 + o, 10 - h], [12 + o, 10 - h]]); put(br, 13 + o, 10 - h, 'R');
             }
         }
-        blit(g, br, cx - 10, by - 8);
+        blit(g, br, cx - 11, by - 9);
     }
     // 4. starfish & shells on the near sand
     for (const sx of [122, 378, 618]) {
@@ -665,32 +662,34 @@ function seabedTile() {
     return g;
 }
 
-// Wakame kelp: malachite fronds with darker midrib veins and deep malachite outlines, 2-texel stipe
+// Wakame kelp: a 2-texel stipe that opens into one broad ruffled blade in malachite with a darker midrib and
+// herringbone veins, deep malachite outline. The whole plant sways by whole texels (4 frames).
 function kelpSprite(ci, frame) {
     const K = T.KELP[ci], h = K.rows, W = K.cols, g = mk(W, h);
     const bx = Math.floor(W / 2) - 1;
-    const ph = frame * Math.PI / 2, A = 1.1 + ci * 0.45;
+    const ph = frame * Math.PI / 2, A = 1.0 + ci * 0.4;
     const sway = y => Math.round(Math.sin((h - y) * 0.11 + ph) * A * Math.pow((h - y) / h, 1.35) * 1.5);
-    for (let y = 2; y < h; y++) {
+    const maxw = [4, 5, 6][ci], frondTop = 2, frondBot = Math.round(h * 0.7);
+    for (let y = h - 1; y >= frondTop; y--) {
         const x = bx + sway(y);
-        put(g, x, y, 'g'); put(g, x + 1, y, 'G');
-        if (y > 2) { const xp = bx + sway(y - 1); if (xp !== x) { put(g, xp, y, 'g'); put(g, xp + 1, y, 'G'); } }
-    }
-    let side = (ci % 2 === 0) ? 1 : -1;
-    for (let y = h - 8; y >= 9; y -= 9) {
-        const x = bx + sway(y);
-        const len = Math.max(5, Math.min(8, Math.round(5 + 3.5 * Math.sin(Math.PI * (h - y) / h))));
-        for (let i = 0; i < len; i++) {
-            const dx = side > 0 ? 2 + i : -1 - i;
-            const arch = Math.round(-i * 0.55 + (i >= len - 2 ? 0.6 : 0));
-            const th = i === 0 ? 2 : (i < len - 2 ? 3 : 2);
-            for (let t = 0; t < th; t++) put(g, x + dx, y + arch - t, 'g');
-            if (th === 3 && i >= 1 && i <= len - 3) put(g, x + dx, y + arch - 1, 'G');   // leaf midrib vein
+        let hw = 0;
+        if (y <= frondBot) {
+            const t = (frondBot - y) / (frondBot - frondTop);            // 0 at the base of the blade .. 1 at the tip
+            hw = Math.round(maxw * Math.pow(Math.sin(Math.PI * Math.min(1, 0.12 + t * 0.9)), 0.75));
+            if (((y + ci) >> 1) % 3 === 0 && hw > 1) hw -= 1;               // ruffled margin
+            if (y <= frondTop + 2) hw = Math.min(hw, 1);
         }
-        side = -side;
+        put(g, x, y, 'G'); put(g, x + 1, y, y > frondBot ? 'G' : 'g');
+        for (let j = 1; j <= hw; j++) { put(g, x - j, y, 'g'); put(g, x + 1 + j, y, 'g'); }
+        if (y > 0 && y < frondBot - 1 && y % 5 === 1) {                // herringbone veins
+            for (let j = 1; j < hw; j++) { put(g, x - j, y - j + 1, 'G'); put(g, x + 1 + j, y - j + 1, 'G'); }
+        }
+        // join this row to the previous one when the sway steps sideways
+        if (y < h - 1) {
+            const xp = bx + sway(y + 1);
+            if (xp !== x) { put(g, xp, y, 'G'); put(g, xp + 1, y, 'g'); }
+        }
     }
-    const tx = bx + sway(2);
-    pts(g, 'g', [[tx, 1], [tx + 1, 1], [tx - 1, 2], [tx + 2, 2], [tx, 3], [tx + 1, 3]]);
     outline(g, 'G');
     return g;
 }

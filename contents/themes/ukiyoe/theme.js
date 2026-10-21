@@ -33,8 +33,8 @@ var PALETTE = {
     B: "#2d5d8e",   // asagi / shusui blue
     o: "#7a5230",   // rock brown
     O: "#46301f",   // dark rock brown
-    s: "#b08c52",   // sand shade
-    S: "#d6c188"    // sand cream-ochre
+    s: "#8d7040",   // sand shade
+    S: "#b39a62"    // sand cream-ochre
 };
 var DEEP = "#0a1a2e";                              // indigo at the floor (the colour under everything)
 var GRID_ROWS = 360;                               // texel rows of the screen (1080p -> 3 px per texel)
@@ -138,14 +138,14 @@ var WATER = {
     cols: 640, rows: 300, step: 3, scale: 16, ring: 4, startRow: 36, fadeIn: 14, fadeFrom: 90, fadeTo: 210,
     variants: [
         { name: "night", daylight: 0,   tone: [6, 11, 15], arc: [13, 22, 31],
-          stops: [[0, "#1d4066"], [14, "#1d4066"], [36, "#14304f"], [60, "#10294a"], [150, "#0c2038"], [230, "#09182b"], [300, "#0a1a2e"]],
+          stops: [[0, "#1d4066"], [36, "#14304f"], [60, "#10294a"], [150, "#0c2038"], [230, "#09182b"], [285, "#0a1a2e"]],
           tones: ["#08182a", "#08182a", "#0e2540", "#14304f", "#1d4066"] },
         { name: "dusk",  daylight: 0.3, tone: [8, 15, 21], arc: [17, 29, 41],
-          stops: [[0, "#2a6396"], [14, "#2a6396"], [36, "#1d4d7a"], [60, "#1a4670"], [150, "#14355a"], [230, "#0e2742"], [300, "#0a1a2e"]],
+          stops: [[0, "#2a6396"], [36, "#1d4d7a"], [60, "#1a4670"], [150, "#14355a"], [230, "#0e2742"], [285, "#0a1a2e"]],
           tones: ["#0e2742", "#0e2742", "#14355a", "#1d4d7a", "#2a6396"] },
         { name: "day",   daylight: 0.7, tone: [10, 18, 26], arc: [21, 36, 52],
-          stops: [[0, "#4180ad"], [14, "#4180ad"], [36, "#2a6396"], [50, "#2a6396"], [120, "#245b8c"], [190, "#1c4a78"], [250, "#133456"], [300, "#0a1a2e"]],
-          tones: ["#0e2a47", "#14395e", "#1d4d7a", "#2a6396", "#4180ad"] }
+          stops: [[0, "#2f6a96"], [36, "#1f4f7e"], [70, "#1f4f7e"], [130, "#1b4573"], [190, "#153862"], [250, "#0e2a48"], [285, "#0a1a2e"]],
+          tones: ["#0e2a47", "#102f50", "#173f68", "#1f4f7e", "#2f6a96"] }
     ]
 };
 function waterFile(level) { return "water-" + level + ".png"; }
