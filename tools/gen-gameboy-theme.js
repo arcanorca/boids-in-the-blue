@@ -222,11 +222,11 @@ function jellyFrame(fr, wide) {
 for (let f = 0; f < 3; f++) { addSprite('j16-' + f, jellyFrame(f, true)); addSprite('j8-' + f, jellyFrame(f, false)); }
 
 function withOutline(g) { const o = mk(g[0].length + 2, g.length + 2); g.forEach((r, y) => r.forEach((c, x) => { o[y + 1][x + 1] = c; })); outline(o, '0'); return o; }
-// ── WORM (4x4, 3 wiggle frames), BUBBLES (2x2, 3x3, 4x4), sparkle (2 frames) ──
+// ── WORM (4x4, 3 wiggle frames), BUBBLES (3x3, 4x4), sparkle (2 frames) ──
 const WORMS = [['bh', 'b.'], ['bh', '.b'], ['b.', 'bh']];
 WORMS.forEach((r, i) => addSprite('worm-' + i, fit(withOutline(remap(parse(r), { b: 2, h: 3 })), 8, 8)));
 // bubbles: light arc top left, dark arc bottom right (reads on light and dark water alike)
-const BUBBLES = [['30', '00'], ['.3.', '3.0', '.0.'], ['.33.', '3..0', '3..0', '.00.']];
+const BUBBLES = [['.3.', '3.0', '.0.'], ['.33.', '3..0', '3..0', '.00.']];
 BUBBLES.forEach((r, i) => addSprite('bub-' + i, fit(parse(r), 8, 8)));
 const SPARKS = [['..3..', '..3..', '33.33', '..3..', '..3..'], ['3...3', '.3.3.', '.....', '.3.3.', '3...3']];
 SPARKS.forEach((r, i) => addSprite('spark-' + i, fit(remap(parse(r), {}), 8, 8)));

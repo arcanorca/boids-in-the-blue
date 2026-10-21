@@ -65,7 +65,7 @@ function anglerMul(size) { return size >= 6.3 ? 2 : 1; }
 function orcaMul(size) { return size >= 8.25 ? 2 : 1; }
 function jellyPick(size) { return size >= 6.4 ? ["j16-", 2] : (size < 2.4 ? ["j8-", 1] : ["j16-", 1]); }
 function wormMul(size) { return size >= 6.5 ? 2 : 1; }
-function bubbleKey(scale) { return "bub-" + (scale < 2.0 ? 0 : (scale < 2.6 ? 1 : 2)); }
+function bubbleKey(scale) { return scale < 2.3 ? "bub-0" : "bub-1"; }
 
 // ── pacing (per 40 ms simulation tick) ────────────────────────
 // Frame phases advance slowly: a fish beats its tail ~0.5-1 times a second, a jelly pulses every ~3 s.
