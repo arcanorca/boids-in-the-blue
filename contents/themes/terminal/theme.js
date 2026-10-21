@@ -30,8 +30,8 @@ function creatureTexelDevice(heightDevicePx) { return texelDevice(heightDevicePx
 // Four tones on BG: b highlight, n normal, m mid, d dim. Stress recolours fish with the amber and red sets, and 'ri'
 // is the inverted red alarm box (ink on red). Night = one notch dimmer per tone. Glow pixels are blends of BG and a tone.
 var PALETTE = {
-    g:  { b: "#b4ffc8", n: "#46e47e", m: "#27a85a", d: "#175f35" },     // day: phosphor green
-    n:  { b: "#46e47e", n: "#27a85a", m: "#175f35", d: "#0f3d24" },     // night: one notch dimmer
+    g:  { b: "#e0ffe9", n: "#6bf59b", m: "#3cc873", d: "#217f4a" },     // day: phosphor green
+    n:  { b: "#6bf59b", n: "#3cc873", m: "#217f4a", d: "#124c2d" },     // night: one notch dimmer
     a:  { b: "#ffe0a0", n: "#ffb000", m: "#c47f00", d: "#7a4d00" },     // amber (warm stress)
     an: { b: "#ffb000", n: "#c47f00", m: "#7a4d00", d: "#4d3000" },
     r:  { b: "#ffb4a8", n: "#ff5040", m: "#c03024", d: "#7a1c14" },     // red (hot stress)

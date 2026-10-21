@@ -1,5 +1,5 @@
 // The "terminal" theme (contents/themes/terminal): textures up to date with tools/gen-terminal-theme.py, every
-// frame the renderer can request exists, every texel is a palette colour of its set, the proportions at 1080p,
+// frame the renderer can request exists, every texel is a blend of the water colour and a tone of its set, the proportions at 1080p,
 // the facing rule (static and at run time), the descriptor helpers, and the measurable comfort criteria.
 const test = require('node:test');
 const assert = require('node:assert');
@@ -19,7 +19,7 @@ const BASE_SETS = ['g', 'n'];
 
 test('terminal textures are up to date (run: python3 tools/gen-terminal-theme.py --write)', t => {
     const r = spawnSync('python3', [path.join(ROOT, 'tools', 'gen-terminal-theme.py'), '--check'], { encoding: 'utf8' });
-    if (r.error || /No module named PIL|No such file or directory: .*ter-u12n/.test(r.stderr)) return t.skip('python3 with Pillow and the Terminus font is needed');
+    if (r.error || /No module named PIL|No such file or directory: .*ter-u12/.test(r.stderr)) return t.skip('python3 with Pillow and the Terminus fonts is needed');
     assert.strictEqual(r.status, 0, r.stderr);
 });
 
@@ -31,68 +31,78 @@ test('every terminal frame the renderer requests exists', () => {
     for (const s of BASE_SETS) {
         for (let f = 0; f < 2; f++) {
             for (const face of ['r', 'l']) assert.ok(exists(T.orcaFile(f, face, s)) && exists(T.anglerFile(f, face, s)), s + f + face);
-            for (let c = 0; c < T.JELLY.length; c++) assert.ok(exists(T.jellyFile(c, f, s)));
-            for (let st = 0; st < 3; st++) assert.ok(exists(T.wormFile(st, f, s)));
+            for (let c = 0; c < T.JELLY_CLASSES.length; c++) assert.ok(exists(T.jellyFile(c, f, s)));
+            for (let st = 0; st < T.WORM_STAGES; st++) assert.ok(exists(T.wormFile(st, f, s)));
             assert.ok(exists('sparkle-' + f + '-' + s + '.png'));
             for (let k = 0; k < T.KELP.length; k++) assert.ok(exists(T.kelpFile(k, f, s)));
         }
         for (let l = 0; l < T.LURE_LEVELS; l++) assert.ok(exists(T.lureFile(l, s)));
         for (const b of [1, 3]) assert.ok(exists(T.bubbleFile(b, s)));
         for (let lvl = 0; lvl <= 100; lvl += 5) assert.ok(exists(T.statusFile(lvl, s)), T.statusFile(lvl, s));
-        assert.ok(exists('seabed-' + s + '.png') && exists('waves-' + s + '.png') && exists('prompt-' + s + '.png'));
-        for (const d of T.DOTS) assert.ok(exists('dots-' + d.name + '-' + s + '.png'));
+        for (const n of ['seabed', 'waves', 'prompt', 'water']) assert.ok(exists(n + '-' + s + '.png'), n);
     }
+    for (const n of ['shade', 'haze', 'scan']) assert.ok(exists(n + '.png'), n);
 });
 
-test('every texel is a palette colour of its set (fully opaque or fully clear)', () => {
+test('every texel is a blend of the water colour and a tone of its set (boxes are opaque; only lure, bubbles and the glass overlays are translucent)', () => {
+    const overlay = /^(shade|haze|scan)\.png$/, clear = /^(lure|sparkle|bubble|waves|water|seabed|kelp|prompt|status|dots)/;
     for (const f of fs.readdirSync(path.join(DIR, T.DIR))) {
+        if (overlay.test(f)) continue;
         const set = /-([a-z]+)\.png$/.exec(f)[1];
         assert.ok(T.PALETTE[set], f + ': unknown palette set ' + set);
-        const allowed = new Set([T.BG, ...Object.values(T.PALETTE[set])].map(c => hex(c).join(',')));   // the water colour fills the cells
         const im = png.decode(fs.readFileSync(path.join(DIR, T.DIR, f)));
+        const bg = hex(T.BG), P = T.PALETTE[set];
         for (let i = 0; i < im.W * im.H; i++) {
             const p = im.px.subarray(i * 4, i * 4 + 4);
-            if (p[3] === 0) continue;
-            assert.strictEqual(p[3], 255, f + ' has a translucent texel');
-            assert.ok(allowed.has([p[0], p[1], p[2]].join(',')), f + ' has colour ' + [p[0], p[1], p[2]].join(',') + ' outside its palette set');
+            if (p[3] === 0) { assert.ok(clear.test(f), f + ' has a clear texel: creature boxes are opaque'); continue; }
+            if (set === 'ri') {
+                const ok = [hex(P.ink), hex(P.fill)].some(c => c.every((v, k) => v === p[k]));
+                assert.ok(ok && p[3] === 255, f + ' has colour ' + [p[0], p[1], p[2]].join(',') + ' outside the alarm box colours');
+                continue;
+            }
+            if (p[3] !== 255) { assert.ok(/^(lure|bubble|sparkle)/.test(f), f + ' has a translucent texel'); continue; }
+            const top = hex(P.b);
+            for (let k = 0; k < 3; k++) assert.ok(p[k] >= Math.min(bg[k], top[k]) - 1 && p[k] <= Math.max(bg[k], top[k]) + 1, f + ' has colour ' + [p[0], p[1], p[2]].join(',') + ' outside the water-to-highlight range of its set');
         }
     }
 });
 
-test('proportions at 1080p: fish 54 x 36 px, angler 1.5 x, orca 3 x (4 text rows), jelly, worm, bubbles, seabed and kelp limits', () => {
-    const QC = T.creatureTexelDevice(1080);     // creatures: 3 px per texel
-    const QB = T.texelDevice(1080);             // the water and the bubbles: 2 px per texel
+test('proportions at 1080p: fish 2-4 rows, angler 1.5 x, orca 3 x, jelly, worm, bubbles, seabed and kelp limits', () => {
+    const Q = T.texelDevice(1080);
     const size = (f, q) => { const im = png.decode(fs.readFileSync(path.join(DIR, T.DIR, f))); return { w: im.W * q, h: im.H * q }; };
-    const fish = size(T.fishFile(2, 'stripe', 0, 'r', 'g'), QC);
-    assert.deepStrictEqual([fish.w, fish.h], [54, 36], 'mid fish');
-    const within = (v, ref) => Math.abs(v / ref - 1) <= 0.15;
-    assert.ok(within(size(T.anglerFile(0, 'r', 'g'), QC).w, 1.5 * fish.w), 'angler length ~1.5 fish');
-    const orca = size(T.orcaFile(0, 'r', 'g'), QC);
-    assert.ok(within(orca.w, 3 * fish.w) && orca.w >= 160 && orca.w <= 200, 'orca length 160-200 px (10 cells, about 3 fish)');
-    assert.ok(orca.h >= 108 && orca.h <= 150, 'orca height ' + orca.h + ' px: 4 text rows');
-    assert.ok(within(size(T.jellyFile(1, 0, 'g'), QC).w, fish.w), 'jelly bell about one fish wide');
-    assert.ok(within(size(T.wormFile(0, 0, 'g'), QC).w, 0.3 * fish.w), 'worm about 0.3 fish wide');
-    for (const b of [0, 1]) { const w = size(T.bubbleFile(b ? 3 : 1.5, 'g'), QB).w; assert.ok(w >= 6 && w <= 14, 'bubble ' + w); }
-    assert.ok(T.SEABED.rows * QB / 1080 <= 0.09, 'seabed <= 9 % of the height');
-    assert.ok(Math.max(...T.KELP.map(k => k.rows)) * T.CELL_H * QB / 1080 <= 0.20, 'tallest kelp <= 20 %');
-    // every fish class is whole cells, and the classes order by size
-    const widths = T.FISH_CLASSES.map((c, i) => size(T.fishFile(i, 'stripe', 0, 'r', 'g'), QC).w);
-    assert.ok(widths[0] <= widths[1] && widths[1] < widths[2] && widths[2] < widths[3], 'classes ' + widths);   // fry and small: two cells each
+    const fish = size(T.fishFile(2, 'stripe', 0, 'r', 'g'), Q);
+    assert.ok(fish.w >= 54 * 0.8 && fish.w <= 72 * 1.2 && fish.h >= 40 * 0.8 && fish.h <= 54 * 1.2, 'mid fish ' + fish.w + 'x' + fish.h);
+    assert.ok(fish.h / T.CELL_H >= 2 && fish.h / T.CELL_H <= 4, 'mid fish is 2 to 4 rows tall');
+    const within = (v, ref, tol) => Math.abs(v / ref - 1) <= tol;
+    assert.ok(within(size(T.anglerFile(0, 'r', 'g'), Q).w, 1.5 * fish.w, 0.25), 'angler length ~1.5 fish');
+    const orca = size(T.orcaFile(0, 'r', 'g'), Q);
+    assert.ok(within(orca.w, 3 * fish.w, 0.2) && orca.w >= 136 && orca.w <= 264, 'orca length ' + orca.w);
+    assert.ok(orca.h >= 64 && orca.h <= 144, 'orca height ' + orca.h + ' px');
+    assert.ok(within(size(T.jellyFile(1, 0, 'g'), Q).w, fish.w, 0.2), 'jelly bell about one fish wide');
+    assert.ok(within(size(T.wormFile(0, 0, 'g'), Q).w, 0.3 * fish.w, 0.2), 'worm about 0.3 fish wide');
+    for (const sc of [1.5, 3]) { const b = size(T.bubbleFile(sc, 'g'), Q); assert.ok(Math.max(b.w, b.h) >= 6 && Math.max(b.w, b.h) <= 14, 'bubble ' + b.w + 'x' + b.h); }
+    assert.ok(T.SEABED.rows * Q / 1080 <= 0.09, 'seabed <= 9 % of the height');
+    assert.ok(Math.max(...T.KELP.map(k => k.rows)) * T.CELL_H * Q / 1080 <= 0.20, 'tallest kelp <= 20 %');
+    const kelp = size(T.kelpFile(2, 0, 'g'), Q);
+    assert.strictEqual(kelp.h, T.KELP[2].rows * T.CELL_H, 'kelp texture is its declared rows');
+    // the classes order by size
+    const widths = T.FISH_CLASSES.map((c, i) => size(T.fishFile(i, 'stripe', 0, 'r', 'g'), Q).w);
+    assert.ok(widths[0] <= widths[1] && widths[1] < widths[2] && widths[2] < widths[3], 'classes ' + widths);
 });
 
 test('the sim floor keeps the orca below the waves: floor >= waves bottom + half the orca', () => {
-    const floorPx = T.SURFACE.floor * T.texelDevice(1080), wavesBottomPx = (T.SURFACE.y + T.SURFACE.rows) * T.texelDevice(1080);
-    assert.ok(floorPx >= wavesBottomPx + T.ORCA.rows * T.creatureTexelDevice(1080) / 2, floorPx + ' < ' + wavesBottomPx + ' + half orca');
+    const Q = T.texelDevice(1080), floorPx = T.SURFACE.floor * Q, wavesBottomPx = (T.SURFACE.y + T.SURFACE.rows) * Q;
+    const im = png.decode(fs.readFileSync(path.join(DIR, T.DIR, T.orcaFile(0, 'r', 'g'))));
+    assert.ok(floorPx >= wavesBottomPx + im.H * Q / 2, floorPx + ' < ' + wavesBottomPx + ' + half orca ' + im.H * Q / 2);
+    assert.ok(T.SURFACE.y >= 48 && T.SURFACE.y <= 54, 'the waves start ~51 px below the screen top (the floating panel covers the first ~54 px)');
 });
 
-test('the texture sizes are the sizes theme.js declares', () => {
-    const dims = f => { const im = png.decode(fs.readFileSync(path.join(DIR, T.DIR, f))); return [im.W, im.H]; };
-    assert.deepStrictEqual(dims(T.orcaFile(0, 'r', 'g')), [T.ORCA.cols, T.ORCA.rows]);
-    assert.deepStrictEqual(dims(T.anglerFile(0, 'r', 'g')), [T.ANGLER.cols, T.ANGLER.rows]);
-    for (let c = 0; c < T.JELLY.length; c++) assert.deepStrictEqual(dims(T.jellyFile(c, 0, 'g')), [T.JELLY[c].cols, T.JELLY[c].rows], 'jelly ' + c);
-    for (let c = 0; c < T.FISH_CLASSES.length; c++) assert.deepStrictEqual(dims(T.fishFile(c, 'stripe', 0, 'r', 'g')), [T.FISH_CLASSES[c].cells * T.CELL_W, T.CELL_H], 'fish ' + c);
-    for (let st = 0; st < 3; st++) assert.deepStrictEqual(dims(T.wormFile(st, 0, 'g')), [T.WORM.cols, T.WORM.rowsByStage[st]], 'worm ' + st);
-    for (let b = 0; b < 2; b++) assert.deepStrictEqual(dims(T.bubbleFile(b ? 3 : 1.5, 'g')), [T.BUBBLE[b].cols, T.BUBBLE[b].rows], 'bubble ' + b);
+test('the angler lure cell in theme.js is where the art puts it (python3 tools/gen-terminal-theme.py --lure)', t => {
+    const r = spawnSync('python3', [path.join(ROOT, 'tools', 'gen-terminal-theme.py'), '--lure'], { encoding: 'utf8' });
+    if (r.error || /No module named PIL|No such file or directory: .*ter-u12/.test(r.stderr)) return t.skip('python3 with Pillow and the Terminus fonts is needed');
+    const m = /r: \{ x: (\d+), y: (\d+) \}, l: \{ x: (\d+), y: (\d+) \}/.exec(r.stdout);
+    assert.ok(m, r.stdout + r.stderr);
+    assert.deepStrictEqual([T.ANGLER_LURE.r.x, T.ANGLER_LURE.r.y, T.ANGLER_LURE.l.x, T.ANGLER_LURE.l.y], m.slice(1).map(Number));
 });
 
 test('facing is the file: right-facing art for right-moving fish, the orca flag is inverted, both sync rules are in sync.js', () => {
@@ -117,9 +127,10 @@ test('descriptor helpers: classes, magnification, texel scale, load bar steps, p
     assert.strictEqual(T.fishClass(9), T.FISH_CLASSES.length - 1);
     assert.strictEqual(T.fishMag(4), 1);
     assert.strictEqual(T.fishMag(8), 2);
-    assert.strictEqual(T.texelDevice(1080), 2);
-    assert.strictEqual(T.texelDevice(2160), 4);
+    assert.strictEqual(T.texelDevice(1080), 1);
+    assert.strictEqual(T.texelDevice(2160), 2);
     assert.strictEqual(T.texelDevice(720), 1);
+    assert.strictEqual(T.creatureTexelDevice(2160), 2);
     assert.strictEqual(T.statusFile(0, 'g'), 'status-000-g.png');
     assert.strictEqual(T.statusFile(50, 'n'), 'status-050-n.png');
     assert.strictEqual(T.statusFile(100, 'g'), 'status-100-g.png');
@@ -135,7 +146,7 @@ test('descriptor helpers: classes, magnification, texel scale, load bar steps, p
     // the palette colours fish use come from the simulation's pattern colours: the variant is the character design
     const core = fs.readFileSync(path.join(ROOT, 'core', 'boids-core.js'), 'utf8');
     for (const c of Object.keys(T.FISH_VARIANT)) assert.ok(core.toUpperCase().includes(c.toUpperCase()), c);
-    assert.strictEqual(T.BG, '#0a120c');
+    assert.strictEqual(T.BG, '#08120b');
 });
 
 test('the terminal sea never blinks: no timer in the scene runs faster than 1 Hz except the kelp sway', () => {

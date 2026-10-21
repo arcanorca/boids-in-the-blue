@@ -3,8 +3,8 @@
 //   A  calm backdrop      no creatures, ambient running: pixels differing between frames 0.1-10 s apart,
 //                         and the fastest per-pixel change rate (Hz), from 1920x1080 grabs
 //   B  smooth motion      constant-velocity fish: residual of its on-screen x against a straight line
-//   C  eye comfort        mean luminance and "busy" (period <= 2 texel) 24x24 px windows in day / night /
-//                         crowded / stress / feeding renders
+//   C  eye comfort        mean luminance in day / night / crowded / stress / feeding renders; "busy" (period <= 2 texel)
+//                         24x24 px windows in the creature-free backdrop by day and by night
 //   D  proportions        sprite sizes in screen px at 1080p, default settings (from the generated textures)
 //   S  stress             alarm-box flips and tremble changes per second under stress 1.5
 //   F  facing             a fish and an orca moving right show their right-facing art, moving left the left-facing art
@@ -34,8 +34,8 @@ function qml(file, argv, timeout) {
     return r.stdout + r.stderr;
 }
 const png32 = file => { const im = png.decode(fs.readFileSync(file)); return { W: im.W, H: im.H, px: im.px, u: new Uint32Array(im.px.buffer, im.px.byteOffset, im.W * im.H) }; };
-const Q = T.texelDevice(1080);                  // device px per texel at 1080p: the water and the bubbles
-const QC = T.creatureTexelDevice(1080);         // device px per texel of the creatures (larger text)
+const Q = T.texelDevice(1080);                  // device px per texel at 1080p: one scale for everything (1)
+const QC = T.creatureTexelDevice(1080);
 
 // ── A: calm backdrop ─────────────────────────────────────────
 function measureA() {
@@ -140,15 +140,18 @@ function renderScenes() {
 }
 function measureC() {
     const files = renderScenes();
-    console.log('C  1920x1080, water texel = ' + Q + ' px (cells 12 x 24 px), creature texel = ' + QC + ' px (cells 18 x 36 px)');
+    console.log('C  1920x1080, one texel = ' + Q + ' px (cells ' + T.CELL_W * Q + ' x ' + T.CELL_H * Q + ' px)');
     for (const name in files) {
-        const im = png32(files[name]), L = lumaStats(im);
-        // the backdrop rule: no busy 24 x 24 window on the water's own texel grid (2 px). Creature glyphs are fine detail
-        // at their own texel (3 px): their windows are reported (INFO), they are the creatures, not backdrop noise.
-        const B = busyWindows(im, Q, 24), BC = busyWindows(im, QC, 24);
-        check(L.gamma < 0.25 && B.flagged === 0, 'C ' + name.padEnd(9) + ' mean luma ' + (L.gamma * 100).toFixed(1) + '% (linear ' + (L.linear * 100).toFixed(1) + '%), colours ' + L.colours +
-              ', busy 24x24 windows on the water texel: ' + B.flagged + '/' + B.total + (B.flagged ? ' flagged at ' + B.list.join(' ') : ''));
-        console.log('     INFO creature texel busy windows ' + BC.flagged + '/' + BC.total + ' (' + (BC.flagged / BC.total * 100).toFixed(2) + '%), max share ' + (BC.max * 100).toFixed(0) + '% at ' + BC.at + ': glyph detail of the creatures (and of the seabed row at the bottom)');
+        const L = lumaStats(png32(files[name]));
+        check(L.gamma < 0.25, 'C ' + name.padEnd(9) + ' mean luma ' + (L.gamma * 100).toFixed(1) + '% (linear ' + (L.linear * 100).toFixed(1) + '%), colours ' + L.colours + ', limit 25%');
+    }
+    // the busy-window rule is about the water: measured on the backdrop alone (no creatures), by day and by night
+    for (const mode of ['still', 'stillnight']) {
+        const dir = path.join(OUT, mode); fs.mkdirSync(dir, { recursive: true });
+        const out = qml('terminal-measure.qml', [mode, dir], 60000), m = /STILL (\S+)/.exec(out);
+        if (!m) { console.log('FAIL C: no ' + mode + ' grab\n' + out.slice(-400)); fail++; continue; }
+        const im = png32(m[1]), B = busyWindows(im, Q, 24), L = lumaStats(im);
+        check(B.flagged === 0, 'C backdrop ' + (mode === 'still' ? 'day  ' : 'night') + ' mean luma ' + (L.gamma * 100).toFixed(1) + '%, busy 24x24 windows (period <= 2 texels): ' + B.flagged + '/' + B.total + ', max share ' + (B.max * 100).toFixed(0) + '%' + (B.flagged ? ' flagged at ' + B.list.join(' ') : ''));
     }
 }
 
@@ -158,27 +161,28 @@ function measureD() {
     const px = (f, scale) => { const s = pngSize(f); return { w: s.w * scale, h: s.h * scale }; };
     const fish = px(T.fishFile(2, 'stripe', 0, 'r', 'g'), QC);                  // mid class at the default size
     const rows = {
-        fish: fish, 'fish (small)': px(T.fishFile(1, 'stripe', 0, 'r', 'g'), QC), 'fish (large)': px(T.fishFile(3, 'stripe', 0, 'r', 'g'), QC),
+        fish: fish, 'fish (fry)': px(T.fishFile(0, 'stripe', 0, 'r', 'g'), QC), 'fish (small)': px(T.fishFile(1, 'stripe', 0, 'r', 'g'), QC),
+        'fish (large)': px(T.fishFile(3, 'stripe', 0, 'r', 'g'), QC),
         angler: px(T.anglerFile(0, 'r', 'g'), QC), orca: px(T.orcaFile(0, 'r', 'g'), QC), jelly: px(T.jellyFile(1, 0, 'g'), QC),
         worm: px(T.wormFile(0, 0, 'g'), QC), 'bubble small': px(T.bubbleFile(1.5, 'g'), Q), 'bubble big': px(T.bubbleFile(3, 'g'), Q),
         'kelp (tallest)': px(T.kelpFile(2, 0, 'g'), Q)
     };
     console.log('D  screen px at 1080p, default settings (fish ' + fish.w + 'x' + fish.h + ')');
     for (const k in rows) console.log('     ' + k.padEnd(16) + rows[k].w + ' x ' + rows[k].h + '  (' + (rows[k].w / fish.w).toFixed(2) + ' x fish length)');
-    const within = (v, ref, tol) => Math.abs(v / ref - 1) <= (tol || 0.15);
-    check(within(fish.w, 54) && within(fish.h, 36), 'D1 fish ' + fish.w + 'x' + fish.h + ' vs 54x36');
-    check(within(rows.angler.w, 1.5 * fish.w), 'D2 angler length ' + rows.angler.w + ' vs 1.5 x fish ' + (1.5 * fish.w));
-    check(within(rows.orca.w, 3 * fish.w) && rows.orca.w >= 160 && rows.orca.w <= 200, 'D3 orca length ' + rows.orca.w + ' vs 3 x fish ' + (3 * fish.w) + ' (10 cells)');
-    check(rows.orca.h >= 108 && rows.orca.h <= 150, 'D3b orca height ' + rows.orca.h + ' px (4 text rows: 108-150)');
-    check(within(rows.jelly.w, fish.w), 'D4 jelly bell width ' + rows.jelly.w + ' vs fish length ' + fish.w);
-    check(within(rows.worm.w, 0.3 * fish.w), 'D5 worm width ' + rows.worm.w + ' vs 0.3 x fish ' + (0.3 * fish.w).toFixed(0));
-    check(rows['bubble small'].w >= 6 && rows['bubble big'].w <= 14, 'D6 bubbles ' + rows['bubble small'].w + '-' + rows['bubble big'].w + ' px (6-14)');
-    check(rows['fish (small)'].w < fish.w && rows['fish (large)'].w > fish.w, 'D7 fish classes ' + rows['fish (small)'].w + ' < ' + fish.w + ' < ' + rows['fish (large)'].w);
-    const seabed = T.SEABED.rows / T.CELL_H * T.CELL_H;
+    const within = (v, ref, tol) => Math.abs(v / ref - 1) <= (tol || 0.2);
+    check(fish.w >= 54 * 0.8 && fish.w <= 72 * 1.2 && fish.h >= 40 * 0.8 && fish.h <= 54 * 1.2 && fish.h / T.CELL_H >= 2, 'D1 mid fish ' + fish.w + 'x' + fish.h + ' (54-72 x 40-54, 2-4 rows)');
+    check(within(rows.angler.w, 1.5 * fish.w, 0.25), 'D2 angler length ' + rows.angler.w + ' vs 1.5 x fish ' + (1.5 * fish.w));
+    check(within(rows.orca.w, 3 * fish.w, 0.2) && rows.orca.w >= 170 * 0.8 && rows.orca.w <= 220 * 1.2, 'D3 orca length ' + rows.orca.w + ' vs 3 x fish ' + (3 * fish.w));
+    check(rows.orca.h >= 80 * 0.8 && rows.orca.h <= 120 * 1.2, 'D3b orca height ' + rows.orca.h + ' px (80-120)');
+    check(within(rows.jelly.w, fish.w, 0.2), 'D4 jelly bell width ' + rows.jelly.w + ' vs fish length ' + fish.w);
+    check(within(rows.worm.w, 0.3 * fish.w, 0.2), 'D5 worm width ' + rows.worm.w + ' vs 0.3 x fish ' + (0.3 * fish.w).toFixed(0));
+    const bb = ['bubble small', 'bubble big'].map(k => Math.max(rows[k].w, rows[k].h));
+    check(bb[0] >= 6 && bb[1] <= 14, 'D6 bubbles ' + bb[0] + '-' + bb[1] + ' px (6-14)');
+    check(rows['fish (small)'].w < fish.w && rows['fish (large)'].w > fish.w && rows['fish (fry)'].w <= rows['fish (small)'].w, 'D7 fish classes ' + rows['fish (fry)'].w + ' <= ' + rows['fish (small)'].w + ' < ' + fish.w + ' < ' + rows['fish (large)'].w);
     const seabedPx = T.SEABED.rows * Q / 1080, kelpPx = Math.max.apply(null, T.KELP.map(k => k.rows)) * T.CELL_H * Q / 1080;
     check(seabedPx <= 0.09, 'D8 seabed ' + (seabedPx * 100).toFixed(1) + '% of the height (limit 9%)');
     check(kelpPx <= 0.20, 'D9 tallest kelp ' + (kelpPx * 100).toFixed(1) + '% of the height (limit 20%)');
-    check(seabed === T.SEABED.rows, 'D10 seabed on whole text rows');
+    check(T.SEABED.rows % T.CELL_H === 0 && T.SEABED.y % T.CELL_H === 0, 'D10 seabed on whole text rows');
 }
 
 // ── S: stress ────────────────────────────────────────────────

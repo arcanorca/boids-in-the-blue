@@ -3,6 +3,7 @@
 //   motion <outDir>   one fish at constant velocity: its on-screen x on every rendered frame (MOTION lines)
 //   stress <outDir>   40 fish at stress 1.5: per-sprite state changes over time (STRESS line)
 //   facing <outDir>   one fish and one orca moving right, then left: the texture each one shows (FACING lines)
+//   still <outDir> | stillnight <outDir>   no creatures: one 1920x1080 grab of the backdrop by day / by night (STILL line)
 // Run: QT_QPA_PLATFORM=offscreen qml6 tests/qml/terminal-measure.qml -- <mode> <outDir>
 import QtQuick
 import QtQuick.Window
@@ -47,6 +48,18 @@ Window {
             scene.item.sync(win.sim);
             if (win.mode === "stress") win.sampleStress();
         }
+    }
+
+    // still: one grab of the creature-free backdrop (the busy-window rule is about the water, not the creatures)
+    Timer {
+        id: stillGrab
+        interval: 1200
+        onTriggered: scene.item.grabToImage(function (r) {
+            var file = win.outDir + "/" + win.mode + ".png";
+            r.saveToFile(file);
+            console.log("STILL " + file);
+            Qt.quit();
+        })
     }
 
     // calm: grab every 100 ms for 10.5 s
@@ -141,7 +154,7 @@ Window {
     }
 
     Component.onCompleted: {
-        if (mode === "calm") { cfg.fishCount = 0; cfg.anglerCount = 0; cfg.orcaCount = 0; cfg.jellyCount = 0; }
+        if (mode === "calm" || mode === "still" || mode === "stillnight") { cfg.fishCount = 0; cfg.anglerCount = 0; cfg.orcaCount = 0; cfg.jellyCount = 0; }
         else if (mode === "motion") { cfg.fishCount = 1; cfg.anglerCount = 0; cfg.orcaCount = 0; cfg.jellyCount = 0; }
         else if (mode === "facing") { cfg.fishCount = 1; cfg.anglerCount = 0; cfg.orcaCount = 1; cfg.jellyCount = 0; }
         else { cfg.fishCount = 40; cfg.anglerCount = 0; cfg.orcaCount = 0; cfg.jellyCount = 0; }
@@ -163,6 +176,11 @@ Window {
             Boids.step(sim, 1, cfg);
             scene.item.sync(sim);
             facingStep.start();
+        } else if (mode === "still" || mode === "stillnight") {
+            if (mode === "stillnight") scene.item.daylight = 0;
+            for (var s4 = 0; s4 < 5; s4++) Boids.step(sim, 1, cfg);
+            scene.item.sync(sim);
+            stillGrab.start();
         } else {
             for (var s2 = 0; s2 < 50; s2++) Boids.step(sim, 1, cfg);
             scene.item.sync(sim);

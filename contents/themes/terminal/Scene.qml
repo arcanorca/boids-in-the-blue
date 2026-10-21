@@ -57,6 +57,13 @@ Item {
     // a little depth darkening, stretched smoothly over the screen, and one dark scanline in four at a whole-texel scale.
     Image {
         anchors.fill: parent
+        z: 1.5
+        source: T.DIR + "haze.png"
+        smooth: true
+        fillMode: Image.Stretch
+    }
+    Image {
+        anchors.fill: parent
         z: 2
         source: T.DIR + "shade.png"
         smooth: true

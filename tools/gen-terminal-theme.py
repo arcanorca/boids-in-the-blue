@@ -30,14 +30,14 @@ FONT_B = os.environ.get('TERMINUS_B', '/usr/share/fonts/misc/ter-u12b.otb')
 CW, CH = 6, 12                       # one text cell in texels (Terminus 6x12); 1 texel = 1 device px at 1080p
 BG = (0x08, 0x12, 0x0b)              # the water colour: the only background of every box and of the sea
 BG_HEX = '#08120b'
-GLOW = 0.42                          # strength of the baked phosphor glow (share of the ink colour at the glyph)
+GLOW = 0.6                          # strength of the baked phosphor glow (share of the ink colour at the glyph)
 BOLD_ALL = True                      # creatures use the bold weight (the strokes carry the body mass)
-GLOW_R = 1.7                         # gaussian radius of the glow in texels
+GLOW_R = 2.0                         # gaussian radius of the glow in texels
 
 # ── palette sets: four tones each (b highlight, n normal, m mid, d dim) ──
 PAL = {
-    'g':  {'b': '#b4ffc8', 'n': '#46e47e', 'm': '#27a85a', 'd': '#175f35'},
-    'n':  {'b': '#46e47e', 'n': '#27a85a', 'm': '#175f35', 'd': '#0f3d24'},
+    'g':  {'b': '#e0ffe9', 'n': '#6bf59b', 'm': '#3cc873', 'd': '#217f4a'},
+    'n':  {'b': '#6bf59b', 'n': '#3cc873', 'm': '#217f4a', 'd': '#124c2d'},
     'a':  {'b': '#ffe0a0', 'n': '#ffb000', 'm': '#c47f00', 'd': '#7a4d00'},
     'an': {'b': '#ffb000', 'n': '#c47f00', 'm': '#7a4d00', 'd': '#4d3000'},
     'r':  {'b': '#ffb4a8', 'n': '#ff5040', 'm': '#c03024', 'd': '#7a1c14'},
@@ -205,7 +205,7 @@ def render_grid(g, pal, inv=False, glow=True):
     return base.convert('RGBA')
 
 
-def render_clear(g, pal):
+def render_clear(g, pal, bold=False):
     """Glyphs only (transparent background): sparkle, lure."""
     W, H = g.cols * CW, g.rows * CH
     im = Image.new('RGBA', (W, H), (0, 0, 0, 0))
@@ -214,7 +214,7 @@ def render_clear(g, pal):
             c, k = g.text[cy][cx], g.tone[cy][cx]
             if c == ' ':
                 continue
-            m = mask_of(c, k == 'b')
+            m = mask_of(c, bold or k == 'b')
             im.paste(Image.new('RGBA', (CW, CH), rgb(pal[k]) + (255,)), (cx * CW, cy * CH), m)
     return im
 
@@ -267,7 +267,7 @@ WORM_STAGES = 3
 
 def variant_grid(tpl, variant):
     """Fills the 'F' / 'f' placeholders of a fish template with the variant's body characters."""
-    fill = {'stripe': ('|', ' '), 'spot': ('o', '.'), 'solid': ('#', '#'), 'hollow': (' ', '.'), 'check': ('%', ' ')}[variant]
+    fill = {'stripe': ('=', '-'), 'spot': ('@', 'o'), 'solid': ('#', '#'), 'hollow': (':', '.'), 'check': ('%', '%')}[variant]
     text = []
     for y, t in enumerate(tpl.text):
         row = ''
@@ -278,7 +278,7 @@ def variant_grid(tpl, variant):
     for y, k in enumerate(tpl.tone):
         row = ''
         for x, c in enumerate(tpl.text[y]):
-            row += 'm' if c in 'Ff' else k[x]
+            row += ('m' if variant in ('hollow', 'spot') else 'n') if c in 'Ff' else k[x]
         tone.append(row)
     return Grid(text, tone)
 
@@ -313,7 +313,7 @@ def gen_creatures(out):
         for lvl in range(3):
             out['lure-%d-%s.png' % (lvl, s)] = render_lure(lvl, pal)
         out['bubble-s-%s.png' % s] = render_cropped(Grid(['o'], ['m']), pal)
-        out['bubble-b-%s.png' % s] = render_cropped(Grid(['O'], ['n']), pal)
+        out['bubble-b-%s.png' % s] = render_cropped(Grid(['()'], ['n']), pal)
 
 
 # ── backdrop ─────────────────────────────────────────────────
@@ -400,7 +400,7 @@ def seabed_grid():
             w = rnd.choice([6, 8, 10])
             top = ('_.-' + '"' * (w - 5) + '-._')[:w] if False else '.' + '-' * (w - 2) + '.'
             put(text[0], tone[0], x + 1, ' ' + '_' * (w - 2) + ' ', 'm')
-            put(text[1], tone[1], x, '(' + '@' * (w - 2) + ')', 'm')
+            put(text[1], tone[1], x, '(' + ''.join(rnd.choice('==:') for _ in range(w - 2)) + ')', 'm')
             x += w + rnd.randrange(1, 5)
         elif r < 0.45:                                  # mound
             n = rnd.randrange(2, 5)
@@ -419,24 +419,30 @@ def seabed_grid():
     for y in range(2, SEABED_ROWS - 1):
         for xx in range(COLS):
             if rnd.random() < (0.20 if y == 2 else 0.12):
-                text[y][xx] = rnd.choice('=:.#' if y < 4 else ':.=')
+                text[y][xx] = rnd.choice('=:.' if y < 4 else ':.=')
                 tone[y][xx] = 'd'
     return Grid([''.join(r) for r in text], [''.join(r) for r in tone])
 
 
-# kelp: stalks of leaves, 3 columns wide; the two frames swap the leaf sides (a slow sway)
+# kelp: a stalk with leaves on both sides (up to two per side), 5 columns wide; the two frames swap the leaf
+# lengths of the sides (a slow sway, one step every 2 s)
 def kelp_grid(cls, frame):
     h = KELP_ROWS[cls]
-    left, right = ('(', ')') if frame == 0 else (')', '(')
+    rnd = random.Random(100 + cls)
     text, tone = [], []
     for y in range(h):
+        l, r = rnd.choice([0, 1, 1, 2]), rnd.choice([0, 1, 1, 2])
         if y == 0:
-            text.append(' ,'); tone.append(' m')
-        elif cls == 0:                                  # tuft: a small fan
-            text.append(('\\|/' if y % 2 else ' |/')[:3]); tone.append('mmm')
-        else:
-            side = (y + frame) % 2
-            text.append((left + '|' if side else ' |' + right)); tone.append('mm' if side else 'mmm')
+            text.append('  ,  '); tone.append('  m  ')
+            continue
+        if cls == 0 and y == 1:
+            text.append(' \\|/ '); tone.append(' dmd ')
+            continue
+        if frame:
+            l, r = r, l
+        left, right = '(' * l, ')' * r
+        text.append(left.rjust(2) + '|' + right.ljust(2))
+        tone.append('dd' + 'm' + 'dd')
     return Grid(text, tone)
 
 
@@ -451,7 +457,7 @@ def bar_grid(text, tone='n'):
 
 def render_flat(g, pal):
     """Backdrop pieces: glyphs on a transparent background, no glow."""
-    return render_clear(g, pal)
+    return render_clear(g, pal, bold=True)
 
 
 def shade_image():
@@ -463,12 +469,25 @@ def shade_image():
         for x in range(W):
             nx, ny = (x + 0.5) / W * 2 - 1, (y + 0.5) / H * 2 - 1
             r = math.sqrt((nx * 0.92) ** 2 + (ny * 1.0) ** 2)
-            vig = max(0.0, r - 0.45) / 0.85
-            vig = min(1.0, vig) ** 1.8 * 0.62
+            vig = max(0.0, r - 0.55) / 0.8
+            vig = min(1.0, vig) ** 2.0 * 0.5
             depth = (y + 0.5) / H
-            dep = 0.30 * depth ** 1.5
+            dep = 0.22 * depth ** 1.5
             a = 1 - (1 - vig) * (1 - dep)
             px[x, y] = (0, 0, 0, int(round(a * 255)))
+    return im
+
+
+def haze_image():
+    """A soft phosphor-green lift of the water, brightest high and in the middle (the lit glass), 96 x 54, stretched smoothly."""
+    W, H = 96, 54
+    im = Image.new('RGBA', (W, H), (0, 0, 0, 0))
+    px = im.load()
+    for y in range(H):
+        for x in range(W):
+            nx, ny = (x + 0.5) / W * 2 - 1, (y + 0.5) / H * 2 - 1
+            v = math.exp(-(nx * nx) / 0.55 - ((ny + 0.35) ** 2) / 0.30)
+            px[x, y] = (40, 170, 90, int(round(v * 0.20 * 255)))
     return im
 
 
@@ -476,7 +495,7 @@ def scan_image():
     """One dark line in four (static scanlines). 4 x 4, tiled by the QML at a whole-number scale."""
     im = Image.new('RGBA', (4, 4), (0, 0, 0, 0))
     for x in range(4):
-        im.putpixel((x, 3), (0, 0, 0, 58))
+        im.putpixel((x, 3), (0, 0, 0, 50))
     return im
 
 
@@ -493,6 +512,7 @@ def gen_backdrop(out):
         for lvl in range(0, 101, 5):
             out['status-%03d-%s.png' % (lvl, s)] = render_flat(bar_grid(status_text(lvl)), pal)
     out['shade.png'] = shade_image()
+    out['haze.png'] = haze_image()
     out['scan.png'] = scan_image()
 
 
