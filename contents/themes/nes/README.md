@@ -7,11 +7,11 @@ for palettes, sizes and pacing.
 
 ## Redesign (what changed and why)
 
-* Colour: the water was three loud, fully saturated blue bands with dither strips, then four flat
-  bands. It is now one smooth gradient: a mid teal surface ($1C) fading to a deep desaturated navy
-  floor ($0C) through 12 bands whose density steps are dithered, with soft 3-row transitions. There
-  is no neon band and no black water. Sand is muted tan, boulders dull brown, kelp medium green.
-  Creatures are the most saturated things on screen, and the night water is a flat navy.
+* Colour: the water was three loud, fully saturated blue bands with dither strips, then a dithered
+  gradient that read as a dot grid. It is now two flat bands: a mid teal surface ($1C) over a deep
+  navy floor ($0C), joined by one 3-row ordered-dither seam. There is no neon band and no black
+  water. Sand is muted tan, boulders dull brown, kelp medium green. Creatures are the most saturated
+  things on screen, and the night water is a flat navy.
 * Sprites: fish were heavy black outlines with stripes and dots, so school mates merged into one
   smear. Each fish has a one-pixel outline in its own colour family's dark shade, a two-tone body,
   one eye and at most one marking. The palettes are muted: salmon, sand-gold, soft teal and soft
@@ -36,14 +36,14 @@ for palettes, sizes and pacing.
 | 2-bit tiles, colour 0 transparent | All art is authored as indices 0..3 in 8x8 tiles. The PNGs are produced afterwards by mapping indices through a palette. |
 | 4 sprite palettes, 3 colours each | Shared by all creatures (table below). Each sprite uses at most 3 colours plus transparent (the angler is two parts: body and lure). |
 | Metasprites of 8x8 tiles, one palette per sprite | A creature is a grid of whole tiles; the generator folds mirrored duplicates (horizontal flip attribute) and fails if a part leaves the tile grid. |
-| 4 background palettes, one per 16x16 area | The seabed and waterline are painted into palette-tagged cells; the generator fails when a 16x16 area mixes palettes. The water is one palette (two entries) and is drawn as a texture. |
+| 4 background palettes, one per 16x16 area | The seabed and waterline are painted into palette-tagged cells; the generator fails when a 16x16 area mixes palettes. The water is drawn as flat bands (a texture) from two NES entries. |
 | One universal backdrop colour | The deepest water. It is the "transparent" colour of every background tile. |
 | Background tiles cannot flip | About 214 unique tiles per CHR bank (limit 256). The kelp sway is a CHR bank switch (two banks, 1 s apart). |
 | Low internal resolution | One virtual pixel = `floor(height / 240)` screen pixels (at least 2): 1080p is 480x270 at 4x, 1440p 427x240 at 6x. Sprite art is drawn on whole screen pixels. |
 | 2-frame animation | Fish, orca, angler, jelly and worm each have two frames chosen by the sim state; the angler's lure has three tile variants. |
 | No alpha | Nothing is translucent: jellies are opaque tiles, a dying worm blinks, a newborn fish gets a twinkling sparkle sprite. |
 | Palette fades for night stages | Day, dusk and night are three background palette sets, hand-picked. Sprite palettes stay (as in games that only fade the playfield). |
-| Not emulated | The 64-sprite / 8-per-scanline limits and the flicker they cause (not wanted on a wallpaper), mid-frame palette changes, NTSC artefacts. The water is a 480x270 dithered texture, not nametable tiles: a real 2C02 could not spare the CHR for it. |
+| Not emulated | The 64-sprite / 8-per-scanline limits and the flicker they cause (not wanted on a wallpaper), mid-frame palette changes, NTSC artefacts. The water is a 480x270 texture, not nametable tiles: a real 2C02 could not spare the CHR for it. |
 
 ## Palettes
 
@@ -68,10 +68,16 @@ Background palettes, day (universal colour $0C): water $1C (surface) and $0C (fl
 $36, kelp $0A $1A $2A, foam $1C $3B $30. Dusk and night use the same structure with hand-picked sand
 and kelp; night water is a flat navy ($0C) so it does not glare.
 
-Water: `WATER` in `theme.js` (12 bands, 3-row seams) becomes `img/water-<state>.png`, a 480x270
-texture. Each row is a 4x4 ordered dither of the two shades; the density steps from 0 at the top to
-1 at the floor, interpolated over 3 rows at each band boundary. The 12 bands have one density step
-between neighbours, so no edge stands out.
+Water: `WATER_RAMP` and `WATER_BAND` in `theme.js` become `img/water-<state>.png`, a 480x270 texture
+of flat bands. Day: $1C teal for the top 30 %, then $0C navy; the seam between them is 3 rows of a
+2x2 checker. Dusk puts the boundary higher; night is a flat $0C navy. Tests check that no 24x24 block
+of the water is a dot pattern.
+
+Why only two entries and not 5-6: the NES teal/blue/navy entries are all fully saturated, so every
+flat band reads as a stripe, and dithered bands read as a dot grid (the owner's rejected look). The
+two-band water is the calmest compromise the palette allows. Trade-offs: the orca's navy body sits
+on the navy floor (its white belly and eye patch carry it), and a true black-bodied orca would need
+one of the four sprite palettes (the teal fish or the angler) to be given up.
 
 ## Stress
 
