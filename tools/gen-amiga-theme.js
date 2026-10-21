@@ -308,8 +308,8 @@ const JELLY_PAL = mkPal({ r: ['#fdf', 235], R: '#fff', b: ['#d9f', 175], i: ['#b
 function jellyFrame(art, frame) {
     const K = T.kinds.jelly.arts[art], W = K.cols, H = K.rows, g = mk(W, H);
     const bw0 = W, bh = Math.round(bw0 * 0.6), top = 1, cx = (W - 1) / 2;
-    const bw = Math.max(bw0 - [0, 1, 2, 1][frame] * 2, 4);           // slow pulse: the bell narrows by 2 columns
-    const hgt = bh + [0, 0, 1, 0][frame] * 0;
+    const bw = bw0;                                                 // slow pulse: the bell keeps its width and flattens by a row
+    const hgt = bh - [0, 0, 1, 0][frame];
     const rows = [];
     for (let j = 0; j < hgt; j++) {
         const yn = (hgt - 1 - j) / (hgt - 0.3), hw = (bw / 2) * Math.sqrt(Math.max(0, 1 - yn * yn));
