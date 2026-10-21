@@ -284,7 +284,9 @@ function orcaSmallSprite(frame) {
         put(g, x, y, ch);
     }
     outline(g, 'p');
-    return g;
+    const out = pad(g, 1, 1, 1, 1);
+    outline(out, 'p');
+    return out;
 }
 
 function orcaSprite(frame, small) {
@@ -311,7 +313,7 @@ function orcaSprite(frame, small) {
     // tail stock: slim, rising to the left
     const STOCK = [[9.5, 10.0], [6, 8.4], [3.4, 6.8], [2.6, 9.6], [4.8, 12.6], [9.5, 13.8]];
     // dorsal fin: tip leaning back toward the tail, concave trailing edge
-    const FIN = [[21.8, 7.9], [15.4, 1.6], [18.4, 5.0], [15.6, 7.9]];
+    const FIN = [[24.6, 8.0], [16.4, 0.2], [17.2, 3.8], [14.4, 8.0]];
     // flukes: two lobes with a notch between them, shifted vertically by the frame
     const flukesAt = (u, v, s) => {
         const vv = v - s;
@@ -320,7 +322,7 @@ function orcaSprite(frame, small) {
         return inPoly(up, u, vv) || inPoly(lo, u, vv);
     };
     // pectoral flipper: triangle hanging down and slightly back
-    const FLIP = [[22.8, 14.4], [29.0, 14.6], [23.2, 22.0]];
+    const FLIP = [[22.2, 14.2], [30.2, 14.8], [26.0, 19.4], [23.8, 22.6]];
     const flipAt = (u, v) => inPoly(FLIP.map(([a, b]) => [a, b + fl]), u, v);
     // white lens-shaped belly: tapers to the tail, widest toward the head
     const BELLY = [[9.4, 13.0], [14, 11.6], [20, 11.1], [25, 11.5], [29, 12.8], [30.2, 14.3], [27, 15.8], [20, 15.9], [13, 14.8]];
@@ -336,13 +338,17 @@ function orcaSprite(frame, small) {
         if (!body) continue;
         let ch = 'k';
         if (inPoly(BELLY, u, v) && !flipAt(u, v)) ch = 'p';                                // white belly
-        if (inEll(u, v, 23.0, 8.8, 2.2, 1.0) && !flipAt(u, v)) ch = 'p';                  // saddle behind the fin
+        if (inEll(u, v, 12.2, 10.7, 2.4, 0.9) && !flipAt(u, v)) ch = 'p';                 // saddle behind the fin
         if (inEll(u, v, 32.6, 10.0, 1.6, 0.9)) ch = 'p';                                  // eye patch
         if (flipAt(u, v)) ch = 'k';                                                       // dark flipper on the belly
         put(g, x, y, ch);
     }
     outline(g, 'p');
-    return g;
+    // "sticker" border: a second paper ring, so the ink body (invisible on ink water) reads as a dark
+    // silhouette framed in light like the reference pixel orca, and thin fins/flippers become solid shapes
+    const out = pad(g, 1, 1, 1, 1);
+    outline(out, 'p');
+    return out;
 }
 
 // ── angler ───────────────────────────────────────────────────
