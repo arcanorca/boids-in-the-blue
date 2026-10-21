@@ -211,8 +211,6 @@ function orcaFrame(art, frame) {
     // eye patch + eye
     pts(g, 'W', [[5, 5], [6, 5], [7, 5], [8, 5], [6, 6], [7, 6], [8, 6], [9, 6]]);
     pts(g, 'E', [[4, 6], [3, 6]]); pts(g, 'e', [[4, 5]]);
-    // grey saddle behind the dorsal fin
-    pts(g, 'g', [[19, 4], [20, 4], [21, 4], [20, 5], [21, 5], [22, 5]]);
     // pectoral flipper, flexes slowly
     const fl = frame % 2 === 0 ? [[8, 13], [9, 13], [10, 13], [11, 13], [9, 14], [10, 14], [11, 14]] : [[8, 13], [9, 13], [10, 13], [11, 13], [10, 14], [11, 14], [12, 14]];
     for (const [x, y] of fl) P(x, y, 'K');
@@ -262,7 +260,7 @@ const ANGLER_ART = [
     {   // 18x14 (interior 16x12): round body, wide toothy mouth, eye, tail fan; body rows start at y3
         tail: [0, 5, ['f..', 'ff.', 'fff', 'ff.', 'f..']],
         body: ['................', '................', '................', '.......bllb.....', '.....bbllhllbb..', '....bblllllleeb.', '...bbbbbbbbbekbb', '..FbbbbbbbbbbmmmW'.slice(0, 16), '..FFbbbbbbbbmwmwm'.slice(0, 16), '...dbbbbbbbbbbd.', '....ddbbbbbbdd..', '......dddddd....'],
-        stalk: [[[10, 2], [10, 1], [11, 1], [12, 1]], [[10, 2], [11, 2], [12, 2]], [[10, 2], [10, 1], [11, 1], [12, 1]], [[10, 2], [10, 1], [11, 1], [11, 0], [12, 0]]]
+        stalk: [[[10, 2], [11, 1], [12, 1]], [[10, 2], [11, 2], [12, 2]], [[10, 2], [11, 1], [12, 1]], [[10, 2], [11, 1], [12, 0]]]
     }
 ];
 function anglerFrame(art, frame) {
