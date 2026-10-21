@@ -99,7 +99,7 @@ function bubbleFile(scale) { return bubbleClass(scale) ? "bubble-b.png" : "bubbl
 // Near the surface they run across the whole width; below a solid seam they are confined to a few diagonal
 // light shafts (so the shafts ARE the hatching, with clean stair-step edges and a dashed diagonal on the lit
 // side), and their pitch widens with depth in three wide bands; below the last band the water is flat ink.
-// The lines are spread over WATER.layers textures; daylight shows more of them (day: all, night: the first)
+// The lines are spread over WATER.layers layers; daylight shows more of them (day: all, night: the first)
 // one dash row at a time. Nothing in it moves.
 var WATER = {
     cols: 640, rows: 240, layers: 6, seed: 20241021,
@@ -113,9 +113,9 @@ var WATER = {
     beams: [[60, 1.0], [215, 0.8], [350, 1.15], [495, 0.9], [590, 1.0]],     // [centre column at the top, width factor]; lean 1 col per 2 rows
     beamHalf: 24, beamGrow: 0.1
 };
-function waterFile(layer) { return "water-" + layer + ".png"; }
-// daylight needed to show a layer (layer 0 is always visible, also at night)
-function waterLayerMin(layer) { return layer * 0.17; }
+// water-<n>.png holds the lines of layers 0..n; daylight picks n (layer 0 is always shown, also at night)
+function waterFile(level) { return "water-" + level + ".png"; }
+function waterLevel(daylight) { return Math.max(0, Math.min(WATER.layers - 1, Math.floor(Math.max(0, daylight) / 0.17))); }
 var SURFACE = { cols: 64, rows: 6 };               // the wave line at the top (tiles horizontally)
 
 // seabed: a silhouette strip along the bottom (SEABED.rows of the 360 texel rows), 640 texels wide, tiles

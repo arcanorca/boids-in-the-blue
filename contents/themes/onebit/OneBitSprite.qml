@@ -6,11 +6,14 @@ import "theme.js" as T
 // cw/ch (its size in texels), mag (whole-texel magnification), ps (screen px per texel), sparkle (newborns),
 // lureLevel (angler). Shared textures, nearest-neighbour, no opacity, no effects, no timers.
 //
-// Motion: sync.js sets the target tx/ty once per 25 Hz simulation tick; a 40 ms linear animation carries the
-// sprite there (like the classic theme) and x/y are rounded to whole SCREEN pixels, so the art stays crisp
-// (never blended) while it glides at display rate. Positions are deliberately not snapped to the texel grid.
+// Motion: the layer (EntityLayer.qml) moves every sprite between its last two simulation targets (25 Hz) with a
+// 40 ms linear interpolation on each rendered frame (like the classic theme's Behavior, but one JS loop instead of
+// two animations per sprite) and rounds x/y to whole SCREEN pixels, so the art stays crisp (never blended) while
+// it glides at display rate. Positions are deliberately not snapped to the texel grid.
 Item {
     id: root
+    x: 0
+    y: 0
     width: 1
     height: 1
 
@@ -35,7 +38,6 @@ Item {
     property int ch: 1
     property int mag: 1                 // whole-texel magnification of the sprite
     property real ps: 3                 // screen px per texel
-    property real dpr: 1                // device pixel ratio (positions snap to device pixels)
     property real phase: 0              // adapter-private animation accumulators
     property int tick: 0
     property real seed: 0               // per-delegate random in 0..1 (stress order, desync)
@@ -46,15 +48,7 @@ Item {
     property real lureX: 0              // angler lure centre in sprite texels
     property real lureY: 0
 
-    // glide target (screen px) and the animation between simulation ticks
-    property real tx: 0
-    property real ty: 0
-    property bool glide: true
-    Behavior on tx { enabled: root.glide; NumberAnimation { duration: 40; easing.type: Easing.Linear } }
-    Behavior on ty { enabled: root.glide; NumberAnimation { duration: 40; easing.type: Easing.Linear } }
-    function place(px, py) { glide = false; tx = px; ty = py; glide = true; }
-    x: Math.round(tx * dpr) / dpr
-    y: Math.round(ty * dpr) / dpr
+    property var rec: null              // glide record owned by the layer (targets, pool slot)
 
     readonly property real _u: ps * mag                    // screen px per texel of this sprite
     readonly property real _w: cw * _u

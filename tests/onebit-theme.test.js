@@ -33,6 +33,7 @@ test('every onebit frame the renderer requests exists', () => {
     for (let l = 0; l < 3; l++) assert.ok(exists('lure-' + l + '.png'));
     for (let f = 0; f < 2; f++) assert.ok(exists('sparkle-' + f + '.png'));
     for (let l = 0; l < T.WATER.layers; l++) assert.ok(exists(T.waterFile(l)));
+    for (const d of [0, 0.5, 1]) assert.ok(exists(T.waterFile(T.waterLevel(d))));
     for (const f of ['seabed.png', 'surface.png']) assert.ok(exists(f));
     for (const f of ['Scene.qml', 'Ambient.qml', 'EntityLayer.qml', 'OneBitSprite.qml', 'sync.js', 'README.md', 'preview.png']) assert.ok(fs.existsSync(path.join(DIR, f)), f);
 });

@@ -8,8 +8,8 @@
 // Same call shape as Boids.sync(sim, parent, component) plus `ps` (screen px per texel) and `dpr`.
 // Per tick and entity only changed properties are written.
 //
-// Positions: the target (tx, ty) in screen pixels is written once per tick; the sprite glides there in
-// 40 ms and lands on whole screen pixels (see OneBitSprite.qml). Nothing is snapped to the texel grid.
+// Positions: the target in screen pixels is handed to the layer once per tick; the layer glides the sprite there
+// in 40 ms and it lands on whole screen pixels (see EntityLayer.qml). Nothing is snapped to the texel grid.
 //
 // Animation comes from sim state, no timers: tail beat from speed (2-3 frames/s), jelly pulse from the
 // sim's wobble phase, worm wiggle from its wiggle phase, angler lure from a slow per-delegate counter.
@@ -30,6 +30,7 @@ function sync(sim, parent, component, ps, dpr) {
 }
 
 function _sync(sim, parent, component, ps, dpr) {
+    component.beginTick(dpr);
     var cc = sim._c, stress = sim.cpuStress, now = Boids._now();
     var hot = stress > 1.2;
     var share = Math.max(0, Math.min(0.95, stress - 0.25));            // share of inverted fish
@@ -57,13 +58,11 @@ function _sync(sim, parent, component, ps, dpr) {
                 dg.seed = _rnd();
                 dg.phase = dg.seed * 4;                  // desynchronise the beat of a school
                 dg.tick = 0;
-                dg.place(ent.x, ent.y);                  // no glide from a stale pooled position
+                component.place(dg, ent.x, ent.y);       // no glide from a stale pooled position
             } else {
-                if (dg.tx !== ent.x) dg.tx = ent.x;
-                if (dg.ty !== ent.y) dg.ty = ent.y;
+                component.target(dg, ent.x, ent.y);
             }
             if (dg.ps !== ps) dg.ps = ps;
-            if (dg.dpr !== dpr) dg.dpr = dpr;
 
             var fr, mag, d;
             if (kind === 'fish') {

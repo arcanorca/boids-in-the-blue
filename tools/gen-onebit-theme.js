@@ -292,7 +292,7 @@ function lureSprite(level) {
 
 // ── backdrop ─────────────────────────────────────────────────
 // Water: horizontal hatch lines (1 texel thick, long irregular dashes that wrap, so the strip tiles) in four bands;
-// every line belongs to one of WATER.layers textures (the scene shows more of them in daylight). Seams are solid.
+// every line belongs to one of WATER.layers layers; water-<n>.png is the union of layers 0..n (the scene shows more of them in daylight). Seams are solid.
 function waterLayers() {
     const Wt = T.WATER, rnd = rng(Wt.seed), layers = Array.from({ length: Wt.layers }, () => mk(Wt.cols, Wt.rows));
     const dashRow = (cover) => {
@@ -314,7 +314,7 @@ function waterLayers() {
     const paint = (y, layer, on) => { for (let x = 0; x < Wt.cols; x++) if (on === null || on[x]) layers[layer][y][x] = 'p'; };
     for (const y of Wt.seams) paint(y, 0, null);
     for (const b of Wt.bands) for (let y = b.from; y <= b.to; y += b.pitch) {
-        const layer = Math.floor(rnd() * Wt.layers), on = dashRow(b.cover);
+        const layer = b.full ? Math.floor(rnd() * 3) : 1 + Math.floor(rnd() * (Wt.layers - 1)), on = dashRow(b.cover);
         if (!b.full) {
             for (let x = 0; x < Wt.cols; x++) if (!beamAt(x, y)) on[x] = 0;
             // drop fragments the beam edge cut too short (no specks)
@@ -327,12 +327,12 @@ function waterLayers() {
         }
         paint(y, layer, on);
     }
-    // a dashed diagonal on the lit (left) edge of every beam, drawn in layer 1 so it comes with the first daylight
+    // a dashed diagonal on the lit (left) edge of every beam, drawn in layer 0, so night keeps the shafts as sparse diagonals
     const first = Wt.bands[1].from, last = Wt.bands[3].to;
     for (const [c, wf] of Wt.beams) for (let y = first - 4; y <= last; y++) {
         if (((y + Math.round(c)) % 22) >= 15) continue;
         const hw = (Wt.beamHalf + Wt.beamGrow * y) * wf, x = (Math.round(c + 0.5 * y - hw - 2) + Wt.cols * 2) % Wt.cols;
-        layers[1][y][x] = 'p';
+        layers[0][y][x] = 'p';
     }
     return layers;
 }
@@ -342,38 +342,41 @@ function surfaceTile() {
     for (let x = 0; x < S.cols; x++) { put(g, x, y(x), 'p'); if (x > 0 && y(x) !== y(x - 1)) put(g, x, y(x - 1), 'p'); }
     return g;
 }
-// Seabed: an ink silhouette with a paper contour 1 texel thick, boulders outlined in paper with a highlight, and
-// sediment hatch dashes under the ridge (pitch 3-4). It tiles (the ridge is periodic).
+// Seabed: a solid paper sand silhouette along the bottom (reads on the dark water), ink boulders outlined in paper
+// with a highlight, and ink sediment hatch dashes following the ridge (pitch 3-4). It tiles (the ridge is periodic).
 function seabedTile() {
     const W = T.SEABED.cols, H = T.SEABED.rows, g = mk(W, H), rnd = rng(99);
     const top = x => T.seabedTop(x);
-    const ink = (x, y) => put(g, (x + W) % W, y, 'k');
-    for (let x = 0; x < W; x++) for (let y = top(x); y < H; y++) g[y][x] = 'k';
-    // boulders first (ink + paper outline), the ridge line is drawn over them
+    const put2 = (x, y, ch) => put(g, (x + W) % W, y, ch);
+    // ground: solid paper below the ridge (a silhouette that reads on the dark water), sediment dashes cut out in ink
+    for (let x = 0; x < W; x++) for (let y = top(x); y < H; y++) g[y][x] = 'p';
+    // boulders: ink with a paper outline (dark against the sand, outlined against the water), a highlight at the upper left
     const rocks = [[70, 7, 5], [82, 4, 3], [255, 9, 6], [270, 5, 3], [410, 6, 4], [470, 3, 2], [560, 8, 5], [574, 4, 2]];
-    const rockCells = [];
+    const cells = new Set(), key = (x, y) => (((x % W) + W) % W) + ',' + y;
     for (const [cx, rx, ry] of rocks) {
         const cy = top(cx) + 1;
         for (let y = cy - ry - 1; y <= cy + 1; y++) for (let x = cx - rx - 1; x <= cx + rx + 1; x++)
-            if (inEll(x, y, cx, cy, rx + 0.4, ry + 0.4)) { ink(x, y); rockCells.push([x, y]); }
+            if (inEll(x, y, cx, cy, rx + 0.4, ry + 0.4)) cells.add(key(x, y));
     }
-    // outline = paper on every rock / ground texel that touches clear space above
-    const solid = (x, y) => y >= 0 && y < H && g[y][((x % W) + W) % W] === 'k';
-    const edge = [];
-    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) if (g[y][x] === 'k' && N4.some(([dx, dy]) => !solid(x + dx, y + dy) && y + dy < H)) edge.push([x, y]);
-    for (const [x, y] of edge) g[y][x] = 'p';
-    // sediment dashes following the ridge
+    for (const c of cells) { const [x, y] = c.split(',').map(Number); g[y][x] = 'k'; }
+    for (const c of cells) {
+        const [x, y] = c.split(',').map(Number);
+        for (const [dx, dy] of N4) if (!cells.has(key(x + dx, y + dy)) && y + dy >= 0 && get(g, (x + dx + W) % W, y + dy) === '.') put2(x + dx, y + dy, 'p');
+    }
+    for (const [cx, rx, ry] of rocks) if (rx >= 5) {
+        const cy = top(cx) + 1, hx = cx - Math.round(rx * 0.4), hy = cy - Math.round(ry * 0.5);
+        put2(hx, hy, 'p'); put2(hx + 1, hy, 'p'); put2(hx, hy + 1, 'p');
+    }
+    // sediment hatch: ink dashes following the ridge (pitch 3-4), thinning with depth
     const dash = (depth, cover, minL, maxL) => {
         let x = Math.floor(rnd() * 20);
         while (x < W) {
             const d = Math.round(minL + rnd() * (maxL - minL)), gap = Math.max(4, Math.round(d * (1 - cover) / cover * (0.6 + 0.8 * rnd())));
-            for (let i = 0; i < d; i++) { const xx = (x + i) % W, y = top(xx) + depth; if (y < H && g[y][xx] === 'k') g[y][xx] = 'p'; }
+            for (let i = 0; i < d; i++) { const xx = (x + i) % W, y = top(xx) + depth; if (y < H && g[y][xx] === 'p' && !cells.has(xx + ',' + y)) g[y][xx] = 'k'; }
             x += d + gap;
         }
     };
-    dash(3, 0.32, 3, 9); dash(6, 0.22, 3, 8); dash(10, 0.14, 2, 6);
-    // highlights on the boulders (light from the upper left)
-    for (const [cx, rx, ry] of rocks) if (rx >= 5) { const cy = top(cx) + 1; put(g, cx - Math.round(rx * 0.45), cy - Math.round(ry * 0.55), 'p'); put(g, cx - Math.round(rx * 0.45) + 1, cy - Math.round(ry * 0.55), 'p'); put(g, cx - Math.round(rx * 0.45), cy - Math.round(ry * 0.55) + 1, 'p'); }
+    dash(2, 0.5, 4, 12); dash(5, 0.4, 3, 10); dash(8, 0.3, 3, 8);
     return g;
 }
 // Kelp: a wavy stem 2 texels thick and curling fronds 2 texels thick, line art in paper; swaying in whole texels.
@@ -424,7 +427,13 @@ function allImages() {
     add('bubble-s.png', bubbleSprite(false), T.BUBBLE[0].cols, T.BUBBLE[0].rows); add('bubble-b.png', bubbleSprite(true), T.BUBBLE[1].cols, T.BUBBLE[1].rows);
     for (let f = 0; f < 2; f++) add('sparkle-' + f + '.png', sparkleSprite(f));
     for (let l = 0; l < 3; l++) add('lure-' + l + '.png', lureSprite(l), T.LURE_SIZE, T.LURE_SIZE);
-    waterLayers().forEach((g, l) => add(T.waterFile(l), g, T.WATER.cols, T.WATER.rows));
+    // water-<n>.png = the hatch lines of layers 0..n (what the scene shows at that daylight), one image at a time
+    const wl = waterLayers();
+    wl.forEach((g, l) => {
+        const u = mk(T.WATER.cols, T.WATER.rows);
+        for (let k = 0; k <= l; k++) for (let y = 0; y < T.WATER.rows; y++) for (let x = 0; x < T.WATER.cols; x++) if (wl[k][y][x] === 'p') u[y][x] = 'p';
+        add(T.waterFile(l), u, T.WATER.cols, T.WATER.rows);
+    });
     add('seabed.png', seabedTile(), T.SEABED.cols, T.SEABED.rows);
     add('surface.png', surfaceTile(), T.SURFACE.cols, T.SURFACE.rows);
     return imgs;
