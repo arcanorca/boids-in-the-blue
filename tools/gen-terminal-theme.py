@@ -42,7 +42,7 @@ PAL = {
     'an': {'b': '#ffb000', 'n': '#c47f00', 'm': '#7a4d00', 'd': '#4d3000'},
     'r':  {'b': '#ffb4a8', 'n': '#ff5040', 'm': '#c03024', 'd': '#7a1c14'},
     'rn': {'b': '#ff5040', 'n': '#c03024', 'm': '#7a1c14', 'd': '#4d1510'},
-    'ri': {'ink': BG_HEX, 'fill': '#ff5040'},
+    'ri': {'ink': '#ffc8bc', 'fill': '#5e170f'},
 }
 FISH_SETS = ['g', 'n', 'a', 'an', 'r', 'rn', 'ri']
 BASE_SETS = ['g', 'n']               # the backdrop and the other creatures: day and night only

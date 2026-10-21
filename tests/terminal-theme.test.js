@@ -61,8 +61,8 @@ test('every texel is a blend of the water colour and a tone of its set (boxes ar
                 continue;
             }
             if (p[3] !== 255) { assert.ok(/^(lure|bubble|sparkle)/.test(f), f + ' has a translucent texel'); continue; }
-            const top = hex(P.b);
-            for (let k = 0; k < 3; k++) assert.ok(p[k] >= Math.min(bg[k], top[k]) - 1 && p[k] <= Math.max(bg[k], top[k]) + 1, f + ' has colour ' + [p[0], p[1], p[2]].join(',') + ' outside the water-to-highlight range of its set');
+            const tones = ['b', 'n', 'm', 'd'].map(k => hex(P[k])).concat([bg]);
+            for (let k = 0; k < 3; k++) assert.ok(p[k] >= Math.min(...tones.map(c => c[k])) - 1 && p[k] <= Math.max(...tones.map(c => c[k])) + 1, f + ' has colour ' + [p[0], p[1], p[2]].join(',') + ' outside the range of the water colour and the tones of its set');
         }
     }
 });

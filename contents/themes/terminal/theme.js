@@ -1,5 +1,5 @@
 .pragma library
-// Theme descriptor: "terminal" (Terminal), an amber-free green-phosphor CRT showing a calm sea of text.
+// Theme descriptor: "terminal" (Terminal), a green-phosphor CRT showing a calm sea of text.
 //
 // Every texture in img/ is made of text cells of Terminus 6x12 (a bitmap font) at ONE cell size, 1 texel = 1 device
 // pixel at 1080p, by tools/gen-terminal-theme.py from the hand-cleaned character grids in tools/terminal-art.txt
@@ -28,7 +28,7 @@ function creatureTexelDevice(heightDevicePx) { return texelDevice(heightDevicePx
 
 // ── palette sets: one set per texture family (see PAL in tools/gen-terminal-theme.py) ──
 // Four tones on BG: b highlight, n normal, m mid, d dim. Stress recolours fish with the amber and red sets, and 'ri'
-// is the inverted red alarm box (ink on red). Night = one notch dimmer per tone. Glow pixels are blends of BG and a tone.
+// is the reverse-video alarm box (pale red ink on a dark red box). Night = one notch dimmer per tone. Glow pixels are blends of BG and a tone.
 var PALETTE = {
     g:  { b: "#e0ffe9", n: "#6bf59b", m: "#3cc873", d: "#217f4a" },     // day: phosphor green
     n:  { b: "#6bf59b", n: "#3cc873", m: "#217f4a", d: "#124c2d" },     // night: one notch dimmer
@@ -36,7 +36,7 @@ var PALETTE = {
     an: { b: "#ffb000", n: "#c47f00", m: "#7a4d00", d: "#4d3000" },
     r:  { b: "#ffb4a8", n: "#ff5040", m: "#c03024", d: "#7a1c14" },     // red (hot stress)
     rn: { b: "#ff5040", n: "#c03024", m: "#7a1c14", d: "#4d1510" },
-    ri: { ink: BG, fill: "#ff5040" }                      // inverted alarm: ink on a red box (above stress 1.2)
+    ri: { ink: "#ffc8bc", fill: "#5e170f" }               // reverse video alarm: pale ink on a dark red box (above stress 1.2)
 };
 // the palette set for a state: 0 normal, 1 amber, 2 red, 3 inverted red alarm
 function fishSet(night, state) {
@@ -81,7 +81,7 @@ function fishFile(cls, variant, frame, face, set) {
 // ── the rest of the cast ──
 // Reference at 1080p (see the README for the measured sizes): orca about 32 x 9 cells, angler about 16 x 6, jelly bell
 // about one fish wide, worm 3 cells wide (0.3 fish), bubbles 6 to 14 px.
-var ANGLER_LURE = { r: { x: 0, y: 0 }, l: { x: 0, y: 0 } };   // lure cell (col, row) of the trimmed art per face; generated: python3 tools/gen-terminal-theme.py --lure
+var ANGLER_LURE = { r: { x: 11, y: 0 }, l: { x: 6, y: 0 } };   // lure cell (col, row) of the trimmed art per face; generated: python3 tools/gen-terminal-theme.py --lure
 var LURE_PAD = 6;                                  // the lure texture has this many texels of glow around its cell
 var JELLY_CLASSES = ["small", "mid", "large"];
 var WORM_STAGES = 3;
