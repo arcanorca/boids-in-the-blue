@@ -1,10 +1,11 @@
 import QtQuick
 import "sync.js" as GBSync
 import "theme.js" as T
-import "atlas.js" as A
 
-// Scene of the "gameboy" theme: a DMG-style virtual screen (Ambient tile map + pooled GBSprite
-// layer) scaled up by a whole number of physical pixels, plus an optional static LCD-glass texture.
+// Scene of the "gameboy" theme: a DMG-style virtual screen (Ambient tile map) scaled up by a whole
+// number of physical pixels, with the pooled sprite layer on top. The sprites are not scaled with the
+// screen: they are texel-sized images that glide between simulation ticks and land on whole physical
+// pixels. There is no LCD-glass overlay (a faint pixel grid over the whole screen reads as noise).
 // Scene contract: ui/code/themes.js
 Item {
     id: scene
@@ -22,10 +23,9 @@ Item {
 
     function sync(s) { GBSync.sync(s, entities, entities); }
 
-    // virtual pixel = `cell` physical pixels; `unit` = the same in logical pixels
+    // texel = `cell` physical pixels; `unit` = the same in logical pixels
     readonly property int cell: T.cellPx(height, dpr)
     readonly property real unit: cell / dpr
-    readonly property bool lcdGrid: true                     // static LCD-glass overlay (one texture)
 
     clip: true
 
@@ -38,24 +38,17 @@ Item {
 
         Ambient {
             anchors.fill: parent
-            z: 0
             paused: scene.paused
             stage: T.stage(scene.daylight)
         }
-        EntityLayer { id: entities; anchors.fill: parent; z: 1; enabled: false; unit: scene.unit }
     }
-
-    // LCD glass: dark lines between virtual pixels. Only when a virtual pixel is a whole number of
-    // logical pixels (dpr 1 and similar); its cell comes from a ready-made atlas row.
-    Image {
-        readonly property int n: Math.round(scene.unit)
-        readonly property var _r: n >= 2 && n <= 12 ? A.LCD[n] : null
+    EntityLayer {
+        id: entities
         anchors.fill: parent
-        z: 5
-        visible: scene.lcdGrid && _r !== null && Math.abs(scene.unit - n) < 0.01
-        fillMode: Image.Tile
-        smooth: false
-        source: visible ? Qt.resolvedUrl(T.DIR + "lcd.png") : ""
-        sourceClipRect: _r ? Qt.rect(_r[0], _r[1], _r[2], _r[3]) : Qt.rect(0, 0, 0, 0)
+        z: 1
+        enabled: false
+        unit: scene.unit
+        dpr: scene.dpr
+        paused: scene.paused
     }
 }
