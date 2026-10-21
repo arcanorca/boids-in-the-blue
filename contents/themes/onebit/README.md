@@ -46,12 +46,14 @@ Measured: paper share of the full-day water 0.63 % (contours) or 2.55 % (halfton
   13x9 texels, 39x27 px at 1080p. Their colour is not used: the variant is the pattern.
 - Creatures are paper shapes with ink markings and ink outlines inside their rim, so they stay the heaviest,
   brightest things against the dots.
-- Orca (40x23 texels, 120x69 px, about 3 fish long) follows the owner's reference: a sleek black body on a gentle
-  arch with the tail rising to the left into up-left flukes, a tall dorsal fin swept back on the middle of the back,
-  a large triangular flipper hanging down from the front, a white oval eye patch, a white saddle in front of the
-  fin, and a lens-shaped white belly that tapers toward the tail. The black body is ink on ink water, so it shows
-  through its 1-texel paper outline. Frames: the flukes beat up and down and the flipper wobbles by one texel. The
-  small variant (25x14) is hand-drawn with its own simplified shapes.
+- Orca (40x23 texels, 120x69 px, about 3 fish long) follows the owner's reference, hand-drawn texel by texel: a
+  straight, streamlined black body (about 3.5:1) with a blunt rounded head, a tall back-swept dorsal fin in the
+  middle of the back, a slim tail stock that stays level with the body and ends in small swept flukes, a broad
+  paddle flipper hanging down-back between the white throat and the white belly, a slanted white eye patch, a
+  white saddle behind the fin and the belly patch hooking up toward the flank. The black body is ink on ink water,
+  so it is framed by a 1-texel paper outline with a 2-texel rim light along the back in front of the fin (light
+  from above). Frames: neutral, flukes tilted up, neutral, flukes tilted down. The small variant (25x15) is
+  hand-drawn too.
 - Angler 57x51 px, jelly bell 42 px wide, worm 12x27 px, bubbles 6 and 12 px.
 
 ## Motion and rates

@@ -247,13 +247,14 @@ function fishSprite(ci, variant, frame, inverted) {
 }
 
 // ── orca ─────────────────────────────────────────────────────
-// Killer whale after the owner's reference: a sleek fusiform ink body on a gentle arch, the nose to the right,
-// a tall dorsal fin swept back on the middle of the back, a big triangular pectoral flipper hanging down from
-// the front, the tail stock curving up into flukes that point up-left, and white areas for the oval eye patch,
-// the saddle behind the fin and the lens-shaped belly. The ink is invisible on the ink water, so the body is
-// drawn with its 1-texel paper outline (added automatically). Shapes are polygons in design units (40 x 23
-// texels, full size) sampled at cell centres; the small variant (25 x 14) is the same animal. Frames: the
-// flukes beat up and down (tail section shear) and the flipper wobbles by one texel.
+// Killer whale after the owner's reference, hand-drawn on char grids (nose to the right, the sim flips it):
+// a straight, streamlined ink body (length about 3.5x its depth) with a blunt melon head, a tall back-swept
+// dorsal fin on the middle of the back, a slim tail stock that stays on the body axis and ends in small swept
+// flukes, a broad paddle flipper hanging down-back between white throat and white belly, a slanted eye patch,
+// a saddle behind the fin and the belly patch hooking up toward the flank. The ink is invisible on the ink water,
+// so orcaFromArt() frames it in a 1-texel paper outline plus a rim light on the back in front of the fin (light
+// from above, `rim` = [min x, min y] in the padded sprite). Frames: 0 neutral, 1 flukes tilted up, 2 neutral,
+// 3 flukes tilted down (`flukes` overrides; the small variant shifts its fluke columns via `beat`).
 const ORCA_ART = {
     full: {
         rows: [
