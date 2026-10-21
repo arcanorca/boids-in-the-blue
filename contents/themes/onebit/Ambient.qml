@@ -37,6 +37,7 @@ Item {
 
     // ── braided wave line at the surface ──
     Image {
+        y: T.SURFACE.y
         width: root.width
         height: T.SURFACE.rows
         fillMode: Image.Tile
