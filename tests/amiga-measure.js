@@ -60,7 +60,7 @@ function calm() {
 
 // ── B: smooth motion ─────────────────────────────────────────
 function motion() {
-    for (const vx of [3, 0.6]) {
+    for (const vx of [1.3, 0.4]) {
         const out = run('motion:' + vx, path.join(WORK, 'motion-' + vx)), m = /MOTION (\{.*\})/.exec(out);
         if (!m) { console.log(out.slice(-600)); report(false, 'B motion run failed'); return; }
         const d = JSON.parse(m[1]), s = d.s;
@@ -90,12 +90,25 @@ function sizes() {
         const im = load(path.join(dir, 'sizes-' + cs + '.png'));
         for (const k in zones) {
             const [x0, x1, y0, y1] = zones[k];
-            let a = 1e9, b = -1, c = 1e9, e = -1;
+            // connected components of the changed pixels (merging gaps <= 3 px); the largest one is the sprite
+            const zw = x1 - x0, zh = y1 - y0, mask = new Uint8Array(zw * zh);
             for (let y = y0; y < y1; y++) for (let x = x0; x < x1; x++) {
-                const o = (y * im.W + x) * 4, df = Math.abs(im.px[o] - base.px[o]) + Math.abs(im.px[o + 1] - base.px[o + 1]) + Math.abs(im.px[o + 2] - base.px[o + 2]);
-                if (df > 60) { if (x < a) a = x; if (x > b) b = x; if (y < c) c = y; if (y > e) e = y; }
+                const o = (y * im.W + x) * 4;
+                if (Math.abs(im.px[o] - base.px[o]) + Math.abs(im.px[o + 1] - base.px[o + 1]) + Math.abs(im.px[o + 2] - base.px[o + 2]) > 30) mask[(y - y0) * zw + x - x0] = 1;
             }
-            res[cs + '/' + k] = b < 0 ? null : [b - a + 1, e - c + 1];
+            const seen = new Uint8Array(zw * zh), comps = [];
+            for (let i = 0; i < mask.length; i++) {
+                if (!mask[i] || seen[i]) continue;
+                const st = [i]; seen[i] = 1; let n = 0, a = 1e9, b = -1, c = 1e9, e = -1;
+                while (st.length) {
+                    const j = st.pop(), jy = (j / zw) | 0, jx = j - jy * zw; n++;
+                    if (jx < a) a = jx; if (jx > b) b = jx; if (jy < c) c = jy; if (jy > e) e = jy;
+                    for (let dy = -3; dy <= 3; dy++) for (let dx = -3; dx <= 3; dx++) { const nx = jx + dx, ny = jy + dy; if (nx < 0 || ny < 0 || nx >= zw || ny >= zh) continue; const q = ny * zw + nx; if (mask[q] && !seen[q]) { seen[q] = 1; st.push(q); } }
+                }
+                comps.push({ n, w: b - a + 1, h: e - c + 1 });
+            }
+            const big = comps.filter(q => q.n >= (k === 'bubble' ? 20 : 20)).sort((p, q) => q.n - p.n);
+            res[cs + '/' + k] = big.length ? (k === 'bubble' ? [Math.max(...big.map(q => q.w)), Math.max(...big.map(q => q.h))] : [big[0].w, big[0].h]) : null;
         }
     }
     const L = (cs, k) => res[cs + '/' + k];

@@ -2,82 +2,126 @@ import QtQuick
 import "theme.js" as T
 
 // Backdrop of the "amiga" theme, back to front:
-//   copper lists (night | dusk | day | stress palette swap), colour-cycled light shafts,
-//   far rocks, kelp + corals (sway frames), sand.
-// Everything is a handful of textures on the virtual pixel grid; a single 5 Hz tick (stopped while
-// `paused`) steps the cycle/sway frames and the slow parallax drift, in whole virtual pixels.
+//   copper lists (night | dusk | day | stress, cross-faded only when the scene changes, never pulsing),
+//   static soft light shafts, far hills, hazy back plants, kelp, sand (+ rocks, corals), marine snow.
+// Everything is static art except: the plants lean slowly (one 14 s loop, a few pixels), a few specks of
+// marine snow drift down. Nothing is colour-cycled, nothing flashes; all of it stops when `paused`.
 Item {
     id: root
+    objectName: "backdrop"
 
-    property int vp: 4
+    property int vp: 3
     property bool paused: false
     property real daylight: 1
     property real stress: 0                // palette-swap step 0..1 (quarters)
-    property int tick: 0
+    property real sway: 0                  // 0..1, one slow loop (plants, specks)
 
     clip: true
 
     readonly property var w: T.copperWeights(daylight)
-    readonly property real lightK: 0.3 + 0.7 * daylight
+    readonly property bool running: !paused && width > 0
 
-    Timer {
-        interval: 200
-        repeat: true
-        running: !root.paused && root.width > 0
-        onTriggered: root.tick++
+    NumberAnimation on sway {
+        from: 0
+        to: 1
+        duration: 14000
+        loops: Animation.Infinite
+        running: root.running
     }
 
-    // copper lists: 1 texel = 1 virtual pixel, top-aligned (the bottom scanlines are behind the sand)
+    // copper lists: a 1-texel-wide strip of 540 scanlines stretched over the screen height
     Repeater {
-        model: [["night", 1], ["dusk", 0], ["day", 0], ["stress", 0]]
+        model: ["night", "dusk", "day", "stress"]
         delegate: Image {
             required property int index
-            required property var modelData
-            readonly property real k: index === 1 ? root.w.dusk : (index === 2 ? root.w.day : (index === 3 ? root.stress * 0.8 : 1))
-            width: Math.max(T.COPPER.w * root.vp, root.width)
-            height: T.COPPER.h * root.vp
-            smooth: false
+            required property string modelData
+            readonly property real k: index === 1 ? root.w.dusk : (index === 2 ? root.w.day : (index === 3 ? root.stress * 0.55 : 1))
+            anchors.fill: parent
+            smooth: true
             opacity: k
             visible: k > 0.002
-            source: visible ? T.DIR + "copper-" + modelData[0] + ".png" : ""
+            source: visible ? T.DIR + "copper-" + modelData + ".png" : ""
+            Behavior on opacity { enabled: index === 3; NumberAnimation { duration: 2500 } }
         }
     }
-    // colour-cycled light shafts + surface ripples (6 frames, ~2.5 fps)
+    // static soft light shafts (smooth alpha, no stipple)
     Image {
-        width: Math.max(T.CAUSTICS.w * root.vp, root.width)
-        height: T.CAUSTICS.h * root.vp
-        smooth: false
-        opacity: 0.2 + 0.7 * root.daylight
-        source: T.DIR + "caustics-" + (Math.floor(root.tick / 2) % T.CAUSTICS.frames) + ".png"
+        anchors.fill: parent
+        smooth: true
+        opacity: 0.2 + 0.8 * root.daylight
+        source: T.DIR + "rays.png"
     }
     TileStrip {
         vp: root.vp; tw: T.FAR.tw; h: T.FAR.h
-        offset: Math.floor(root.tick * T.DRIFT.far / 5)
-        anchors.bottomMargin: 12 * root.vp
+        anchors.bottomMargin: 4 * root.vp
         source: T.DIR + "far.png"
     }
-    TileStrip {
-        vp: root.vp; tw: T.KELP.tw; h: T.KELP.h
-        offset: Math.floor(root.tick * T.DRIFT.mid / 5)
-        source: T.DIR + "kelp-" + (Math.floor(root.tick / 3) % T.KELP.frames) + ".png"
+    Repeater {
+        model: root.width > 0 ? T.layout("back", Math.ceil(root.width / root.vp)) : []
+        delegate: Stalk {
+            required property var modelData
+            species: modelData.n
+            vp: root.vp
+            sway: root.sway
+            ph: modelData.ph
+            flip: modelData.flip
+            amp: 0.02
+            x: modelData.x * root.vp
+            y: root.height - 7 * root.vp
+        }
+    }
+    Repeater {
+        model: root.width > 0 ? T.layout("front", Math.ceil(root.width / root.vp)) : []
+        delegate: Stalk {
+            required property var modelData
+            species: modelData.n
+            vp: root.vp
+            sway: root.sway
+            ph: modelData.ph
+            flip: modelData.flip
+            x: modelData.x * root.vp
+            y: root.height - 4 * root.vp
+        }
     }
     TileStrip {
         vp: root.vp; tw: T.GROUND.tw; h: T.GROUND.h
-        offset: Math.floor(root.tick * T.DRIFT.mid / 5)
         source: T.DIR + "ground.png"
     }
-    // night: the playfield colours (rocks, kelp, sand) fade towards the water's own deep blue
-    Rectangle {
-        anchors.fill: parent
-        color: "#014"
-        opacity: 0.55 * (1 - T.smooth(0.0, 0.5, root.daylight))
-        visible: opacity > 0.002
+    // marine snow: a few specks drifting down slowly with a gentle sideways sway (whole screen pixels)
+    Repeater {
+        model: root.width > 0 ? 20 : 0
+        delegate: Rectangle {
+            required property int index
+            readonly property real bx: ((index * 389) % 997) / 997 * root.width
+            readonly property real speed: 7 + (index * 53 % 11)                      // px/s
+            property real p: 0
+            readonly property real range: root.height - 8 * root.vp
+            width: root.vp
+            height: root.vp
+            color: "#cfe"
+            opacity: 0.22 + 0.2 * ((index * 7) % 5) / 4
+            x: Math.round(bx + 7 * Math.sin(6.2831853 * (root.sway * 2 + index * 0.137)))
+            y: Math.round(((p + index * 0.1618) % 1) * range)
+            NumberAnimation on p {
+                from: 0
+                to: 1
+                duration: Math.max(1000, range / speed * 1000)
+                loops: Animation.Infinite
+                running: root.running
+            }
+        }
     }
-    // stress palette swap of the playfield colours (rocks, kelp, sand) towards hot reds, in the same steps as the copper
+    // night: the scenery sinks into the water's own deep blue (soft top edge, bottom third only)
     Rectangle {
-        anchors.fill: parent
-        color: "#c13"
-        opacity: root.stress * 0.32
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.bottom: parent.bottom
+        height: 90 * root.vp
+        opacity: 0.6 * (1 - T.smooth(0.0, 0.5, root.daylight))
         visible: opacity > 0.002
+        gradient: Gradient {
+            GradientStop { position: 0; color: "#00001a33" }
+            GradientStop { position: 1; color: "#ff001a33" }
+        }
     }
 }
