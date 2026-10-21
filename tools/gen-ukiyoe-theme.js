@@ -619,7 +619,7 @@ function seabedTile() {
     const rocks = [
         [44, 9, 5, true, 2], [56, 5, 3, true, 0], [148, 10, 6, false, 2], [162, 6, 4, false, 1],
         [248, 11, 6, true, 2], [338, 8, 5, false, 1], [418, 10, 5, true, 2], [432, 5, 3, true, 0],
-        [522, 9, 5, false, 2], [596, 8, 5, true, 1]
+        [522, 9, 5, false, 2], [600, 8, 5, true, 1]
     ];
     const rockCells = new Set(), key = (x, y) => (((x % W) + W) % W) + ',' + y;
     for (const [cx, rx, ry, onNear] of rocks) {
