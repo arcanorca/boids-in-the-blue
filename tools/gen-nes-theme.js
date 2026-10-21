@@ -326,33 +326,32 @@ class Plane {
 }
 const BAYER2 = [[0, 2], [3, 1]];
 
-// water: a gradient texture (T.WATER.w x T.WATER.h). Its depth is cut into T.WATER.bands bands; band b has
-// a floor-shade density b / (bands - 1) (0 = all surface shade, 1 = all floor shade), and each band
-// boundary is a T.WATER.seam-row transition where the density is interpolated. A pixel is floor
-// shade where its 4x4 ordered-dither threshold is below the density of its row. The water uses one
-// palette (colours 1 and 2 of palette 0), so no 16x16 area can mix palettes.
-const BAYER4 = [[0, 8, 2, 10], [12, 4, 14, 6], [3, 11, 1, 9], [15, 7, 13, 5]];
-function waterDensity(y) {
-    const N = T.WATER.bands, S = T.WATER.seam, H = T.WATER.h, half = (S - 1) / 2;
-    const yb = [];
-    for (let k = 0; k < N - 1; k++) yb.push(Math.round((k + 1) * H / N));
-    for (let k = 0; k < N - 1; k++) {                                    // inside the seam below band k?
-        if (Math.abs(y - yb[k]) <= half) {
-            const f = (y - yb[k] + half + 1) / (S + 1);
-            return (k + f) / (N - 1);
+// water: flat bands of NES entries (T.WATER_RAMP[state], T.WATER_BAND heights), joined by one seam of
+// T.WATER.seam rows. A seam row is a 2x2 ordered-dither checker: the upper band shows in 3, 2 and 1 of 4
+// pixels on the three seam rows. The water is drawn straight into a full-size RGB texture (its colours
+// are NES master-palette entries, checked by the tests).
+const SEAM_UPPER = [0.75, 0.5, 0.25];
+function waterImage(state) {
+    const W = T.WATER.w, H = T.WATER.h, ramp = T.WATER_RAMP[state], S = T.WATER.seam;
+    const edges = [];                                               // first row of each seam (its middle row)
+    let acc = 0;
+    for (let k = 0; k < ramp.length - 1; k++) { acc += T.WATER_BAND[state][k] * H; edges.push(Math.round(acc)); }
+    const half = (S - 1) / 2, px = Buffer.alloc(W * H * 4);
+    const rgbOf = c => [1, 3, 5].map(i => parseInt(T.NES[c].substr(i, 2), 16));
+    for (let y = 0; y < H; y++) {
+        let seam = -1, j = 0;
+        for (let k = 0; k < edges.length; k++) if (Math.abs(y - edges[k]) <= half) { seam = k; j = y - (edges[k] - half); }
+        let band = 0;
+        for (let k = 0; k < edges.length; k++) if (y > edges[k] + half) band = k + 1;
+        for (let x = 0; x < W; x++) {
+            let c;
+            if (seam >= 0) c = BAYER2[y & 1][x & 1] / 4 < SEAM_UPPER[j] ? ramp[seam] : ramp[seam + 1];
+            else c = ramp[band];
+            const v = rgbOf(c), o = (y * W + x) * 4;
+            px[o] = v[0]; px[o + 1] = v[1]; px[o + 2] = v[2]; px[o + 3] = 255;
         }
     }
-    let b = 0;
-    for (let k = 0; k < N - 1; k++) if (y > yb[k] + half) b = k + 1;
-    return b / (N - 1);
-}
-function waterPlane(state) {
-    const W = T.WATER.w, H = T.WATER.h, p = new Plane(W, H);
-    for (let y = 0; y < H; y++) {
-        const d = waterDensity(y);
-        for (let x = 0; x < W; x++) p.set(x, y, 0, (BAYER4[y & 3][x & 3] + 0.5) / 16 < d ? 2 : 1);
-    }
-    return p;
+    return { W, H, px };
 }
 
 // waterline: 32 tiles x 2 rows scrolling horizontally; palette 3 (foam). Seen from below: a pale
@@ -490,7 +489,7 @@ function allImages() {
     const bPlanes = [0, 1].map(seabedPlane);
     for (const st of T.BG_STATES) {
         out[T.surfaceFile(st)] = sPlane.render(st, true);
-        out[T.waterFile(st)] = waterPlane(st).render(st, true);
+        out[T.waterFile(st)] = waterImage(st);
         bPlanes.forEach((b, f) => { out[T.seabedFile(st, f)] = b.render(st, false); });
         gPlanes.forEach((g, f) => { out[T.glintFile(st, f)] = g.render(st, false); });
     }

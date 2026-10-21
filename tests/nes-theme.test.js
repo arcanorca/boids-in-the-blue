@@ -77,6 +77,9 @@ test('nes art obeys the hardware: master palette, 3-colour palettes, 4+4 palette
             for (const c of cs) assert.ok(sprPal(T.SPR_PAL.lilac).has(c), f + ' ' + c);
         } else if (/^worm-/.test(f)) {
             for (const c of cs) assert.ok(sprPal(T.SPR_PAL.gold).has(c), f + ' ' + c);
+        } else if (/^water-/.test(f)) {                   // water: only the entries of its own ramp
+            const st = /^water-(day|dusk|night)\.png$/.exec(f)[1], ramp = new Set(T.WATER_RAMP[st].map(i => T.NES[i]));
+            for (const c of cs) assert.ok(ramp.has(c), f + ' uses ' + c + ', not in its ramp');
         } else {                                          // background: only that state's 4 palettes + universal colour
             const st = /-(day|dusk|night)[-.]/.exec(f)[1], S = T.BG[st];
             const allowed = new Set([T.NES[S.u]]); S.pal.forEach(p => p.forEach(i => allowed.add(T.NES[i])));
@@ -95,21 +98,47 @@ test('nes: palette state follows daylight, and the integer pixel scale grows wit
     assert.strictEqual(T.pxFor(1080), 4); assert.strictEqual(T.pxFor(1440), 6); assert.strictEqual(T.pxFor(2160), 9); assert.strictEqual(T.pxFor(360), 2);
     for (const h of [300, 480, 720, 1080, 1440, 2160]) { const p = T.pxFor(h); assert.strictEqual(p % 1, 0); assert.ok(h / p >= 240 || p === 2); }
 });
-test('nes water: 12 bands of one-step density from the surface shade to the floor shade, soft seams, no black', () => {
-    assert.strictEqual(T.WATER.bands, 12); assert.ok(T.WATER.seam >= 2 && T.WATER.seam <= 3, 'seam of 2-3 rows');
+// the water texture: flat bands (one per ramp entry) joined by one seam; no dot pattern in any block
+function waterScan(im) {
+    const at = (x, y) => (im.px[(y * im.W + x) * 4] << 16) | (im.px[(y * im.W + x) * 4 + 1] << 8) | im.px[(y * im.W + x) * 4 + 2];
+    return { at, W: im.W, H: im.H };
+}
+test('nes water: flat bands from the ramp (teal surface, navy floor), one seam, no black', () => {
+    assert.ok(T.WATER.seam >= 2 && T.WATER.seam <= 3, 'seam of 2-3 rows');
+    for (const st of T.BG_STATES) {
+        assert.strictEqual(T.WATER_BAND[st].length, T.WATER_RAMP[st].length, st + ': one height per band');
+        assert.ok(Math.abs(T.WATER_BAND[st].reduce((a, b) => a + b, 0) - 1) < 1e-9, st + ': bands fill the water');
+    }
     const im = load(T.waterFile('day'));
     assert.deepStrictEqual([im.W, im.H], [T.WATER.w, T.WATER.h]);
-    const at = (x, y) => hex(im.px[(y * im.W + x) * 4], im.px[(y * im.W + x) * 4 + 1], im.px[(y * im.W + x) * 4 + 2]);
-    const surface = T.NES[T.BG.day.pal[0][0]], floor = T.NES[T.BG.day.pal[0][1]];
-    assert.strictEqual(at(0, 0), surface, 'the surface is the lightest water shade');
-    assert.strictEqual(at(im.W - 1, im.H - 1), floor, 'the floor is the deepest water shade');
-    // share of floor-shade pixels per 4-row block (one 4x4 dither cell high): never decreases with depth
-    const frac = [];
-    for (let y = 0; y + 4 <= im.H; y += 4) { let n = 0; for (let k = 0; k < 4; k++) for (let x = 0; x < im.W; x++) if (at(x, y + k) === floor) n++; frac.push(n / (4 * im.W)); }
-    for (let i = 1; i < frac.length; i++) assert.ok(frac[i] >= frac[i - 1] - 1e-9, 'block ' + i + ' is shallower than the block above');
-    let plateaus = 1; for (let i = 1; i < frac.length; i++) if (Math.abs(frac[i] - frac[i - 1]) > 1e-9) plateaus++;
-    assert.ok(plateaus >= 10, 'enough distinct bands: ' + plateaus);
-    for (const st of T.BG_STATES) for (const c of colours(load(T.waterFile(st)))) assert.ok(c !== '#000000' && c !== '#0000FC', st + ' water has no black or bright blue: ' + c);
+    const { at } = waterScan(im);
+    const hexAt = (x, y) => { const v = at(x, y); return '#' + v.toString(16).padStart(6, '0').toUpperCase(); };
+    assert.strictEqual(hexAt(0, 0), T.NES[T.WATER_RAMP.day[0]], 'the surface band is the first ramp entry');
+    assert.strictEqual(hexAt(im.W - 1, im.H - 1), T.NES[T.WATER_RAMP.day[T.WATER_RAMP.day.length - 1]], 'the floor band is the last');
+    // the seam: rows where the colour alternates along x; flat rows elsewhere
+    const dithered = [];
+    for (let y = 0; y < im.H; y++) { let n = 0; for (let x = 0; x + 1 < im.W; x++) if (at(x, y) !== at(x + 1, y)) n++; dithered.push(n > im.W / 4); }
+    const runs = []; let run = 0;
+    for (const d of dithered) { if (d) run++; else { if (run) runs.push(run); run = 0; } }
+    if (run) runs.push(run);
+    assert.ok(runs.length >= 1 && runs.length <= T.WATER_RAMP.day.length - 1 + 1, 'seams: ' + runs.length);
+    assert.ok(runs.every(r => r <= T.WATER.seam), 'a dithered run is at most ' + T.WATER.seam + ' rows: ' + runs.join(','));
+    for (const st of T.BG_STATES) for (const c of colours(load(T.waterFile(st)))) assert.ok(c !== '#000000', st + ' water has no black');
+});
+test('nes water: no 24x24 block of the water is a dot pattern (period <= 2) -- the owner rule', () => {
+    const B = 24, STRIDE = 4;
+    for (const st of T.BG_STATES) {
+        const im = load(T.waterFile(st)), { at, W, H } = waterScan(im);
+        for (let y0 = 0; y0 + B <= H; y0 += STRIDE) for (let x0 = 0; x0 + B <= W; x0 += STRIDE) {
+            const seen = new Set(); let periodic = true;
+            for (let y = y0; y < y0 + B && periodic; y++) for (let x = x0; x < x0 + B; x++) {
+                const v = at(x, y); seen.add(v);
+                if (x + 2 < x0 + B && at(x + 2, y) !== v) { periodic = false; break; }
+                if (y + 2 < y0 + B && at(x, y + 2) !== v) { periodic = false; break; }
+            }
+            assert.ok(!(periodic && seen.size >= 2), st + ': dotted 24x24 block at (' + x0 + ',' + y0 + ')');
+        }
+    }
 });
 
 test('nes sync: palette swap per individual, shake, alarm cycling, 2-frame animation, unsnapped positions', () => {

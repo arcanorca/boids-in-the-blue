@@ -124,11 +124,16 @@ function glintFile(state, f) { return "glint-" + state + "-" + f + ".png"; }
 
 // ── water (in virtual rows, top to bottom) ──
 // One texture per palette state, WATER.w x WATER.h virtual px (a 1080p screen is 480x270 at 4x; other
-// sizes stretch it, which a smooth gradient hides). The depth is cut into WATER.bands bands; each band
-// has one density of floor-shade pixels (a 4x4 ordered-dither matrix: 0 = surface, 1 = floor) and
-// neighbouring bands differ by one step of density. Each boundary is a WATER.seam-row transition whose
-// density is interpolated, so there are no hard edges between bands.
-var WATER = { w: 480, h: 270, bands: 12, seam: 3 };
+// sizes stretch it). The depth is cut into flat bands, one per entry of WATER_RAMP[state] (surface first,
+// floor last), each WATER_BAND[state][i] of the height. Adjacent bands are joined by one WATER.seam-row
+// ordered-dither seam (a 2x2 checker: 3, 2 and 1 of 4 pixels from the upper band), the only dithered rows
+// in the water, so no area larger than a 24x24 block shows a dot pattern.
+// The NES teal / navy family has no calm entries between $1C (mid teal, L 51) and $0C (deep navy, L 25);
+// every other muted-looking entry (indigo $03, deep blue $02, periwinkle $22, violet $13) glared as a
+// stripe, so the water is two flat bands: a teal surface band and a navy floor, with one seam.
+var WATER = { w: 480, h: 270, seam: 3 };
+var WATER_RAMP = { day: [0x1C, 0x0C], dusk: [0x1C, 0x0C], night: [0x0C, 0x0C] };
+var WATER_BAND = { day: [0.3, 0.7], dusk: [0.15, 0.85], night: [0.5, 0.5] };
 function waterFile(state) { return "water-" + state + ".png"; }
 
 // ambient bubbles rising from the seabed: [tile column of the 64-tile bed, speed class]
