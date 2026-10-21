@@ -69,7 +69,7 @@ Item {
         smooth: false
         source: visible ? T.DIR + root.src : ""
     }
-    // angler lure bulb
+    // angler lure bulb & woodcut lantern halo
     Image {
         visible: root.lureLevel >= 0
         x: root._ox + (root.lureX - Math.floor(T.LURE_SIZE / 2)) * root._u

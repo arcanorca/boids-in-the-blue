@@ -2,10 +2,11 @@ import QtQuick
 import "sync.js" as OneBitSync
 import "theme.js" as T
 
-// Scene of the "onebit" theme (1-Bit): two colours only, light on dark. The backdrop (Ambient.qml: hatch-line
-// water, shafts, kelp, seabed) lives in a world of texels that is scaled by a whole number of device pixels
-// (3 px per texel at 1080p) with nearest-neighbour textures. The creatures (pooled OneBitSprite) are placed in
-// screen pixels, so they glide smoothly between simulation ticks, but are drawn with the same texel size.
+// Scene of the "onebit" theme (1-Bit): two colours only, warm woodcut paper on deep abyssal ink.
+// The backdrop (Ambient.qml: wave-hatched water, volumetric sunbeams, botanical kelp forests, layered
+// reef seabed) lives in a world of texels scaled by a whole number of device pixels (3 px per texel at
+// 1080p) with nearest-neighbour textures. Creatures (pooled OneBitSprite) are placed in screen pixels
+// so they glide smoothly between simulation ticks while rendering at the exact same texel scale.
 // Scene contract: ui/code/themes.js
 Item {
     id: scene
