@@ -41,11 +41,11 @@ test('every terminal frame the renderer requests exists', () => {
         for (let lvl = 0; lvl <= 100; lvl += 5) assert.ok(exists(T.statusFile(lvl, s)), T.statusFile(lvl, s));
         for (const n of ['seabed', 'waves', 'prompt', 'water']) assert.ok(exists(n + '-' + s + '.png'), n);
     }
-    for (const n of ['shade', 'haze', 'scan']) assert.ok(exists(n + '.png'), n);
+    for (const n of ['glass-g', 'glass-n', 'scan']) assert.ok(exists(n + '.png'), n);
 });
 
 test('every texel is a blend of the water colour and a tone of its set (boxes are opaque; only lure, bubbles and the glass overlays are translucent)', () => {
-    const overlay = /^(shade|haze|scan)\.png$/, clear = /^(lure|sparkle|bubble|waves|water|seabed|kelp|prompt|status|dots)/;
+    const overlay = /^(glass-g|glass-n|scan)\.png$/, clear = /^(lure|sparkle|bubble|waves|water|seabed|kelp|prompt|status|dots)/;
     for (const f of fs.readdirSync(path.join(DIR, T.DIR))) {
         if (overlay.test(f)) continue;
         const set = /-([a-z]+)\.png$/.exec(f)[1];

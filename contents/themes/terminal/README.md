@@ -1,125 +1,97 @@
-# Terminal (green-phosphor ASCII sea)
+# Terminal (green-phosphor CRT ASCII sea)
 
-A green-phosphor terminal showing a calm sea made of text characters. The creatures are text drawn from a pixel
-font at a larger size than the water, so they are the brightest, most readable things on screen. The water is dim.
-Nothing blinks, and the backdrop has no fine patterns.
+A calm aquarium drawn entirely from text characters on a phosphor-green CRT: dim swell strokes in the water, bright
+character-art creatures with a soft baked glow, a static vignette and scanline glass over everything, a kelp seabed, a
+prompt line and an htop-style load bar that turns the fish amber and red under stress.
 
-Files: `Scene.qml`, `Ambient.qml` (backdrop), `EntityLayer.qml` (pooling and glide), `TerminalSprite.qml` (one pooled
-creature), `sync.js` (simulation state to textures), `theme.js` (sizes, palette, file names), `img/*.png` (566
-textures from `tools/gen-terminal-theme.py`), `preview.png`.
+## Critique of the previous Terminal theme (pass 3), why it was redone
 
-## Font, cells and scale
+- Fish were one-line glyph clumps (`<@)`, `{#>`), 3 cells wide: no body, no readable face, and the five variants
+  were told apart by single characters.
+- Schools piled up into unreadable text soup; each glyph was drawn at 18 x 36 px, too coarse to hold any shape.
+- The orca was a boat-like `<___o___>` line drawing: no dorsal fin that read, no white belly, no eye patch.
+- Jellies (`(o)` + `/|\`) and the angler (`(@@@|`) were weak, the lure was the only thing that said angler.
+- The scene was sparse, dim and cheap next to the pixel / NES / Amiga themes: a dot lattice for water, a flat
+  background, nothing that said "beautiful CRT".
 
-- Font: Terminus 6x12 (`ter-u12n.otb`), a bitmap pixel font, rendered at one texel per font pixel (no anti-aliasing).
-- Water and seabed: 2 device px per texel at 1080p, so a text cell is 12 x 24 px and the screen is a 160 x 45 grid.
-- Creatures: 3 device px per texel at 1080p (`creatureTexelDevice`), so a creature cell is 18 x 36 px.
-- Bubbles belong to the water and are drawn at the water scale.
-- Every texture is drawn at an integer scale with nearest-neighbour filtering. Creatures are placed in screen pixels
-  so they can glide; their art is never resampled.
-- Shade characters (░ ▒ ▓) are not used: they are dither patterns, and the comfort rules forbid them.
+## What it is now
 
-## Opaque cells: overlapping creatures occlude
+- One identity: green phosphor on a near-black green water (`#08120b`), four tones (bright, normal, mid, dim) plus a
+  soft glow baked into the sprite pixels; amber and red are only the stress colours.
+- One cell: Terminus 6 x 12 (a bitmap font), one texel = 1 device px at 1080p (2 at 4K), the screen is a 320 x 90
+  cell grid, creatures and water are drawn at the same integer scale, nearest-neighbour. No `Text` items, no runtime
+  font, shared textures, pooled delegates (`EntityLayer.qml`), glide to whole screen pixels (not snapped to cells).
+- Glass (`Scene.qml`): one static layer with a vignette, a little depth darkening and a faint green lift of the water
+  (4 px blocks, one alpha level per step; dimmer at night in two steps) and one dark scanline in six rows. It sits
+  over the creatures too, so the water-coloured creature boxes stay invisible. Nothing in it animates.
 
-Every creature cell has the water colour (`#0a120c`) as its background, so a creature sprite is a solid box of cells,
-like an overlapping window. A fish drawn over another hides its glyphs cleanly instead of blending into them. The
-box colour is the water colour, so the box edges are invisible against the water in day, night and stress. The
-water is one colour in every palette, so the night palette keeps the same background. Alarm boxes (`ri`) are
-the one deliberate exception: a red box with ink on it.
+## How the sprites are made (image to ASCII, then by hand)
 
-## Palette
+1. `tools/terminal-img2ascii.py` converts a Refined Pixel sprite (`contents/themes/pixel/img/`: orca, fish, angler,
+   jelly) to a draft character grid. A 6 x 12 cell is one source pixel wide and two tall, so each cell is a (top,
+   bottom) pixel pair and the glyph follows from the pair and its neighbours (fill glyph by tone class: dark `#`,
+   grey `=`, white `@`; edge cells `' . _ ( )`), plus a tone letter per cell.
+2. The drafts were cleaned by hand into `tools/terminal-art.txt` (right-facing text rows, optional tone rows): fin
+   `|#\`, eye patch, white belly, flukes, mouths and teeth, jelly domes and tentacles, kelp leaves.
+3. `tools/gen-terminal-theme.py` renders the grids with Terminus at one cell size, fills the cells with the water
+   colour (opaque boxes; empty rows and columns trimmed so boxes erase no more than they must), bakes the glow into
+   the pixels, and mirrors the CHARACTER GRID for left-facing art (`( <-> )`, `/ <-> \`, `< <-> >`, `' <-> `` ` ``...). Silhouette
+   fill glyphs are drawn in the normal tone and interior fill in dim, so shading is both density and brightness.
+   `--sheet out.png --scale 4 [--only orca,fish]` writes a contact sheet; `--check` compares files with a regeneration;
+   `--lure` prints the lure cell for `theme.js`.
 
-Three phosphor greens, the amber and red stress tones, and the background `#0a120c`. Each texture belongs to one set:
+## Sizes at 1080p (px)
 
-| set | use | bright | normal | dim |
-| --- | --- | --- | --- | --- |
-| `g` | day | `#7dffa0` | `#33d86a` | `#1a6b38` |
-| `n` | night (one notch dimmer) | `#33d86a` | `#1a6b38` | `#0f4a28` |
-| `a` / `an` | amber stress, day / night | `#ffd27a` / `#ffb000` | `#ffb000` / `#8a5a00` | `#8a5a00` / `#4d3300` |
-| `r` / `rn` | red stress, day / night | `#ff9a8c` / `#ff4a3a` | `#ff4a3a` / `#8a2418` | `#8a2418` / `#4d1510` |
-| `ri` | inverted alarm box (ink on red) | ink `#0a120c` | fill `#ff4a3a` | |
+| creature | size | |
+| --- | --- | --- |
+| mid fish | 66 x 48 (11 x 4 cells) | small 48 x 36, large 96 x 60, fry 24 x 24 |
+| angler | 108 x 72 | 1.6 fish long, lure cell on the stalk |
+| orca | 192 x 108 (32 x 9 cells) | 2.9 fish long |
+| jelly bell | 72 x 72 (mid) | small 36 x 48, large 78 x 84 |
+| worm | 18 wide (3 cells) | 3 stages: 36, 24, 12 px tall |
+| bubbles | 5 x 6 and 9 x 8 | |
+| seabed | 96 (8.9 %) | tallest kelp 204 px (18.9 %) |
 
-Roles: fish bodies and heads are bright, their tails normal; jellies normal with bright eyes; the orca's outline is
-normal and its eye, belly and saddle are bright; the angler is normal with a bright lure; the water lattice, the
-seabed and the kelp are dim. Night is a palette swap of every texture at daylight 0.5; nothing is faded at run time.
+Size sliders switch the nearest class and magnify by 2 (whole texels) above the default range.
+
+## Palette (`theme.js`, tests compare it with the generator)
+
+| set | use | bright | normal | mid | dim |
+| --- | --- | --- | --- | --- | --- |
+| `g` | day | `#e0ffe9` | `#6bf59b` | `#3cc873` | `#217f4a` |
+| `n` | night (one notch dimmer) | `#6bf59b` | `#3cc873` | `#217f4a` | `#124c2d` |
+| `a` / `an` | amber stress, day / night | `#ffe0a0` / `#ffb000` | `#ffb000` / `#c47f00` | `#c47f00` / `#7a4d00` | `#7a4d00` / `#4d3000` |
+| `r` / `rn` | red stress, day / night | `#ffb4a8` / `#ff5040` | `#ff5040` / `#c03024` | `#c03024` / `#7a1c14` | `#7a1c14` / `#4d1510` |
+| `ri` | reverse-video alarm box | ink `#ffc8bc` | fill `#5e170f` | | |
 
 ## The sea
 
-- Surface: one row of tildes at text row 2 (about 48 px down), under the floating panel. The creatures' centres stay
-  below 144 px (the waves plus half of the orca, which is 144 px tall), so no creature crosses the waves.
-- Water: a sparse lattice of dim dots, one every 6 cells across and 8 rows down (staggered), fewer below. Static.
-- Seabed: four text rows (96 px, 8.9 % of 1080p): ground characters (`_ . /\ \/ (@@)` rocks and mounds), then sparse
-  hatch rows of `#` and `=`. The bottom row carries the prompt and the load bar.
-- Kelp: nine stalks of 5, 7 or 8 cells (tallest 192 px, 17.8 %) standing on the seabed top. Each swaps between its
-  two frames every 2 s (0.5 Hz), out of step with its neighbours.
-- Prompt: `$ boids --watch` and a solid block cursor, which never blinks.
-- Load bar: `[|||||     ] load  50%` at the bottom right, 20 cells, 5 % steps, re-sampled once per second.
+- Waves: two text rows at y 48..72 (under the floating panel, which covers about 54 px); the simulation's floor is
+  126 px, so even the orca (108 px tall) stays below them.
+- Swell: sparse strokes (`~ - . '` strands, longer and denser near the surface, fewer and shorter with depth), a few
+  drifting specks. One static 1920 x 792 opaque texture, tiled sideways.
+- Seabed: 8 text rows: boulders `(==:)`, `/^\` mounds, coral tufts, sand, dim ripples. The last row carries the prompt
+  `$ boids --watch` with a block cursor that never blinks, and the load bar `[|||     ] load  50%` (5 % steps, sampled once a second).
+- Kelp: ten plants of 9, 13 or 17 cells, stalk and paired leaves, swapping leaf sides every 2 s (0.5 Hz).
 
-## Creatures (1080p sizes)
+## Stress, day/night, facing
 
-- Fish, five variants with their own characters (`<=)` stripe, `<@)` spot, `<#}` solid, `<O]` hollow, `<%}` check),
-  in four size classes of body cells. Mid fish: 3 cells, 54 x 36 px; small 36 px wide, large 72 px. The fry (babies)
-  is a tail and a bright dot (`<.`), with a `*` sparkle while it is born.
-- Orca: text art, 10 x 4 cells, 180 x 144 px (3.3 fish long), facing right. Each cell is a glyph of the font:
+- Stress: from 0.25 a growing share of fish turns amber, from 0.6 red; from 0.5 a share trembles by one cell, at most
+  every 0.48 s; above 1.2 a third of the red fish alternate with the reverse-video box at about 0.8 Hz. Nothing flashes
+  across the screen.
+- Night is a palette swap at daylight 0.5, and the glass haze dims in one step.
+- Fish and angler show the right-facing file when `ent.facingRight` is true; the orca's flag is inverted, so it shows
+  the right-facing file when the flag is false. QML never mirrors a texture. `tests/terminal-measure.js F` checks both.
 
-      ,/|
-  Frame 0, right-facing:
+## Measured (1920 x 1080, offscreen)
 
-      ,/|
-      \__/ |__.`
-      <_____o__>
-       /-.___,-'
+See the final report in the commit message; `node tests/terminal-measure.js` prints: calm backdrop 0.07 % of pixels
+differ between frames 0.1 to 10 s apart (limit 2 %), nothing above 2 Hz; smooth glide residual 0.68 px on whole
+pixels; mean luminance 6 to 9 % in day, night, crowded, stress and feeding; busy 24 x 24 windows in the creature-free
+backdrop 0 (max share 38 %, limit 50 %); alarm alternation at most 1.6 flips per second; tremble 2.1 changes per second.
 
-  The fin is `,/|`, the outline is normal green, the eye `o` and the belly `___` are bright. Frame 1 lifts the upper
-  fluke one row (the tail goes up). The left-facing art is the same rows mirrored character by character.
-- Angler: 5 x 3 cells, 90 x 108 px. A stalk and a two-row head with a mouth. The lure is one cell (`*`, `+` on the
-  flare) in bright; the stalk is normal green.
-- Jelly: a bell with eyes and `/|\` tentacles. Mid 54 x 108 px (3 x 3 cells, `.-.` `(o)`), small 54 x 72 px, large
-  90 x 108 px (`.-"-.` `(o o)`). Two frames pulse the bell and sway the tentacles.
-- Worm: one cell wide (18 px), a stack of `S s ~` that dissolves through three stages as its life drains.
-- Bubbles: `°` (6 px) and `o` (10 px), at the water scale.
+## Files
 
-## Stress and day/night
-
-- Fish only. From stress 0.25 a growing share of fish switch to amber; from 0.6 a growing share switch to red. Each
-  fish has a fixed threshold, so the change spreads through the school.
-- From 0.5 a share of the fish trembles by one cell (18 px), at most every 0.48 s.
-- Above 1.2, a third of the red fish alternate between red and the inverted alarm box at about 0.8 Hz.
-
-## Facing: the file, not a mirror
-
-Left-facing art is generated from the right-facing character rows (characters mirrored, columns reversed); QML
-never mirrors a texture, it picks the file.
-
-- Fish and angler: right-facing art when `ent.facingRight` is true.
-- Orca: its simulation flag is inverted (false while it swims right), so the right-facing art is used when
-  `ent.facingRight` is false. `tests/terminal-measure.js F` checks this at run time, for both directions.
-
-## Motion and rates
-
-- The simulation steps 25 times per second; each sprite glides to its newest target in about one tick (40 ms,
-  linear) and lands on whole screen pixels.
-- Fish tail beat: two frames, about two changes per second at speed. Orca and angler: under one per second.
-  Jelly: about 1.4 per second. Worm: about 1.5 per second.
-- The backdrop timer runs at 500 ms and advances only the kelp; the load bar samples once per second.
-- Nothing animates while `paused`.
-
-## Measured (1920 x 1080, default settings)
-
-- Calm backdrop: at most 0.23 % of pixels differ between frames 0.1 to 10 s apart (limit 2 %); the fastest pixel
-  changes 0.49 times per second (limit 2 Hz).
-- Glide: residual from a straight line 0.61 px, frame-to-frame error 0.70 px (limit 1 px); whole pixels.
-- Luminance: mean 6.8 to 8.5 % in day, night, crowded, stress and feeding (limit 25 %). No busy 24 x 24 window on the
-  water texel in any scene. Creature-scale glyph windows (0.08 to 0.30 % of the windows, where the creatures stand)
-  are reported as information, not as backdrop noise.
-- Proportions: mid fish 54 x 36 px; angler 90 x 108 px; orca 180 x 144 px; jelly bell 54 px (one fish); worm 18 px;
-  bubbles 6 and 10 px; seabed 8.9 %; tallest kelp 17.8 %.
-- Stress 1.5: at most 1.63 alarm flips per second per fish (limit 2); tremble changes at most 2.13 per second (limit 4).
-- CPU (`node tests/qml-bench.js`, user + sys, 12 s runs): 38 fish 1.66 s (pixel 3.00 s); 200 fish 4.52 s (pixel 5.00 s).
-
-## Known limits
-
-- The orca is a text drawing of a whale with a fin, an eye and a white belly. It reads as an orca at scene size, but
-  a 10 x 4 cell grid cannot draw the orca's full two-tone patterning.
-- Creature glyphs are fine detail at their own texel scale, so windows with creatures score as busy on that scale.
-- Sliders: integer magnification only; a smaller slider does not shrink the orca or the angler below default size.
-- Night is a palette swap, so the difference from day is modest.
+`Scene.qml`, `Ambient.qml` (backdrop), `EntityLayer.qml` (pooling and glide), `TerminalSprite.qml` (one pooled
+creature, sized from its texture), `sync.js` (simulation state to textures), `theme.js`, `img/*.png`, `preview.png`;
+generators in `tools/` (`gen-terminal-theme.py`, `terminal-img2ascii.py`, `terminal-art.txt`).

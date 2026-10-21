@@ -53,20 +53,14 @@ Item {
     }
     EntityLayer { id: entities; anchors.fill: parent; z: 1; enabled: false }
 
-    // the CRT glass, static and above everything (so the water-coloured creature boxes stay invisible): a vignette with
-    // a little depth darkening, stretched smoothly over the screen, and one dark scanline in four at a whole-texel scale.
-    Image {
-        anchors.fill: parent
-        z: 1.5
-        source: T.DIR + "haze.png"
-        smooth: true
-        fillMode: Image.Stretch
-    }
+    // the CRT glass, static and above everything (so the water-coloured creature boxes stay invisible): one layer with a
+    // vignette, a little depth darkening and a soft green lift of the water, stretched over the screen in 4 px blocks (dimmer
+    // at night: two steps, like the palette), and one dark scanline in six at a whole-texel scale.
     Image {
         anchors.fill: parent
         z: 2
-        source: T.DIR + "shade.png"
-        smooth: true
+        source: T.DIR + "glass-" + T.baseSet(T.nightSet(scene.daylight)) + ".png"
+        smooth: false
         fillMode: Image.Stretch
     }
     Image {

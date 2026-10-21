@@ -415,12 +415,15 @@ def seabed_grid():
             n = rnd.randrange(5, 14)
             put(text[1], tone[1], x, ''.join(rnd.choice('___.,') for _ in range(n)), 'm')
             x += n + rnd.randrange(0, 4)
-    # sediment: sparse, dimmer with depth (the bottom row stays free for the prompt and the load bar)
-    for y in range(2, SEABED_ROWS - 1):
-        for xx in range(COLS):
-            if rnd.random() < (0.20 if y == 2 else 0.12):
-                text[y][xx] = rnd.choice('=:.' if y < 4 else ':.=')
-                tone[y][xx] = 'd'
+    # sediment: a few dim ripples in rows 2-3 (like the swell, but lower and sparser); rows 4-6 hold only a rare pebble
+    for y, n in ((2, 22), (3, 14), (4, 6), (5, 3)):
+        last = -99
+        for xx in sorted(rnd.randrange(0, COLS - 12) for _ in range(n)):
+            if xx - last < 9:
+                continue
+            seg = rnd.choice([".-'-.", "~-~~", "_.-._", "- . -", ".:.", "'-.-'"])
+            put(text[y], tone[y], xx, seg, 'd')
+            last = xx + len(seg)
     return Grid([''.join(r) for r in text], [''.join(r) for r in tone])
 
 
@@ -461,8 +464,8 @@ def render_flat(g, pal):
 
 
 def shade_image():
-    """Static vignette + depth darkening: black with alpha, 96 x 54, stretched smoothly over the screen."""
-    W, H = 96, 54
+    """Static vignette + depth darkening: black with alpha, 480 x 270, stretched over the screen (4 px blocks, alpha steps of one level)."""
+    W, H = 480, 270
     im = Image.new('RGBA', (W, H), (0, 0, 0, 0))
     px = im.load()
     for y in range(H):
@@ -479,8 +482,8 @@ def shade_image():
 
 
 def haze_image():
-    """A soft phosphor-green lift of the water, brightest high and in the middle (the lit glass), 96 x 54, stretched smoothly."""
-    W, H = 96, 54
+    """A soft phosphor-green lift of the water, brightest high and in the middle (the lit glass), 480 x 270, stretched."""
+    W, H = 480, 270
     im = Image.new('RGBA', (W, H), (0, 0, 0, 0))
     px = im.load()
     for y in range(H):
@@ -491,18 +494,39 @@ def haze_image():
     return im
 
 
+def glass_image(haze_gain):
+    """The CRT glass in ONE full-screen layer (one blend instead of two): the green haze under the black vignette."""
+    h, v = haze_image(), shade_image()
+    W, H = h.size
+    out = Image.new('RGBA', (W, H))
+    for y in range(H):
+        for x in range(W):
+            r1, g1, b1, a1 = h.getpixel((x, y))
+            a1 = a1 / 255.0 * haze_gain
+            a2 = v.getpixel((x, y))[3] / 255.0
+            A = 1 - (1 - a1) * (1 - a2)
+            if A <= 0:
+                out.putpixel((x, y), (0, 0, 0, 0))
+                continue
+            k = a1 * (1 - a2) / A
+            out.putpixel((x, y), (int(round(r1 * k)), int(round(g1 * k)), int(round(b1 * k)), int(round(A * 255))))
+    return out
+
+
 def scan_image():
-    """One dark line in four (static scanlines). 4 x 4, tiled by the QML at a whole-number scale."""
-    im = Image.new('RGBA', (4, 4), (0, 0, 0, 0))
-    for x in range(4):
-        im.putpixel((x, 3), (0, 0, 0, 50))
+    """One dark line in six (static scanlines, two per text row). 6 x 6, tiled by the QML at a whole-number scale."""
+    im = Image.new('RGBA', (6, 6), (0, 0, 0, 0))
+    for x in range(6):
+        im.putpixel((x, 5), (0, 0, 0, 56))
     return im
 
 
 def gen_backdrop(out):
     for s in BASE_SETS:
         pal = PAL[s]
-        out['water-%s.png' % s] = render_flat(water_grid(), pal)
+        wim = Image.new('RGB', (COLS * CW, WATER_ROWS * CH), BG)          # opaque: a plain blit, no blending
+        wim.paste(render_flat(water_grid(), pal), (0, 0), render_flat(water_grid(), pal))
+        out['water-%s.png' % s] = wim
         out['waves-%s.png' % s] = render_flat(waves_grid(), pal)
         out['seabed-%s.png' % s] = render_flat(seabed_grid(), pal)
         for cls in range(3):
@@ -511,8 +535,8 @@ def gen_backdrop(out):
         out['prompt-%s.png' % s] = render_flat(Grid([PROMPT + '\u2588'], ['n' * len(PROMPT) + 'b']), pal)
         for lvl in range(0, 101, 5):
             out['status-%03d-%s.png' % (lvl, s)] = render_flat(bar_grid(status_text(lvl)), pal)
-    out['shade.png'] = shade_image()
-    out['haze.png'] = haze_image()
+    for s_ in BASE_SETS:
+        out['glass-%s.png' % s_] = glass_image(0.35 if s_ == 'n' else 1.0)
     out['scan.png'] = scan_image()
 
 
@@ -532,7 +556,7 @@ def check(imgs):
             bad += 1
             continue
         with Image.open(p) as f:
-            if f.size != imgs[name].size or f.convert('RGBA').tobytes() != imgs[name].tobytes():
+            if f.size != imgs[name].size or f.convert('RGBA').tobytes() != imgs[name].convert('RGBA').tobytes():
                 print('stale: ' + name, file=sys.stderr)
                 bad += 1
     if os.path.isdir(OUT):
