@@ -14,10 +14,10 @@
 // Animation comes from sim state, no timers: tail beat from speed (2-3 frames/s), jelly pulse from the
 // sim's wobble phase, worm wiggle from its wiggle phase, angler lure from a slow per-delegate counter.
 //
-// Stress in ink language (fish only), nothing ever blinks full-screen: from 0.25 a growing share of the
-// fish is INVERTED (ink body, paper outline and pattern; which fish is fixed per fish); from 0.5 a share
-// trembles by one texel (a new offset at most every ~0.5 s); above 1.2 about a third of the fish
-// alternates between inverted and normal at 0.8 Hz, each with its own phase.
+// Stress (fish only), nothing ever blinks full-screen: from 0.25 a growing share of the fish turns into the
+// alarm variant (the "-i" textures: a vermilion koi with deep vermilion markings; which fish is fixed per fish);
+// from 0.5 a share trembles by one texel (a new offset at most every ~0.5 s); above 1.2 about a third of the fish
+// alternates between alarm and normal at 0.8 Hz, each with its own phase.
 
 var Z = 1e9;                                       // z band size (layer order, T.LAYER)
 var _seed = 123457;                                // own generator: never touches the simulation's random stream

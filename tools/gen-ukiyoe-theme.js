@@ -182,14 +182,14 @@ const patch = (u, v, list) => list.some(([cx, cy, rx, ry]) => inEll(u, v, cx, cy
 function koiPixel(variant, u, v, x, y) {
     switch (variant) {
         case 'kohaku': {                                   // white with red patches (a head cap, a saddle)
-            if (patch(u, v, [[0.86, 0.34, 0.15, 0.42], [0.46, 0.3, 0.2, 0.38], [0.16, 0.5, 0.11, 0.3]])) return [v > 0.5 ? 'R' : 'r', true];
+            if (patch(u, v, [[0.8, 0.12, 0.17, 0.3], [0.46, 0.3, 0.2, 0.38], [0.16, 0.5, 0.11, 0.3]])) return [v > 0.6 ? 'R' : 'r', true];
             return [v > 0.74 ? 'W' : 'w', false];
         }
         case 'ogon':                                       // plain gold with a darker back and a pale belly
             return [v < 0.28 ? 'Y' : (v > 0.76 ? 'S' : 'y'), v < 0.28];
         case 'sanke': {                                    // white, red patches and sumi black accents
             if (patch(u, v, [[0.62, 0.62, 0.1, 0.17], [0.3, 0.34, 0.11, 0.22]])) return ['k', true];
-            if (patch(u, v, [[0.84, 0.3, 0.14, 0.4], [0.5, 0.3, 0.18, 0.32]])) return ['r', true];
+            if (patch(u, v, [[0.8, 0.12, 0.15, 0.3], [0.5, 0.3, 0.18, 0.32]])) return ['r', true];
             return [v > 0.74 ? 'W' : 'w', false];
         }
         case 'asagi':                                      // blue-grey with a net of darker scales, ochre belly
@@ -197,7 +197,7 @@ function koiPixel(variant, u, v, x, y) {
             { const net = (x + y) % 3 === 0 && v < 0.62; return [net ? 'B' : 'b', net]; }
         default:                                           // shusui: deep blue back over a white belly, red cheek
             if (patch(u, v, [[0.8, 0.74, 0.1, 0.16]])) return ['r', true];
-            if (v < 0.46) return [v < 0.14 ? 'B' : 'B', true];
+            if (v < 0.3) return ['B', true];
             return [v > 0.78 ? 'W' : 'w', false];
     }
 }
@@ -214,7 +214,7 @@ function fishSprite(ci, variant, frame, inverted) {
         g[y][x] = inverted ? (spot ? 'R' : 'r') : col;
     }
     const e = a.eye;
-    if (e) put(g, e[0], e[1], inverted ? 'w' : (variant === 'shusui' || variant === 'asagi' ? 'w' : 'k'));
+    if (e) put(g, e[0], e[1], inverted ? 'w' : 'k');
     const out = pad(g, 1, 1, 1, 1);
     outline(out, 'k');
     return out;

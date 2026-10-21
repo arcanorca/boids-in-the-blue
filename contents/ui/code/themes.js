@@ -74,7 +74,7 @@ var THEMES = [
     {
         id: "ukiyoe",
         name: "Ukiyo-e",
-        description: "Japanese woodblock print: indigo ink on washi paper, Hokusai-style wave crests, wakame kelp and Matsushima rocks.",
+        description: "Colour woodblock print (nishiki-e): koi in traditional pigments, Seigaiha wave pattern on a bokashi indigo sea, Hokusai wave crests, wakame kelp and Matsushima rocks.",
         usesDayNight: true,
         usesWaterColors: false
     }
