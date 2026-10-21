@@ -28,6 +28,7 @@ Item {
     // creatures stay below the waves: the simulation's upper limit is the wave strip plus the fish's half height
     function sync(s) {
         s.top = T.SURFACE.floor * ps;
+        s.bodyScale = 13 * ps / 28;   // mid fish 13 texels wide (39 px at 1080p)
         OneBitSync.sync(s, entities, entities, ps, Math.max(1, dpr));
     }
 

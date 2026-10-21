@@ -21,7 +21,10 @@ Item {
     // the user's own water colours win over the theme's when set
     readonly property var grad: customWater ? Theme.gradientFrom(waterTop, waterBottom) : Theme.gradient(daylight)
 
-    function sync(s) { BiolumSync.sync(s, entities, entities); }
+    function sync(s) {
+        s.bodyScale = 1.5;          // fish ~42 px wide without the glow halo (10 x 4 x 1.25 = 50 px with it)
+        BiolumSync.sync(s, entities, entities);
+    }
 
     Rectangle {
         anchors.fill: parent

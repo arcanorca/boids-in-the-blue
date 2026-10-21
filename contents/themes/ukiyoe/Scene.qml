@@ -29,6 +29,7 @@ Item {
     function sync(s) {
         // ps from the simulation's own height until the scene has been laid out (height is 0 on the first frames)
         var p = height > 0 ? ps : T.texelDevice((s.height > 0 ? s.height : 1080) * Math.max(1, dpr)) / Math.max(1, dpr);
+        s.bodyScale = 13 * p / 28;    // mid fish 13 texels wide (39 px at 1080p)
         s.top = T.SURFACE.floor * p;
         UkiyoeSync.sync(s, entities, entities, p, Math.max(1, dpr));
     }

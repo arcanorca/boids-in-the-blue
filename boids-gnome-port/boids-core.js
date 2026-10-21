@@ -72,6 +72,7 @@ var CRUISE_GAIN = 0.1;         // share of the speed deficit recovered per tick 
 // bodies still overlapped. Now every pair contributes a force that is zero at the edge of the personal space,
 // smooth (quadratic) and rises towards contact; the sum is saturated.
 var BODY_PX_PER_SIZE = 7;      // sprite width in px per size unit (the classic sprite is 7 cells wide)
+var BODY_SCALE_MAX = 2.0;      // cap of sim.bodyScale (a theme with wider fish sets it; see Simulation.step)
 var BODY_MIN_FACTOR = 0.95;    // minimum centre distance = this * 7 px * (fishSize + 0.5), the same for every pair
 var SEP_SPACE_OFFSET = 25;     // px of the Personal space slider that the body itself accounts for:
 var SEP_MARGIN_MIN = 4;        // soft zone = minimum distance + max(this, separationDist - SEP_SPACE_OFFSET) (default 35: +10 px)
@@ -342,7 +343,13 @@ Simulation.prototype.step = function (dt) {
         var cell = Math.max(MIN_GRID_CELL, Math.ceil(cc.vRange));
         if (this.grid.cellSize !== cell) this.grid = new SpatialGrid(this.width, this.height, cell);
         this.grid.clear();
-        cc.dMin = BODY_MIN_FACTOR * BODY_PX_PER_SIZE * (cc.fishSize + 0.5);
+        // sim.bodyScale (optional, like sim.top: the host resets it to 1 each frame and a theme's sync() may set it):
+        // fish body width of the theme / the classic 28 px at the default size. Invalid values mean 1.
+        var bodyScale = Number(this.bodyScale);
+        if (!(bodyScale > 0) || !isFinite(bodyScale)) bodyScale = 1;
+        else if (bodyScale > BODY_SCALE_MAX) bodyScale = BODY_SCALE_MAX;
+        else if (bodyScale < 0.5) bodyScale = 0.5;
+        cc.dMin = BODY_MIN_FACTOR * BODY_PX_PER_SIZE * (cc.fishSize + 0.5) * bodyScale;
         for (var i = 0; i < this.entities.fish.length; i++) this.grid.insert(this.entities.fish[i]);
 
         var allLists = this.allLists;

@@ -22,7 +22,10 @@ Item {
     // screen pixels per virtual pixel
     readonly property int px: T.pxFor(height)
 
-    function sync(s) { NesSync.sync(s, entities, entities, px); }
+    function sync(s) {
+        s.bodyScale = 10 * px / 28;   // fish 10 virtual px wide (40 px at 1080p)
+        NesSync.sync(s, entities, entities, px);
+    }
 
     Ambient {
         anchors.fill: parent

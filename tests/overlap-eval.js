@@ -6,6 +6,7 @@
 //   node tests/overlap-eval.js --fish 38,200 --seeds 3 --steps 3000 --warmup 1000
 //   node tests/overlap-eval.js --screens 1920x1080     only these screens (comma list)
 //   node tests/overlap-eval.js --json calm default
+//   node tests/overlap-eval.js --bodyscale 1.5        wider fish (sim.bodyScale; overlap is measured with the scaled body)
 //   node tests/overlap-eval.js --stress                300 fish on 1366x768 (vibration / clumping / edge pinning)
 //
 // Body width = 7 * (fishSize + sizeVariation) px (the classic sprite). Two fish OVERLAP when their
@@ -29,7 +30,7 @@ const { loadBoids, mulberry32 } = require('./harness');
 const { presets } = require('./flock-eval');
 
 const STEPS_PER_SEC = 25;
-const BODY_PX = 7;
+const BODY_PX = 7;   // times opts.bodyScale (the theme's fish width / 28)
 const RAD2DEG = 180 / Math.PI;
 const wrap = d => { while (d > Math.PI) d -= 2 * Math.PI; while (d < -Math.PI) d += 2 * Math.PI; return d; };
 
@@ -40,12 +41,15 @@ function evaluateRun(flock, o) {
     const cfg = Object.assign({ cursorFearLevel: 0 }, o.predators ? {} : { anglerCount: 0, orcaCount: 0, jellyCount: 0 }, flock, { fishCount: o.fish });
     const sim = B.createSimulation(o.w, o.h, 1, cfg);
     const fs = Number(cfg.fishSize !== undefined ? cfg.fishSize : 4);
+    const bs = o.bodyScale || 1;
+    const BP = BODY_PX * bs;
     const prev = new Map();            // fish -> { h, d }  (last heading, last signed change)
     const close = newJ(), free = newJ(), all = newJ();
     let pairsAll = 0, pairsNear = 0, pairsOv = 0, depthSum = 0, fishOv = 0, fishN = 0, samples = 0, clump = 0;
     let pinnedCount = null, pinnedSteps = 0;
     const pos0 = new Map(); let vibSum = 0, vibN = 0;
     for (let t = 0; t < o.warmup + o.steps; t++) {
+        sim.bodyScale = bs;
         B.step(sim, 1, cfg);
         const fish = sim.entities.fish, n = fish.length;
         const measure = t >= o.warmup;
@@ -53,11 +57,11 @@ function evaluateRun(flock, o) {
         const nnw = new Array(n);
         if (measure) {
             for (let i = 0; i < n; i++) {
-                const a = fish[i], wa = BODY_PX * Math.max(0.5, fs + a.sizeVariation);
+                const a = fish[i], wa = BP * Math.max(0.5, fs + a.sizeVariation);
                 let best = 1e9;
                 for (let j = 0; j < n; j++) {
                     if (i === j) continue;
-                    const b = fish[j], wb = BODY_PX * Math.max(0.5, fs + b.sizeVariation);
+                    const b = fish[j], wb = BP * Math.max(0.5, fs + b.sizeVariation);
                     const d = Math.hypot(a.x - b.x, a.y - b.y) / (0.5 * (wa + wb));
                     if (d < best) best = d;
                 }
@@ -100,10 +104,10 @@ function evaluateRun(flock, o) {
         samples++;
         const hit = new Array(n).fill(false);
         for (let i = 0; i < n; i++) {
-            const a = fish[i], wa = BODY_PX * Math.max(0.5, fs + a.sizeVariation);
+            const a = fish[i], wa = BP * Math.max(0.5, fs + a.sizeVariation);
             let half = 0;
             for (let j = i + 1; j < n; j++) {
-                const b = fish[j], wb = BODY_PX * Math.max(0.5, fs + b.sizeVariation), wm = 0.5 * (wa + wb);
+                const b = fish[j], wb = BP * Math.max(0.5, fs + b.sizeVariation), wm = 0.5 * (wa + wb);
                 const d = Math.hypot(a.x - b.x, a.y - b.y);
                 pairsAll++;
                 if (d < 2 * wm) pairsNear++;
@@ -113,7 +117,7 @@ function evaluateRun(flock, o) {
         for (let i = 0; i < n; i++) { if (hit[i]) fishOv++; fishN++; }
         if (o.stress) {
             for (let i = 0; i < n; i++) {
-                const a = fish[i], wa = BODY_PX * Math.max(0.5, fs + a.sizeVariation);
+                const a = fish[i], wa = BP * Math.max(0.5, fs + a.sizeVariation);
                 let c = 0;
                 for (let j = 0; j < n; j++) if (j !== i && Math.hypot(a.x - fish[j].x, a.y - fish[j].y) < 0.5 * wa) c++;
                 if (c >= 6) clump++;
@@ -171,6 +175,7 @@ if (require.main === module) {
         const a = args[i];
         if (a === '--json') json = true;
         else if (a === '--predators') opts.predators = true;
+        else if (a === '--bodyscale') opts.bodyScale = Number(args[++i]);
         else if (a === '--stress') { opts.stress = true; fishList = [300]; screens = [[1366, 768]]; }
         else if (a === '--fish') fishList = args[++i].split(',').map(Number);
         else if (a === '--screens') screens = args[++i].split(',').map(s => s.split('x').map(Number));

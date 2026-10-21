@@ -6,26 +6,27 @@ const { loadBoids, mulberry32 } = require('./harness');
 
 const B = loadBoids({ random: mulberry32(20240607) });
 const W = 1920, H = 1080, FS = 4;
-const body = f => 7 * Math.max(0.5, FS + f.sizeVariation);
+const body = (f, k) => 7 * (k || 1) * Math.max(0.5, FS + f.sizeVariation);
 
-function overlapStats(fish) {
+function overlapStats(fish, k) {
     let pairs = 0, ov = 0; const hit = new Array(fish.length).fill(false);
     for (let i = 0; i < fish.length; i++) for (let j = i + 1; j < fish.length; j++) {
         const a = fish[i], b = fish[j];
         pairs++;
-        if (Math.hypot(a.x - b.x, a.y - b.y) < 0.8 * 0.5 * (body(a) + body(b))) { ov++; hit[i] = hit[j] = true; }
+        if (Math.hypot(a.x - b.x, a.y - b.y) < 0.8 * 0.5 * (body(a, k) + body(b, k))) { ov++; hit[i] = hit[j] = true; }
     }
     return { pairs: ov / Math.max(1, pairs), fish: hit.filter(Boolean).length / Math.max(1, fish.length) };
 }
 
 // Mean over sampled steps (the last 1000 of 3000), seeded
-function simulate(seed, cfg, w, h) {
+function simulate(seed, cfg, w, h, k) {
     const Bs = loadBoids({ random: mulberry32(seed) });
     const sim = Bs.createSimulation(w || W, h || H, 1, cfg);
     let sumP = 0, sumF = 0, n = 0;
     for (let t = 0; t < 3000; t++) {
+        if (k) sim.bodyScale = k;
         Bs.step(sim, 1, cfg);
-        if (t >= 2000 && t % 20 === 0) { const s = overlapStats(sim.entities.fish); sumP += s.pairs; sumF += s.fish; n++; }
+        if (t >= 2000 && t % 20 === 0) { const s = overlapStats(sim.entities.fish, k); sumP += s.pairs; sumF += s.fish; n++; }
     }
     return { sim: sim, pairs: sumP / n, fish: sumF / n };
 }
@@ -170,4 +171,37 @@ test('sim step cost stays small with 200 fish', () => {
     for (let i = 0; i < 500; i++) Bs.step(sim, 1, cfg);
     const ms = Number(process.hrtime.bigint() - t0) / 1e6 / 500;
     assert.ok(ms < 3, ms.toFixed(3) + ' ms per step (budget: 40 ms per step at 25 Hz, today ~0.4 ms)');
+});
+
+for (const k of [1.4, 2.0]) {
+    test('sim.bodyScale ' + k + ': wider fish still do not overlap (measured with the scaled body), 200 fish on 1366x768', () => {
+        const cfg = { fishCount: 200, anglerCount: 0, orcaCount: 0, jellyCount: 0 };
+        const r = simulate(4, cfg, 1366, 768, k);
+        assert.ok(r.fish < 0.05, (100 * r.fish).toFixed(2) + '% of fish overlap at scale ' + k);
+        const fish = r.sim.entities.fish;
+        // no clumping into a point: at most a few fish within a quarter of a (scaled) body of another one
+        let tight = 0, pinned = 0;
+        for (const a of fish) {
+            let n = 0;
+            for (const b of fish) if (a !== b && Math.hypot(a.x - b.x, a.y - b.y) < 0.25 * 7 * k * 4) n++;
+            if (n >= 3) tight++;
+            if (a.x < 12 || a.x > 1366 - 12 || a.y < 12 || a.y > 768 - 12) pinned++;
+        }
+        assert.ok(tight <= 2, tight + ' fish are clumped');
+        assert.ok(pinned <= 4, pinned + ' fish are pinned at the edges');
+    });
+}
+
+test('sim.bodyScale: invalid values mean 1, 1 is the unchanged default, values are clamped', () => {
+    const state = (scale) => {
+        const cfg = { fishCount: 60 };
+        const Bs = loadBoids({ random: mulberry32(21) });
+        const sim = Bs.createSimulation(W, H, 1, cfg);
+        for (let t = 0; t < 600; t++) { if (scale !== undefined) sim.bodyScale = scale; Bs.step(sim, 1, cfg); }
+        return JSON.stringify(sim.entities.fish.map(f => [f.x, f.y, f.vx, f.vy]));
+    };
+    const base = state(undefined);
+    for (const bad of [1, NaN, 'abc', -3, 0, Infinity, null]) assert.strictEqual(state(bad), base, 'bodyScale ' + String(bad) + ' must behave like 1');
+    assert.notStrictEqual(state(1.5), base, 'a real scale changes the spacing');
+    assert.strictEqual(state(50), state(2.0), 'the scale is capped at 2.0');
 });
