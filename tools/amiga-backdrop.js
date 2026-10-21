@@ -15,7 +15,7 @@ module.exports = function (H) {
         night:  [[0, '#247'], [0.08, '#236'], [0.35, '#136'], [0.7, '#125'], [1, '#013']],
         dusk:   [[0, '#b87'], [0.12, '#a7a'], [0.4, '#659'], [0.7, '#437'], [1, '#225']],
         day:    [[0, '#6bd'], [0.06, '#5ac'], [0.35, '#39a'], [0.7, '#278'], [1, '#157']],
-        stress: [[0, '#a54'], [0.08, '#a44'], [0.35, '#934'], [0.7, '#723'], [1, '#412']]
+        stress: [[0, '#c46'], [0.08, '#b46'], [0.35, '#a25'], [0.7, '#824'], [1, '#513']]
     };
     // Scanlines are interpolated at 8 bit between the 12-bit key colours: plain 12-bit rows band visibly (and
     // wobble in hue where the channels step on different lines) on a 1080p wallpaper. Smooth, noise-free, no dither.
