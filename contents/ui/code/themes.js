@@ -60,7 +60,7 @@ var THEMES = [
     {
         id: "gameboy",
         name: "Game Boy",
-        description: "The sea on a 1989 handheld: four LCD greens, 8x8 tiles and sprites, stepped scrolling water.",
+        description: "The sea on a 1989 handheld: four LCD greens, 8x8 tiles, calm flat water, kelp and well-drawn sprites.",
         usesDayNight: true,
         usesWaterColors: false
     },
