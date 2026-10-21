@@ -7,12 +7,15 @@ for palettes, sizes and pacing.
 
 ## Redesign (what changed and why)
 
-* Colour: the water was three loud, fully saturated blue bands with dither strips. It is now four
-  water shades (teal, slate, dark slate, black) in bands with one-row dither seams. Sand is muted
-  tan, boulders dull brown, kelp medium green. Creatures are the most saturated things on screen.
+* Colour: the water was three loud, fully saturated blue bands with dither strips, then four flat
+  bands. It is now one smooth gradient: a mid teal surface ($1C) fading to a deep desaturated navy
+  floor ($0C) through 12 bands whose density steps are dithered, with soft 3-row transitions. There
+  is no neon band and no black water. Sand is muted tan, boulders dull brown, kelp medium green.
+  Creatures are the most saturated things on screen, and the night water is a flat navy.
 * Sprites: fish were heavy black outlines with stripes and dots, so school mates merged into one
-  smear. Each fish now has a one-pixel outline in its own colour family's dark shade, a two-tone
-  body, one eye and at most one marking. The jelly is a saturated pink with three tentacles.
+  smear. Each fish has a one-pixel outline in its own colour family's dark shade, a two-tone body,
+  one eye and at most one marking. The palettes are muted: salmon, sand-gold, soft teal and soft
+  lilac. The jelly is a soft lilac-pink and the angler an indigo body with a warm gold lure.
 * Proportions: one virtual pixel at 1080p is 4 screen pixels. Fish are 40x28 px, the angler is 1.5
   fish, the orca 96 px, the jelly bell 32 px, the worm about 0.3 fish, bubbles 8 and 12 px. The
   tallest kelp is about 19 % of the screen height and the sand band about 6 %.
@@ -33,14 +36,14 @@ for palettes, sizes and pacing.
 | 2-bit tiles, colour 0 transparent | All art is authored as indices 0..3 in 8x8 tiles. The PNGs are produced afterwards by mapping indices through a palette. |
 | 4 sprite palettes, 3 colours each | Shared by all creatures (table below). Each sprite uses at most 3 colours plus transparent (the angler is two parts: body and lure). |
 | Metasprites of 8x8 tiles, one palette per sprite | A creature is a grid of whole tiles; the generator folds mirrored duplicates (horizontal flip attribute) and fails if a part leaves the tile grid. |
-| 4 background palettes, one per 16x16 area | The seabed, waterline and seams are painted into palette-tagged cells; the generator fails when a 16x16 area mixes palettes. All water uses one palette, so its bands may change height on any row. |
+| 4 background palettes, one per 16x16 area | The seabed and waterline are painted into palette-tagged cells; the generator fails when a 16x16 area mixes palettes. The water is one palette (two entries) and is drawn as a texture. |
 | One universal backdrop colour | The deepest water. It is the "transparent" colour of every background tile. |
 | Background tiles cannot flip | About 214 unique tiles per CHR bank (limit 256). The kelp sway is a CHR bank switch (two banks, 1 s apart). |
 | Low internal resolution | One virtual pixel = `floor(height / 240)` screen pixels (at least 2): 1080p is 480x270 at 4x, 1440p 427x240 at 6x. Sprite art is drawn on whole screen pixels. |
 | 2-frame animation | Fish, orca, angler, jelly and worm each have two frames chosen by the sim state; the angler's lure has three tile variants. |
 | No alpha | Nothing is translucent: jellies are opaque tiles, a dying worm blinks, a newborn fish gets a twinkling sparkle sprite. |
 | Palette fades for night stages | Day, dusk and night are three background palette sets, hand-picked. Sprite palettes stay (as in games that only fade the playfield). |
-| Not emulated | The 64-sprite / 8-per-scanline limits and the flicker they cause (not wanted on a wallpaper), mid-frame palette changes, NTSC artefacts, and the fine water band heights (a real 2C02 would switch BG palettes at 16-px rows). |
+| Not emulated | The 64-sprite / 8-per-scanline limits and the flicker they cause (not wanted on a wallpaper), mid-frame palette changes, NTSC artefacts. The water is a 480x270 dithered texture, not nametable tiles: a real 2C02 could not spare the CHR for it. |
 
 ## Palettes
 
@@ -48,22 +51,27 @@ Sprite palettes (colours 1..3; `theme.js` SPR_PAL, slot order = OAM palette numb
 
 | slot | name | colours | used by |
 |---|---|---|---|
-| 0 | coral | $06 $26 $37 (dark red, coral, cream) | coral fish, stress (alarm states $06 $26 $37 and $06 $16 $37) |
-| 1 | teal | $0C $2C $30 (slate, aqua, white) | aqua fish, orca, bubbles, sparkle |
-| 2 | gold | $08 $28 $38 (dark brown, gold, pale yellow) | amber and lemon fish, worm, angler lure |
-| 3 | pink | $14 $24 $34 (magenta, pink, pale pink) | orchid fish, angler body, jelly |
+| 0 | coral | $06 $26 $36 (dark red, salmon, peach) | coral fish, stress (alarm states $06 $26 $36 and $06 $16 $36) |
+| 1 | gold | $08 $18 $38 (dark brown, sand-gold, pale yellow) | amber and lemon fish, worms, the angler's lure |
+| 2 | teal | $0C $2B $30 (navy, soft mint-teal, white) | aqua fish, bubbles, sparkles, the orca |
+| 3 | lilac | $03 $23 $34 (indigo, lavender, pale pink) | orchid fish, the jelly, the angler's indigo body |
 
 Five fish variants share the four palettes. Each has one marking: coral a back stripe, amber a
 spot, aqua a belly stripe, orchid pale fins, lemon none. Amber and lemon share the gold palette and
 differ by which colour is the body.
 
-Background palettes, day (universal colour $0F): water $2C $1C $0C (top to bottom, the black
-universal colour below), sand $08 $18 $36, kelp $0A $1A $2A, foam $2C $3B $30. Dusk and night use
-the same structure with deeper water and hand-picked sand and kelp.
+The orca has a navy body ($0C) with a white belly and eye patch, not black: the four sprite palettes
+cannot hold a black body beside the teal fish, and black is kept for nothing else than sprite
+outlines and eyes.
 
-Water seams: each boundary is one row of ordered dither (a checkerboard of the two neighbouring
-shades), so the gradient reads as smooth without a band per row. The boundaries are at 11 %, 36 %
-and 80 % of the screen height.
+Background palettes, day (universal colour $0C): water $1C (surface) and $0C (floor), sand $08 $18
+$36, kelp $0A $1A $2A, foam $1C $3B $30. Dusk and night use the same structure with hand-picked sand
+and kelp; night water is a flat navy ($0C) so it does not glare.
+
+Water: `WATER` in `theme.js` (12 bands, 3-row seams) becomes `img/water-<state>.png`, a 480x270
+texture. Each row is a 4x4 ordered dither of the two shades; the density steps from 0 at the top to
+1 at the floor, interpolated over 3 rows at each band boundary. The 12 bands have one density step
+between neighbours, so no edge stands out.
 
 ## Stress
 
