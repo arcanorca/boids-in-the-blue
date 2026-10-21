@@ -127,3 +127,7 @@ coverage/
 ########################################
 BoidsInTheBlue-*.kpackage
 BoidsInTheBlue-*.zip
+
+# Python bytecode from the generator scripts
+__pycache__/
+*.pyc
