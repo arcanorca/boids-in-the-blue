@@ -82,14 +82,17 @@ test('the backdrop is calm and dark: hatch lines only, no stipple, low mean lumi
     for (let l = 0; l < T.WATER.layers; l++) {
         const im = png.decode(fs.readFileSync(path.join(DIR, T.DIR, T.waterFile(l))));
         for (let y = 0; y < im.H; y++) {
-            let runs = 0, inRun = false, row = 0;
-            for (let x = 0; x < im.W; x++) {
-                const on = im.px[(y * im.W + x) * 4 + 3] === 255 && im.px[(y * im.W + x) * 4] === paper[0];
-                if (on) { row++; paperTexels++; if (!inRun) runs++; }
-                inRun = on;
+            // runs of paper: dashes of at least 6 texels, plus at most one single texel per beam (the diagonal edge)
+            let x = 0, singles = 0;
+            while (x < im.W) {
+                const on = i => im.px[(y * im.W + i) * 4 + 3] === 255 && im.px[(y * im.W + i) * 4] === paper[0];
+                if (!on(x)) { x++; continue; }
+                let e = x; while (e < im.W && on(e)) e++;
+                if (e - x === 1 && x > 0 && e < im.W) singles++; else assert.ok(e - x >= 6 || x === 0 || e === im.W, 'water layer ' + l + ' row ' + y + ' has a short run');
+                if (l === T.WATER.layers - 1 && e - x > 1) paperTexels += e - x;
+                x = e;
             }
-            // no row is a stipple: every paper run is a dash of at least 6 texels
-            if (row) assert.ok(row / runs >= 6, 'water layer ' + l + ' row ' + y + ' has short runs');
+            assert.ok(singles <= T.WATER.beams.length, 'water layer ' + l + ' row ' + y + ' is stippled');
         }
         all += im.W * im.H;
     }
