@@ -134,7 +134,10 @@ function frameFile(kind, art, variant, frame) {
 // ── Backdrop (Backdrop.qml) ──────────────────────────────────
 // COPPER: one RGB strip per copper list, 1 texel wide, ROWS scanlines, stretched over the screen height.
 // Each scanline is one 12-bit colour; neighbouring levels are only mixed in a narrow (<= 8 line) seam.
-var COPPER = { w: 4, h: 540, lists: ["night", "dusk", "day", "stress"] };
+var COPPER = { w: 4, h: 540, lists: ["night", "dusk", "day"], stressSteps: 4 };
+// Stress colour swap: opaque lists "stress-<base>-<k>" (base = the copper list they are mixed from, k = 1..stressSteps
+// of the way to the hot list). One opaque list is shown instead of blending a full-screen overlay (cheap).
+function stressList(daylight) { return daylight > 0.7 ? "day" : (daylight > 0.25 ? "dusk" : "night"); }
 var RAYS = { w: 480, h: 270 };                     // static soft light shafts (alpha), stretched over the screen
 // Static strips (tile horizontally, bottom aligned): far hills, seabed
 var FAR    = { tw: 640, h: 26 };

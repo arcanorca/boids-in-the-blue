@@ -33,7 +33,16 @@ module.exports = function (H) {
         }
         return { W, H: Hh, px, opaque: true, smooth8: true };
     }
-    for (const l of T.COPPER.lists) out['copper-' + l + '.png'] = copper(COPPER[l]);
+    const rowsOf = im => Array.from({ length: im.H }, (_, y) => [0, 1, 2].map(k => im.px[y * im.W * 4 + k]));
+    function mixList(a, b, t) {
+        const px = Buffer.alloc(a.px.length), ra = rowsOf(a), rb = rowsOf(b);
+        for (let y = 0; y < a.H; y++) for (let x = 0; x < a.W; x++) { const o = (y * a.W + x) * 4; for (let k = 0; k < 3; k++) px[o + k] = Math.round(ra[y][k] + (rb[y][k] - ra[y][k]) * t); px[o + 3] = 255; }
+        return { W: a.W, H: a.H, px, opaque: true, smooth8: true };
+    }
+    const lists = {};
+    for (const l of T.COPPER.lists) out['copper-' + l + '.png'] = lists[l] = copper(COPPER[l]);
+    const hot = copper(COPPER.stress);
+    for (const l of T.COPPER.lists) for (let k = 1; k <= T.COPPER.stressSteps; k++) out['copper-stress-' + l + '-' + k + '.png'] = mixList(lists[l], hot, 0.6 * k / T.COPPER.stressSteps);
 
     // ── LIGHT SHAFTS ─────────────────────────────────────────
     // Static, soft: smooth alpha (<= ~9 %), a few slanted beams fading out with depth, plus a faint glow at the surface.
@@ -46,7 +55,7 @@ module.exports = function (H) {
                 const hw = w0 / 2 + y * 0.12, d = Math.abs(x - (x0 + sl * y)) / hw;
                 if (d >= 1) continue;
                 const s = (1 - d) * (1 - d) * (3 - 2 * (1 - d));
-                a = Math.max(a, k * s * Math.pow(Math.max(0, 1 - y / (Hh * 0.8)), 1.4) * 0.085);
+                a = Math.max(a, k * s * Math.pow(Math.max(0, 1 - y / (Hh * 0.8)), 1.4) * 0.11);
             }
             a = Math.max(a, 0.11 * Math.pow(Math.max(0, 1 - y / 26), 2));        // surface glow
             const al = Math.round(a * 255);
@@ -65,7 +74,7 @@ module.exports = function (H) {
             const t = Hh - Math.round(Math.min(18, hill(x, 9, 0.7, 2.2)));
             for (let y = t; y < Hh; y++) g[y][x] = y === t ? 'r' : 'a';
         }
-        out['far.png'] = render(g, mkPal({ a: ['#146', 120], r: ['#4ac', 100] }));
+        out['far.png'] = render(g, mkPal({ a: ['#146', 95], r: ['#146', 95] }));
     }
     {   // sand: 5 tones by depth, top-left lit slopes; hand-drawn rocks, shells, coral heads
         const W = T.GROUND.tw, Hh = T.GROUND.h, g = mk(W, Hh);
@@ -99,7 +108,7 @@ module.exports = function (H) {
     // Drawn upright on a canvas of the species' size (base = bottom centre), then cut into slices
     // (SLICE_H rows each, plus 1 extra row of overlap) so QML can shift them sideways a little. l lit (left), b body, d shade, h tip light.
     const PALETTES = {
-        front: mkPal({ o: '#043', d: '#065', b: '#1a7', l: '#4c8', h: '#9fa' }),
+        front: mkPal({ o: '#043', d: '#065', b: '#187', l: '#3a8', h: '#6c9' }),
         back:  mkPal({ d: ['#197', 105], b: ['#2a8', 105], l: ['#5cb', 115], h: ['#7dc', 120] }),
         fg:    mkPal({ o: ['#021', 215], d: ['#043', 215], b: ['#054', 215], l: ['#076', 215], h: ['#098', 215] })
     };
@@ -134,7 +143,7 @@ module.exports = function (H) {
         return g;
     }
     const SPECIES = {
-        kelpA: [kelp, { amp: 2.4, freq: 0.11, ph: 0.4, thick: 3, first: 6, every: 8, leaf: 6 }, 'front'],
+        kelpA: [kelp, { amp: 2.4, freq: 0.11, ph: 0.4, thick: 3, first: 6, every: 7, leaf: 7 }, 'front'],
         kelpB: [kelp, { amp: 2.0, freq: 0.14, ph: 2.0, thick: 2, first: 5, every: 7, leaf: 5 }, 'front'],
         kelpC: [kelp, { amp: 1.6, freq: 0.17, ph: 3.3, thick: 2, first: 4, every: 6, leaf: 4 }, 'front'],
         weedA: [weed, { blades: [[-1.6, 22, -1], [-0.8, 24, 0], [0, 19, 0.6], [0.8, 23, 1], [1.7, 20, 1.4]] }, 'front'],

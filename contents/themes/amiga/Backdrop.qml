@@ -39,19 +39,43 @@ Item {
         running: root.running
     }
 
-    // copper lists: a 1-texel-wide strip of 540 scanlines stretched over the screen height
+    // copper lists: a 1-texel-wide strip of 540 scanlines stretched over the screen height. Day/dusk/night are
+    // cross-faded by `daylight` (slowly, hours); only the layers that can be seen are drawn (an opaque list hides
+    // everything below it). The stress colour swap shows ONE opaque pre-mixed list (stress-<base>-<k>) that
+    // fades in over 1.5 s when the level changes: no full-screen blend in the steady state, no pulsing.
+    readonly property int stressIdx: Math.round(Math.max(0, Math.min(1, stress)) * T.COPPER.stressSteps)
+    readonly property string stressBase: T.stressList(daylight)
+    property bool settled: true            // stress fades finished: the lists below are hidden
+    onStressIdxChanged: { settled = false; settleTimer.restart(); }
+    onStressBaseChanged: { settled = false; settleTimer.restart(); }
+    Timer { id: settleTimer; interval: 1700; onTriggered: root.settled = true }
+    readonly property bool baseVisible: !(settled && stressIdx > 0)
+
     Repeater {
-        model: ["night", "dusk", "day", "stress"]
+        model: ["night", "dusk", "day"]
         delegate: Image {
             required property int index
             required property string modelData
-            readonly property real k: index === 1 ? root.w.dusk : (index === 2 ? root.w.day : (index === 3 ? root.stress * 0.55 : 1))
+            readonly property real k: index === 1 ? root.w.dusk : (index === 2 ? root.w.day : 1)
             anchors.fill: parent
-            smooth: true
+            smooth: false
             opacity: k
-            visible: k > 0.002
+            visible: root.baseVisible && k > 0.002 && (index === 2 || (index === 1 ? root.w.day < 0.999 : (root.w.day < 0.999 && root.w.dusk < 0.999)))
             source: visible ? T.DIR + "copper-" + modelData + ".png" : ""
-            Behavior on opacity { enabled: index === 3; NumberAnimation { duration: 2500 } }
+        }
+    }
+    Repeater {
+        model: 12
+        delegate: Image {
+            required property int index
+            readonly property string base: T.COPPER.lists[Math.floor(index / T.COPPER.stressSteps)]
+            readonly property int step: index % T.COPPER.stressSteps + 1
+            anchors.fill: parent
+            smooth: false
+            opacity: (base === root.stressBase && step === root.stressIdx) ? 1 : 0
+            Behavior on opacity { NumberAnimation { duration: 1500 } }
+            visible: opacity > 0.002
+            source: visible ? T.DIR + "copper-stress-" + base + "-" + step + ".png" : ""
         }
     }
     // static soft light shafts (smooth alpha, no stipple)

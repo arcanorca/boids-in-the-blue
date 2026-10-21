@@ -304,7 +304,7 @@ function glowImg() {
 
 // ── JELLY ────────────────────────────────────────────────────
 // Translucency with real alpha: a brighter rim, a soft body, thin trailing tentacles. No dark outline.
-const JELLY_PAL = mkPal({ r: ['#fdf', 235], R: '#fff', b: ['#d9f', 150], i: ['#b7e', 150], g: ['#f9c', 200], a: ['#e9e', 170], A: ['#fbf', 140], t: ['#c8e', 130], f: ['#a7d', 90] });
+const JELLY_PAL = mkPal({ r: ['#fdf', 235], R: '#fff', b: ['#d9f', 175], i: ['#b7e', 175], g: ['#f9c', 200], a: ['#e9e', 170], A: ['#fbf', 140], t: ['#c8e', 130], f: ['#a7d', 90] });
 function jellyFrame(art, frame) {
     const K = T.kinds.jelly.arts[art], W = K.cols, H = K.rows, g = mk(W, H);
     const bw0 = W, bh = Math.round(bw0 * 0.6), top = 1, cx = (W - 1) / 2;
