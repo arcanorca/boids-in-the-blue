@@ -80,7 +80,7 @@ function fishFile(cls, variant, frame, face, set) {
 // 36 px wide (one fish), worm 12 px wide (about 0.3 fish), bubbles 12 px boxes with a 6-12 px ink.
 var ORCA = { cols: 54, rows: 36 };                  // 9 x 3 cells of block art
 var ANGLER = { cols: 30, rows: 36 };                // 5 x 3 cells
-var ANGLER_LURE = { x: 24, y: 0, cols: CELL_W, rows: CELL_H, facingLeftX: 0 };   // the lure cell (right-facing art)
+var ANGLER_LURE = { x: 24, y: 0 };                 // the lure cell of the right-facing art (left-facing: x 0)
 var JELLY = [
     { name: "small", cols: 12, rows: 36 },          // 2 cells
     { name: "mid",   cols: 18, rows: 36 },          // 3 cells (the reference bell)

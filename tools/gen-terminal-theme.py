@@ -325,7 +325,7 @@ def sparkle_rows(frame):
 
 
 def bubble_rows(big):
-    return [text_row('O' if big else '\u00b0', 'n' if big else 'd')]
+    return [text_row('o' if big else '\u00b0', 'n' if big else 'd')]
 
 
 # ── backdrop ─────────────────────────────────────────────────

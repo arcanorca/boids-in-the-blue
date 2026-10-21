@@ -21,7 +21,7 @@ Files: `Scene.qml`, `Ambient.qml` (backdrop), `EntityLayer.qml` (pooling and gli
 
 ## Palette
 
-Five colours of the phosphor family, plus the screen background. Each texture belongs to one palette set:
+Three phosphor greens, the amber and red stress tones, and the screen background. Each texture belongs to one palette set:
 
 | set | use | bright | normal | dim |
 | --- | --- | --- | --- | --- |
@@ -65,7 +65,7 @@ is faded at run time.
   the bell (about 1.4 changes per second, from the simulation's wobble).
 - Worm, one cell wide: a stack of `S s ~`. It dissolves through three stages (3, 2 and 1 cells tall) as its life
   drains, and wiggles between two frames.
-- Bubbles: a small `°` and a big `O`, one cell each.
+- Bubbles: a small `°` and a big `o`, one cell each (a capital `O` read as a row of zeros in a busy sea).
 
 ## Stress and day/night
 
