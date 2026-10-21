@@ -29,7 +29,7 @@ Item {
         }
         d.z = ++_zc;
         d.flip = false; d.shakeX = 0; d.shakeY = 0; d.rotation = 0;
-        d.src = ""; d.sparkle = 0; d.lureLevel = -1; d.glowLevel = -1;
+        d.src = ""; d.sparkle = 0; d.lureLevel = -1; d.mag = 1; d.key = "";
         for (var k in props) d[k] = props[k];
         d.visible = true;
         live++;

@@ -1,84 +1,75 @@
 import QtQuick
 import "theme.js" as T
 
-// Ambience of the "onebit" theme, in texel space (see Scene.qml): the water as a dithered
-// gradient (8-texel bands cut from a 16x16 blue-noise matrix, so the stipple is continuous across
-// bands), a wave line, a few dithered light shafts, a kelp stand, a seabed silhouette and a handful
-// of drifting specks. One Timer (about 5 steps a second) drives every movement in whole texels;
-// nothing animates while `paused`.
-// Cost: ~50 static band images, 5 shafts, 12 wave tiles, 8 kelp, 3 seabed tiles, 14 specks.
+// Backdrop of the "onebit" theme, in texel space (see Scene.qml). Dark ink water; tone only from static
+// horizontal hatch lines (water-<n>.png layers, more of them by day; below the surface band they are confined
+// to diagonal light shafts), a wave line at the top, a seabed silhouette and line-art kelp. Nothing here flickers or
+// scrolls: the only motion is the kelp swaying one texel at a time (a step about every 2 s per plant) and a
+// few specks sinking one texel every few seconds. One Timer at 2 Hz drives it; nothing animates while `paused`.
+// Cost: 6 water strips, 8 kelp, 2 seabed tiles, 16 specks (all shared textures).
 Item {
     id: root
 
     property bool paused: false
     property real daylight: 1.0                    // 0 night .. 1 day
-    // daylight in 1/16 steps: the bands only swap textures on a visible change
+    // daylight in 1/16 steps: the layers only change on a visible step
     readonly property real dl: Math.round(daylight * 16) / 16
     property int tick: 0
 
     clip: true
 
     Timer {
-        interval: 200
+        interval: 500
         repeat: true
         running: !root.paused && root.width > 0
         onTriggered: root.tick++
     }
 
-    // ── water: dithered gradient, 8-texel bands ──
+    // ── water: hatch lines; layer n appears from a daylight of n * 0.17 ──
     Repeater {
-        model: Math.ceil(root.height / 8)
+        model: T.WATER.layers
         delegate: Image {
-            x: 0
-            y: index * 8
-            width: Math.ceil(root.width / 16) * 16
-            height: 8
+            visible: root.dl >= T.waterLayerMin(index)
+            width: root.width
+            height: T.WATER.rows
             fillMode: Image.Tile
             smooth: false
-            source: T.DIR + T.waterFile(root.dl, (index * 8 + 4) / root.height, index)
+            source: visible ? T.DIR + T.waterFile(index) : ""
         }
     }
-
-    // ── light shafts: paper dots on the noise lattice (positions are multiples of 16 texels so the
-    //    dots merge with the water pattern); a slow two-step breathing ──
-    Repeater {
-        model: [0.04, 0.27, 0.5, 0.73, 0.94]
-        delegate: Image {
-            x: Math.round((modelData * root.width - 48) / 16) * 16
-            y: 0
-            smooth: false
-            source: T.DIR + "shaft-" + Math.min(T.SHAFT.levels - 1, Math.round(root.dl * 2) + (Math.floor(root.tick / (30 + 8 * index)) + index & 1)) + ".png"
-        }
-    }
-
-    // ── wave line, scrolling one texel per two steps ──
-    Item {
-        id: surface
+    // wave line at the surface
+    Image {
         width: root.width
         height: T.SURFACE.rows
-        Item {
-            x: -(Math.floor(root.tick / 2) % T.SURFACE.cols)
-            width: root.width + 2 * T.SURFACE.cols
-            height: parent.height
-            Repeater {
-                model: Math.ceil(root.width / T.SURFACE.cols) + 2
-                delegate: Image {
-                    x: index * T.SURFACE.cols
-                    smooth: false
-                    source: T.DIR + "surface.png"
-                }
-            }
+        fillMode: Image.Tile
+        smooth: false
+        source: T.DIR + "surface.png"
+    }
+
+    // ── kelp: stands on the seabed ridge, swaying whole texels ──
+    Repeater {
+        model: [[0.05, 1], [0.15, 0], [0.30, 2], [0.43, 0], [0.57, 1], [0.69, 2], [0.82, 0], [0.94, 1]]
+        delegate: Image {
+            readonly property int kx: Math.round(modelData[0] * root.width)
+            x: kx - Math.floor(T.KELP[modelData[1]].cols / 2)
+            y: root.height - T.SEABED.rows + T.seabedTop(kx) - T.KELP[modelData[1]].rows + 7
+            smooth: false
+            source: T.DIR + "kelp-" + modelData[1] + "-" + ((Math.floor(root.tick / 4) + index) & 3) + ".png"
         }
     }
 
-    // ── kelp ──
+    // ── specks (marine snow): one texel, sinking one texel every few seconds ──
     Repeater {
-        model: [[0.06, 1], [0.15, 0], [0.31, 2], [0.43, 0], [0.58, 1], [0.69, 2], [0.82, 0], [0.93, 1]]
-        delegate: Image {
-            x: Math.round(modelData[0] * root.width)
-            y: root.height - T.SEABED.rows + 10 - T.KELP[modelData[1]].rows
-            smooth: false
-            source: T.DIR + "kelp-" + modelData[1] + "-" + [0, 1, 2, 1][(Math.floor(root.tick / 4) + index) & 3] + ".png"
+        model: 16
+        delegate: Rectangle {
+            readonly property real sx: ((index * 0.618034 + 0.13) % 1)
+            readonly property real sy: ((index * 0.754878 + 0.31) % 1)
+            readonly property int every: 3 + (index % 4)                          // ticks per texel
+            width: 1
+            height: 1
+            color: T.PAPER
+            x: Math.floor(sx * root.width) + [0, 1, 1, 0, -1, -1][(Math.floor(root.tick / (7 + index % 5)) + index) % 6]
+            y: (Math.floor(sy * root.height) + Math.floor(root.tick / every)) % Math.max(1, root.height - T.SEABED.rows - 8)
         }
     }
 
@@ -90,22 +81,6 @@ Item {
             y: root.height - T.SEABED.rows
             smooth: false
             source: T.DIR + "seabed.png"
-        }
-    }
-
-    // ── specks: one texel each, sinking slowly, swaying; the colour follows the water tone behind ──
-    Repeater {
-        model: 14
-        delegate: Rectangle {
-            readonly property real sx: ((index * 0.618034 + 0.13) % 1)
-            readonly property real sy: ((index * 0.754878 + 0.31) % 1)
-            readonly property real spd: 0.04 + (index % 4) * 0.025
-            readonly property real py: (sy * root.height + root.tick * spd) % (root.height - T.SEABED.rows + 4)
-            width: 1
-            height: 1
-            x: Math.floor(sx * root.width) + ((Math.floor(root.tick / (9 + index % 5)) + index) % 3) - 1
-            y: Math.floor(py)
-            color: T.waterDensity(root.dl, py / root.height) > 0.5 ? T.INK : T.PAPER
         }
     }
 }
