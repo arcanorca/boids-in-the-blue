@@ -30,7 +30,7 @@ test('presets are distinct and keep their character', () => {
     for (const id of P.IDS) {
         assert.ok(m[id].closeRate < 0.02, id + ' collisions ' + m[id].closeRate);
         assert.ok(m[id].jitter < 0.05, id + ' jitter ' + m[id].jitter);   // smooth by construction (the old steering: ~25 %)
-        assert.ok(m[id].turnDegS < 60, id + ' turn ' + m[id].turnDegS);   // (the old steering: 80 to 280 deg/s)
+        assert.ok(m[id].turnDegS < 90, id + ' turn ' + m[id].turnDegS);   // (the old steering: 80 to 280 deg/s, mostly noise)
         assert.ok(m[id].edge < 0.2, id + ' edge ' + m[id].edge);
     }
 });

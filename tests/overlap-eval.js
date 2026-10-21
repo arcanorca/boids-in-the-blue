@@ -20,6 +20,7 @@
 //   rev/min    heading reversals per fish per minute (signed change flips sign, both |changes| > 2 deg)
 //   hf         variance of the second difference of the heading (deg^2): high-frequency energy
 //   turn       mean heading change in deg/s (same as flock-eval)
+//   straight   share of fish-windows of 2 s (50 steps) whose net heading change is below 15 degrees (1 = everyone flies straight)
 //   close.*    the same four numbers for fish within 1.2 body widths of another fish
 //   free.*     ... and for the others
 // Stress extras: clump (share of fish with >= 6 neighbours within half a body width), pinned (fish within 12 px
@@ -45,6 +46,7 @@ function evaluateRun(flock, o) {
     const BP = BODY_PX * bs;
     const prev = new Map();            // fish -> { h, d }  (last heading, last signed change)
     const close = newJ(), free = newJ(), all = newJ();
+    let strN = 0, strOk = 0;
     let pairsAll = 0, pairsNear = 0, pairsOv = 0, depthSum = 0, fishOv = 0, fishN = 0, samples = 0, clump = 0;
     let pinnedCount = null, pinnedSteps = 0;
     const pos0 = new Map(); let vibSum = 0, vibN = 0;
@@ -84,7 +86,13 @@ function evaluateRun(flock, o) {
                 }
                 p.d = d;
             }
-            if (p) p.h = h; else prev.set(f, { h: h, d: null });
+            if (p) {
+                p.h = h; p.hist.push(h);
+                if (p.hist.length > 51) {
+                    p.hist.shift();
+                    if (measure) { strN++; if (Math.abs(wrap(h - p.hist[0])) * RAD2DEG < 15) strOk++; }
+                }
+            } else prev.set(f, { h: h, d: null, hist: [h] });
         }
         if (!measure) continue;
         if (o.stress) {
@@ -132,6 +140,7 @@ function evaluateRun(flock, o) {
     };
     const out = {
         pairsPct: 100 * pairsOv / Math.max(1, pairsAll), nbrPairsPct: 100 * pairsOv / Math.max(1, pairsNear),
+        straight: strN ? strOk / strN : 0,
         fishPct: 100 * fishOv / Math.max(1, fishN), depth: pairsOv ? depthSum / pairsOv : 0,
         all: summ(all), close: summ(close), free: summ(free)
     };
@@ -191,7 +200,7 @@ if (require.main === module) {
             const m = evaluate(all[n], Object.assign({}, opts, { w: w, h: h, fish: fish }));
             const row = { preset: n, screen: w + 'x' + h, fish: fish,
                 'pairs%': f(m.pairsPct, 3), 'nbrPairs%': f(m.nbrPairsPct, 2), 'fish%': f(m.fishPct, 2), depth: f(m.depth, 2),
-                mean: f(m.all.mean, 2), p95: f(m.all.p95, 2), 'rev/min': f(m.all.revMin, 1), hf: f(m.all.hf, 2), 'turn/s': f(m.all.turn, 0),
+                mean: f(m.all.mean, 2), p95: f(m.all.p95, 2), 'rev/min': f(m.all.revMin, 1), hf: f(m.all.hf, 2), 'turn/s': f(m.all.turn, 0), 'straight': f(m.straight, 2),
                 'c.mean': f(m.close.mean, 2), 'c.p95': f(m.close.p95, 2), 'c.rev': f(m.close.revMin, 1), 'c.hf': f(m.close.hf, 2),
                 'f.mean': f(m.free.mean, 2), 'f.p95': f(m.free.p95, 2), 'f.rev': f(m.free.revMin, 1), 'f.hf': f(m.free.hf, 2) };
             if (m.clumpPct !== undefined) Object.assign(row, { 'clump%': f(m.clumpPct, 2), 'pinned%': f(m.pinnedPct, 2), vib: f(m.vib, 3) });
@@ -202,9 +211,9 @@ if (require.main === module) {
     if (json) console.log(JSON.stringify(rows.map(r => ({ preset: r.preset, screen: r.screen, fish: r.fish, m: r.raw })), null, 1));
     else {
         const cols = Object.keys(rows[0]).filter(k => k !== 'raw');
-        console.log(table(rows, cols.slice(0, 7).concat(['mean', 'p95', 'rev/min', 'hf', 'turn/s'])));
+        console.log(table(rows, cols.slice(0, 7).concat(['mean', 'p95', 'rev/min', 'hf', 'turn/s', 'straight'])));
         console.log('\nclose-contact (within 1.2 body widths) vs free fish:');
-        console.log(table(rows, ['preset', 'screen', 'fish'].concat(cols.slice(12))));
+        console.log(table(rows, ['preset', 'screen', 'fish'].concat(cols.slice(13))));
         if (opts.stress) console.log('\n' + table(rows, ['preset', 'clump%', 'pinned%', 'vib']));
     }
 }

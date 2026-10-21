@@ -98,7 +98,7 @@ test('fish heading never changes faster than the turn limit (outside panic and t
         prev = cur;
     }
     assert.ok(worst <= 0.1 + 1e-6, 'a fish turned ' + worst.toFixed(4) + ' rad in one step (limit 0.1)');
-    assert.ok(sum / n < 0.01, 'mean turn per step ' + (sum / n).toFixed(4) + ' rad (before the fix ~0.08)');
+    assert.ok(sum / n < 0.04, 'mean turn per step ' + (sum / n).toFixed(4) + ' rad (before the fix ~0.08, noise)');
 });
 
 test('crowded fish do not flip heading back and forth (no twitching)', () => {
@@ -204,4 +204,31 @@ test('sim.bodyScale: invalid values mean 1, 1 is the unchanged default, values a
     for (const bad of [1, NaN, 'abc', -3, 0, Infinity, null]) assert.strictEqual(state(bad), base, 'bodyScale ' + String(bad) + ' must behave like 1');
     assert.notStrictEqual(state(1.5), base, 'a real scale changes the spacing');
     assert.strictEqual(state(50), state(2.0), 'the scale is capped at 2.0');
+});
+
+test('the school stays alive: smooth meandering (25-45 deg/s of turning), no heading reversals', () => {
+    const cfg = { fishCount: 38, anglerCount: 0, orcaCount: 0, jellyCount: 0, cursorFearLevel: 0 };
+    let turn = 0, n = 0, rev = 0, fishSteps = 0;
+    for (const seed of [1, 2, 3]) {
+        const Bs = loadBoids({ random: mulberry32(seed * 101) });
+        const sim = Bs.createSimulation(W, H, 1, cfg);
+        const prevH = new Map(), prevD = new Map();
+        for (let t = 0; t < 4000; t++) {
+            Bs.step(sim, 1, cfg);
+            for (const f of sim.entities.fish) {
+                const h = Math.atan2(f.vy, f.vx);
+                if (t > 1000 && prevH.has(f)) {
+                    let d = h - prevH.get(f); while (d > Math.PI) d -= 2 * Math.PI; while (d < -Math.PI) d += 2 * Math.PI;
+                    turn += Math.abs(d); n++; fishSteps++;
+                    const pd = prevD.get(f);
+                    if (pd !== undefined && Math.abs(d) > 0.035 && Math.abs(pd) > 0.035 && d * pd < 0) rev++;
+                    prevD.set(f, d);
+                }
+                prevH.set(f, h);
+            }
+        }
+    }
+    const degPerSec = turn / n * 180 / Math.PI * 25;
+    assert.ok(degPerSec > 20 && degPerSec < 50, 'mean turn rate ' + degPerSec.toFixed(1) + ' deg/s (old steering: 88 jittery, stiff version: 8)');
+    assert.ok(rev <= 0.001 * fishSteps, rev + ' reversals in ' + fishSteps + ' fish-steps');
 });

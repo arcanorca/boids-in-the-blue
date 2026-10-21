@@ -64,6 +64,14 @@ var FEAR_SMOOTH = 0.5;         // ... through a faster filter (time constant ~1.
 var FEAR_STEER_SCALE = 0.3;    // fear force (old impulse units: 1.0 per predator) -> steering intent
 var FEAR_RAMP = 0.3;           // fear fades in over the outer 30 % of its range (no on/off edge)
 var TURN_MIN_SPEED = 0.02;
+// Meander: a slow, smooth "current" that bends the swimming direction. A lateral steering acceleration
+// (perpendicular to the heading) of FLOW_GAIN * wanderFactor * L(x, y, t), where L in [-1, 1] is the mean of two
+// smooth plane waves (wavelength ~700 px, period ~50 s). Fish of one school feel almost the same L, so the school curves
+// as a whole, different schools bend differently (they drift apart and meet again), and it is smooth in time and
+// space (no white noise, no reversals). Wander slider = "Random drift" scales it. Deterministic (no random numbers).
+var FLOW_GAIN = 2.8;
+var FLOW_K1X = 0.0075, FLOW_K1Y = 0.0035, FLOW_W1 = 0.0055, FLOW_P1 = 0.7;
+var FLOW_K2X = -0.0032, FLOW_K2Y = 0.0087, FLOW_W2 = -0.0043, FLOW_P2 = 2.1;
 // Cruise thrust: the old code kept fish moving with the random kicks of its separation; with smooth steering
 // there is nothing left to offset the 0.99 drag, so the fish gently accelerate along their heading to a cruise speed.
 var CRUISE_FRAC = 0.95;        // cruise target as a fraction of the fish's own max speed (drag settles it near 0.86)
@@ -244,6 +252,7 @@ var Simulation = function (w, h, dpr, cfg) {
     this.allLists = [this.entities.worms, this.entities.bubbles, this.entities.fish,
                      this.entities.anglers, this.entities.orcas, this.entities.jellies];
     this.totalWormsEaten = 0;
+    this.tickCount = 0;       // steps simulated (time base of the meander)
     this.bornExtra = 0;
     this.grid = new SpatialGrid(w, h, MIN_GRID_CELL);
     this.init();
@@ -286,6 +295,7 @@ Simulation.prototype.step = function (dt) {
         // Babies add to the population (bornExtra); lowering the configured count resets that bonus
         if (baseFish < this._lastFishBase) this.bornExtra = 0;
         this._lastFishBase = baseFish;
+        this.tickCount++;
         var targetFish = baseFish + this.bornExtra;
         while (this.entities.fish.length < targetFish) this.entities.fish.push(new Fish(_rand()*this.width, _rand()*this.height, this));
         // Remove excess fish but NEVER kill actively-animating babies
@@ -683,6 +693,19 @@ Fish.prototype.update = function (sim) {
         this.wanderTheta += (_rand() - 0.5) * 0.1;
         ax += Math.cos(this.wanderTheta) * wanderF;
         ay += Math.sin(this.wanderTheta) * wanderF;
+    }
+
+    // Meander (see FLOW_GAIN): a smooth lateral bend of the heading, like the wander not while panicking
+    if (!panic && s0 > 0.01) {
+        // sine-like waves from a folded triangle (no Math calls: this runs for every fish every step); u in cycles
+        var tt = sim.tickCount;
+        var u1 = (FLOW_K1X * this.x + FLOW_K1Y * this.y + FLOW_W1 * tt + FLOW_P1) * 0.15915494 + 1000;
+        var u2 = (FLOW_K2X * this.x + FLOW_K2Y * this.y + FLOW_W2 * tt + FLOW_P2) * 0.15915494 + 1000;
+        u1 -= (u1 | 0); u2 -= (u2 | 0);
+        u1 = u1 < 0.5 ? 4 * u1 - 1 : 3 - 4 * u1; u2 = u2 < 0.5 ? 4 * u2 - 1 : 3 - 4 * u2;
+        var fl = 0.5 * (u1 * (1.5 - 0.5 * u1 * u1) + u2 * (1.5 - 0.5 * u2 * u2));
+        var fk = FLOW_GAIN * wanderF * fl / s0;
+        ax -= vy0 * fk; ay += vx0 * fk;
     }
 
     // --- EDGE STEERING (matches original: simple, not progressive) ---
