@@ -25,11 +25,12 @@ test('presets are distinct and keep their character', () => {
     assert.ok(m.calm.speed < m.default.speed && m.default.speed < m.lively.speed, 'speed ladder');
     assert.ok(m.calm.nnDist > m.default.nnDist && m.default.nnDist > m.lively.nnDist, 'calm loosest, lively tightest');
     assert.ok(m.default.schoolPol > 0.85, 'default schools are aligned: ' + m.default.schoolPol);
-    assert.ok(m.lively.turnDegS > 1.8 * m.default.turnDegS, 'lively turns more');
+    assert.ok(m.lively.turnDegS > 1.4 * m.default.turnDegS, 'lively turns more: ' + m.lively.turnDegS + ' vs ' + m.default.turnDegS);
     assert.ok(m.chaotic.largest < m.default.largest * 0.7 && m.chaotic.changesMin > 5 * m.default.changesMin, 'chaotic is fragmented and churns');
     for (const id of P.IDS) {
         assert.ok(m[id].closeRate < 0.02, id + ' collisions ' + m[id].closeRate);
-        assert.ok(m[id].jitter < 0.35, id + ' jitter ' + m[id].jitter);
-        assert.ok(m[id].edge < 0.12, id + ' edge ' + m[id].edge);
+        assert.ok(m[id].jitter < 0.05, id + ' jitter ' + m[id].jitter);   // smooth by construction (the old steering: ~25 %)
+        assert.ok(m[id].turnDegS < 90, id + ' turn ' + m[id].turnDegS);   // (the old steering: 80 to 280 deg/s, mostly noise)
+        assert.ok(m[id].edge < 0.2, id + ' edge ' + m[id].edge);
     }
 });

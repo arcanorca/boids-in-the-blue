@@ -21,7 +21,10 @@ Item {
     property var sim: null
     property real glimmerLevel: 0
 
-    function sync(s) { GBSync.sync(s, entities, entities); }
+    function sync(s) {
+        s.bodyScale = 12 * unit / 28; // fish 12 art px wide (36 px at 1080p)
+        GBSync.sync(s, entities, entities);
+    }
 
     // texel = `cell` physical pixels; `unit` = the same in logical pixels
     readonly property int cell: T.cellPx(height, dpr)

@@ -17,7 +17,10 @@ Item {
     property var sim: null
     property real glimmerLevel: 0
 
-    function sync(s) { Boids.sync(s, entityLayer, boidComponent); }
+    function sync(s) {
+        s.bodyScale = 1;            // the reference: a 7 cell fish at size 4 is 28 px wide
+        Boids.sync(s, entityLayer, boidComponent);
+    }
 
     // CRITICAL: this Canvas must have ZERO visual Item children. The entities live in the
     // sibling Item below: BoidDelegate is a QQuickPaintedItem, and as a child of a Canvas it

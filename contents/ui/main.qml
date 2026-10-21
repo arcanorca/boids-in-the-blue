@@ -178,7 +178,7 @@ WallpaperItem {
             if (!simStep()) break;
             stepped = true;
         }
-        if (stepped && sceneLoader.item) { sim.top = 0; sceneLoader.item.sync(sim); }   // draw once per frame, not per catch-up step; a scene may set sim.top
+        if (stepped && sceneLoader.item) { sim.top = 0; sim.bodyScale = 1; sceneLoader.item.sync(sim); }   // draw once per frame, not per catch-up step; a scene may set sim.top and sim.bodyScale
     }
 
     // Fallback driver, only while the FrameAnimation is unavailable
@@ -189,7 +189,7 @@ WallpaperItem {
         repeat: true
         triggeredOnStart: true
         onTriggered: {
-            if (wallpaper.simStep() && sceneLoader.item) { sim.top = 0; sceneLoader.item.sync(sim); }
+            if (wallpaper.simStep() && sceneLoader.item) { sim.top = 0; sim.bodyScale = 1; sceneLoader.item.sync(sim); }
         }
     }
 

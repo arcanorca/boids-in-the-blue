@@ -17,7 +17,10 @@ Item {
     property var sim: null
     property real glimmerLevel: 0
 
-    function sync(s) { PixelSync.sync(s, entities, entities); }
+    function sync(s) {
+        s.bodyScale = 32 / 28;      // fish 16 texels x 2 px = 32 px wide at the default size (classic 28)
+        PixelSync.sync(s, entities, entities);
+    }
 
     Ambient {
         anchors.fill: parent

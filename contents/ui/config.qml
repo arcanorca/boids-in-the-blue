@@ -433,7 +433,7 @@ ColumnLayout {
             id: sepDistSlider
             visible: root.advancedVisible
             label: i18nc("@label:slider", "Personal space:")
-            help: i18n("Distance fish keep from each other, in pixels. Larger values make a looser school.")
+            help: i18n("How close fish come before they steer away, in pixels. Never less than their body size. Larger values make a looser school.")
             from: 10; to: 100; stepSize: 1
             format: function (v) { return i18nc("pixels", "%1 px", Math.round(v)); }
         }
@@ -457,7 +457,7 @@ ColumnLayout {
             id: separationSlider
             visible: root.advancedVisible
             label: i18nc("@label:slider", "Repulsion:")
-            help: i18n("How strongly fish steer away from neighbors that are too close. Low values let fish overlap.")
+            help: i18n("How firmly fish steer away from close neighbors. Low values still keep them from overlapping; high values only make the turns away quicker.")
             from: 0; to: 0.08; stepSize: 0.0008
             format: function (v) { return root.percentOf(v, 0.08); }
         }

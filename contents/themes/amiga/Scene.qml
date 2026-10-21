@@ -22,7 +22,10 @@ Item {
     // px per art pixel (integer), see theme.js vpFor
     readonly property int vp: T.vpFor(height)
 
-    function sync(s) { AmigaSync.sync(s, entities, entities); }
+    function sync(s) {
+        s.bodyScale = 12 * vp / 28;   // fish 12 art px wide (36 px at 1080p)
+        AmigaSync.sync(s, entities, entities);
+    }
 
     Backdrop {
         id: backdrop

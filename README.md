@@ -138,6 +138,7 @@ A saved setting for an archived theme falls back to Refined Pixel.
 - **Themes**: eight themes, including the new Ukiyo-e. Refined Pixel is the default. Bioluminescent replaces Bioluminescent Deep. The Terminal and Soft Illustrated themes are archived (see the git tags above).
 - **Settings**: five tabs with theme preview cards, flocking presets, advanced flocking values in a collapsed section, help buttons, and "Reset to defaults".
 - **Flocking**: new defaults and presets; the school moves more smoothly. Saved custom values are kept; values outside the new ranges fall back to the defaults.
+- **Fish no longer pass through each other**: separation takes the size of the fish into account and steering is smoothed and limited, so schools flow around one another and do not jitter.
 - **Pause when covered**: the animation pauses while a maximized or fullscreen window, or windows covering a set share of the screen (50 to 100 %, default 90 %), hide the wallpaper. Not applied on the lock screen.
 - **Frame-driven simulation**: the simulation advances with the rendered frames at 25 steps per second on any display rate, so each screen stops when it is off or covered. Idle screens also switch off the sensors and ambient animations.
 - **Refined Pixel**: smooth water gradient instead of stepped bands.

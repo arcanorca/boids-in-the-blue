@@ -37,11 +37,58 @@ var FEAR_FACTOR = 1.0;
 var PANIC_RANGE_SQ = PANIC_RANGE * PANIC_RANGE;
 var ORCA_PANIC_RANGE_SQ = ORCA_PANIC_RANGE * ORCA_PANIC_RANGE;
 
-// Flocking (per-frame — exact original values)
-var COHESION_FACTOR = 0.005;
-var ALIGNMENT_FACTOR = 0.05;
-var SEPARATION_FACTOR = 0.05;
-var WANDER_FACTOR = 0.015;
+// Flocking fallbacks (per-frame): the same values as the main.xml defaults, so a host that passes no config
+// (tests, ports) gets the behaviour the wallpaper ships with
+var COHESION_FACTOR = 0.0005;
+var ALIGNMENT_FACTOR = 0.06;
+var SEPARATION_FACTOR = 0.008;
+var WANDER_FACTOR = 0.012;
+
+// --- STEERING ARCHITECTURE (fish) ---
+// Intent and motion are separate. Every tick a fish collects a DESIRED steering acceleration from smooth,
+// bounded terms (alignment, cohesion, separation, wander, edges, food, baby-follow). That intent is low-pass
+// filtered (one-tick spikes never reach the motion) and limited to MAX_ACCEL_FRAC of the max speed per tick;
+// after the speed limit the heading may then rotate by at most MAX_TURN radians per tick (a turning radius).
+// Together the filter and the two limiters make twitching impossible by construction. Predator and cursor fear
+// are impulses that skip the filter but still go through the (faster) turn limit.
+var STEER_SMOOTH = 0.22;       // low-pass coefficient per tick: time constant ~4 ticks = 160 ms at 25 Hz
+var MAX_ACCEL_FRAC = 0.20;     // max |steering| per tick as a fraction of the fish max speed (px/tick^2)
+var MAX_TURN = 0.10;           // max heading change per tick in radians (5.7 deg = 143 deg/s)
+var PANIC_TURN_MUL = 3;        // panic / cursor fear may turn this much faster (still bounded)
+var FEAR_ACCEL_MUL = 3;        // ... and may steer with this much more acceleration
+var FEAR_SMOOTH = 0.5;         // ... through a faster filter (time constant ~1.4 ticks)
+var FEAR_STEER_SCALE = 0.3;    // fear force (old impulse units: 1.0 per predator) -> steering intent
+var FEAR_RAMP = 0.3;           // fear fades in over the outer 30 % of its range (no on/off edge)
+var TURN_MIN_SPEED = 0.02;
+// Meander: a slow, smooth "current" that bends the swimming direction. A lateral steering acceleration
+// (perpendicular to the heading) of FLOW_GAIN * wanderFactor * L(x, y, t), where L in [-1, 1] is the mean of two
+// smooth plane waves (wavelength ~700 px, period ~50 s). Fish of one school feel almost the same L, so the school curves
+// as a whole, different schools bend differently (they drift apart and meet again), and it is smooth in time and
+// space (no white noise, no reversals). Wander slider = "Random drift" scales it. Deterministic (no random numbers).
+var FLOW_GAIN = 2.8;
+var FLOW_K1X = 0.0075, FLOW_K1Y = 0.0035, FLOW_W1 = 0.0055, FLOW_P1 = 0.7;
+var FLOW_K2X = -0.0032, FLOW_K2Y = 0.0087, FLOW_W2 = -0.0043, FLOW_P2 = 2.1;
+// Cruise thrust: the old code kept fish moving with the random kicks of its separation; with smooth steering
+// there is nothing left to offset the 0.99 drag, so the fish gently accelerate along their heading to a cruise speed.
+var CRUISE_FRAC = 0.95;        // cruise target as a fraction of the fish's own max speed (drag settles it near 0.86)
+var CRUISE_GAIN = 0.1;         // share of the speed deficit recovered per tick     // below this speed the heading is undefined, the turn limit is skipped
+
+// Body-aware separation. The old separation was the SUM of raw offsets (strongest at the edge of the personal
+// space, ZERO at contact, growing with the neighbour count): fish at the edge were kicked on and off, and
+// bodies still overlapped. Now every pair contributes a force that is zero at the edge of the personal space,
+// smooth (quadratic) and rises towards contact; the sum is saturated.
+var BODY_PX_PER_SIZE = 7;      // sprite width in px per size unit (the classic sprite is 7 cells wide)
+var BODY_SCALE_MAX = 2.0;      // cap of sim.bodyScale (a theme with wider fish sets it; see Simulation.step)
+var BODY_MIN_FACTOR = 0.95;    // minimum centre distance = this * 7 px * (fishSize + 0.5), the same for every pair
+var SEP_SPACE_OFFSET = 25;     // px of the Personal space slider that the body itself accounts for:
+var SEP_MARGIN_MIN = 4;        // soft zone = minimum distance + max(this, separationDist - SEP_SPACE_OFFSET) (default 35: +10 px)
+var SEP_GAIN = 40;             // separationFactor (slider) * SEP_GAIN = peak soft steering per neighbour (px/tick^2)
+var SEP_HARD_GAIN = 3;       // steering at full penetration, in units of the max acceleration (slider independent)
+var SEP_LOOKAHEAD = 8;         // ticks: a closing neighbour counts as nearer by (closing speed * this)
+var SEP_SAT = 0.85;             // saturation of the summed separation, in units of the max acceleration
+// Last-resort position correction (bodies closer than the minimum distance): a damped push, clamped, no velocity change
+var POS_CORR_GAIN = 0.3;       // share of the penetration removed per tick, per fish (the neighbour does the other half)
+var POS_CORR_MAX = 2.0;        // px per tick, per fish
 
 var FISH_PALETTE = ['#FF8080', '#FFB34D', '#E6E666', '#4DCCE6', '#CC99E6'];
 var BUBBLE_COLOR = "rgba(200, 230, 255, 0.4)";
@@ -79,8 +126,10 @@ function _blendCached(c1, c2, f) {
     return r;
 }
 
+// One test instead of four isFinite calls: NaN and +-Infinity poison the sum, and s - s is 0 only for a finite s
 function _finite(e) {
-    return isFinite(e.x) && isFinite(e.y) && isFinite(e.vx || 0) && isFinite(e.vy || 0);
+    var s = e.x + e.y + (e.vx || 0) + (e.vy || 0);
+    return s - s === 0;
 }
 
 function _blendHex(c1, c2, f) {
@@ -179,7 +228,8 @@ SpatialGrid.prototype.clear = function () {
     for (var i = 0; i < this.cells.length; i++) this.cells[i].length = 0;
 };
 SpatialGrid.prototype.insert = function (ent) {
-    if (!isFinite(ent.x) || !isFinite(ent.y) || this.cells.length === 0) return;
+    var xy = ent.x + ent.y;
+    if (xy - xy !== 0 || this.cells.length === 0) return;
     var c = Math.floor(ent.x / this.cellSize);
     var r = Math.floor(ent.y / this.cellSize);
     if (c < 0) c = 0; else if (c >= this.cols) c = this.cols - 1;
@@ -198,6 +248,7 @@ var Simulation = function (w, h, dpr, cfg) {
     this.allLists = [this.entities.worms, this.entities.bubbles, this.entities.fish,
                      this.entities.anglers, this.entities.orcas, this.entities.jellies];
     this.totalWormsEaten = 0;
+    this.tickCount = 0;       // steps simulated (time base of the meander)
     this.bornExtra = 0;
     this.grid = new SpatialGrid(w, h, MIN_GRID_CELL);
     this.init();
@@ -240,6 +291,7 @@ Simulation.prototype.step = function (dt) {
         // Babies add to the population (bornExtra); lowering the configured count resets that bonus
         if (baseFish < this._lastFishBase) this.bornExtra = 0;
         this._lastFishBase = baseFish;
+        this.tickCount++;
         var targetFish = baseFish + this.bornExtra;
         while (this.entities.fish.length < targetFish) this.entities.fish.push(new Fish(_rand()*this.width, _rand()*this.height, this));
         // Remove excess fish but NEVER kill actively-animating babies
@@ -299,6 +351,13 @@ Simulation.prototype.step = function (dt) {
         var cell = Math.max(MIN_GRID_CELL, Math.ceil(cc.vRange));
         if (this.grid.cellSize !== cell) this.grid = new SpatialGrid(this.width, this.height, cell);
         this.grid.clear();
+        // sim.bodyScale (optional, like sim.top: the host resets it to 1 each frame and a theme's sync() may set it):
+        // fish body width of the theme / the classic 28 px at the default size. Invalid values mean 1.
+        var bodyScale = Number(this.bodyScale);
+        if (!(bodyScale > 0) || !isFinite(bodyScale)) bodyScale = 1;
+        else if (bodyScale > BODY_SCALE_MAX) bodyScale = BODY_SCALE_MAX;
+        else if (bodyScale < 0.5) bodyScale = 0.5;
+        cc.dMin = BODY_MIN_FACTOR * BODY_PX_PER_SIZE * (cc.fishSize + 0.5) * bodyScale;
         for (var i = 0; i < this.entities.fish.length; i++) this.grid.insert(this.entities.fish[i]);
 
         var allLists = this.allLists;
@@ -317,7 +376,7 @@ Simulation.prototype.step = function (dt) {
                         list.splice(i, 1);
                     } else {
                         ent.x = _rand() * this.width; ent.y = _rand() * this.height;
-                        ent.vx = 0; ent.vy = 0;
+                        ent.vx = 0; ent.vy = 0; ent.sx = 0; ent.sy = 0;
                     }
                 } else if (ent.kind !== 'worm' && ent.kind !== 'bubble') {
                     _bounceBoundaries(this, ent);
@@ -379,6 +438,9 @@ Bubble.prototype.update = function (sim) {
     if (this.y < (sim.top || 0) - 10) this.dead = true;
 };
 
+var _COS_TURN = Math.cos(MAX_TURN), _SIN_TURN = Math.sin(MAX_TURN);
+var _COS_TURN_SCARED = Math.cos(MAX_TURN * PANIC_TURN_MUL), _SIN_TURN_SCARED = Math.sin(MAX_TURN * PANIC_TURN_MUL);
+
 // --- FISH (original + zen harmonics) ---
 var Fish = function (x, y, sim, isBaby) {
     this.x = x; this.y = y; this.dead = false; this.kind = 'fish';
@@ -389,6 +451,7 @@ var Fish = function (x, y, sim, isBaby) {
     this.sizeVariation = this.isBaby ? -1.5 : (_rand() * 2 - 1);
     this.personality = this.isBaby ? (1.1 + _rand() * 0.3) : (0.8 + _rand() * 0.4);
     this.wanderTheta = _rand() * Math.PI * 2;
+    this.sx = 0; this.sy = 0;    // filtered steering intent (see STEERING ARCHITECTURE)
     this.facingRight = this.vx >= 0;
     if (this.isBaby) {
         this.birthAnim = 0;
@@ -413,8 +476,11 @@ Fish.prototype.update = function (sim) {
 
     var neighbors = 0;
     var xVelAvg = 0, yVelAvg = 0, xPosAvg = 0, yPosAvg = 0;
-    var closeDx = 0, closeDy = 0;
+    var sepX = 0, sepY = 0;       // summed separation steering
+    var fearX = 0, fearY = 0;     // summed fear steering (cursor, predators)
+    var corrX = 0, corrY = 0;     // last-resort position correction
     var panic = false;
+    var scared = false;           // panic or cursor fear: faster (bounded) turning
 
     // --- BABY BIRTH CEREMONY (matches original: 60 frames) ---
     if (this.isBaby && this.birthAnim < 60) {
@@ -433,6 +499,10 @@ Fish.prototype.update = function (sim) {
         return;
     }
 
+    // Velocity at the start of the tick: the turn limiter at the end compares against it
+    var vx0 = this.vx, vy0 = this.vy;
+    var s0 = Math.sqrt(vx0 * vx0 + vy0 * vy0);   // speed at the start of the tick (the velocity is not touched before the steering is applied)
+
     // --- CURSOR FEAR (matches original exactly) ---
     var fearLevel = cc.fearLevel;
 
@@ -448,14 +518,15 @@ Fish.prototype.update = function (sim) {
         var mdistSq = mdx * mdx + mdy * mdy;
 
         if (mdistSq < range * range) {
+            scared = true;
             if (fearLevel === 4) {
                 maxSpeed *= 2.5;
                 cohF = 0; alignF = 0; sepF *= 5.0;
             }
             var mdist = Math.sqrt(mdistSq);
             if (mdist > 1) {
-                this.vx += (mdx / mdist) * force;
-                this.vy += (mdy / mdist) * force;
+                var mk = Math.min(1, (1 - mdist / range) / FEAR_RAMP) * force * FEAR_STEER_SCALE / mdist;
+                fearX += mdx * mk; fearY += mdy * mk;
             }
         }
     }
@@ -468,9 +539,12 @@ Fish.prototype.update = function (sim) {
         var pdx = this.x - pred.x; var pdy = this.y - pred.y;
         var pdistSq = pdx * pdx + pdy * pdy;
         if (pdistSq < panicRangeSq) {
-            panic = true;
+            panic = true; scared = true;
             var pdist = Math.sqrt(pdistSq);
-            if (pdist > 0.01) { this.vx += (pdx/pdist)*FEAR_FACTOR; this.vy += (pdy/pdist)*FEAR_FACTOR; }
+            if (pdist > 0.01) {
+                var pk = Math.min(1, (1 - pdist / PANIC_RANGE) / FEAR_RAMP) * FEAR_FACTOR * FEAR_STEER_SCALE / pdist;
+                fearX += pdx * pk; fearY += pdy * pk;
+            }
         }
     }
     for (var p = 0; p < sim.entities.orcas.length; p++) {
@@ -478,20 +552,33 @@ Fish.prototype.update = function (sim) {
         var pdx = this.x - pred.x; var pdy = this.y - pred.y;
         var pdistSq = pdx*pdx + pdy*pdy;
         if (pdistSq < orcaRangeSq) {
-            panic = true;
+            panic = true; scared = true;
             var pdist = Math.sqrt(pdistSq);
-            if (pdist > 0.01) { this.vx += (pdx/pdist)*FEAR_FACTOR; this.vy += (pdy/pdist)*FEAR_FACTOR; }
+            if (pdist > 0.01) {
+                var pk = Math.min(1, (1 - pdist / ORCA_PANIC_RANGE) / FEAR_RAMP) * FEAR_FACTOR * FEAR_STEER_SCALE / pdist;
+                fearX += pdx * pk; fearY += pdy * pk;
+            }
         }
     }
 
-    // --- BOIDS FLOCKING (spatial grid, matches original: raw separation, no neighbor limit) ---
+    // --- BOIDS FLOCKING (spatial grid; separation is body-aware, see STEERING ARCHITECTURE) ---
     var grid = sim.grid;
     var cellCol = Math.floor(this.x / grid.cellSize);
     var cellRow = Math.floor(this.y / grid.cellSize);
     var vRangeSq = vRange * vRange;
-    var sepDistSq = sepDist * sepDist;
     var startC = Math.max(0, cellCol - 1), endC = Math.min(grid.cols - 1, cellCol + 1);
     var startR = Math.max(0, cellRow - 1), endR = Math.min(grid.rows - 1, cellRow + 1);
+    var maxAccel = maxSpeed * MAX_ACCEL_FRAC * (scared ? FEAR_ACCEL_MUL : 1);   // this tick's acceleration budget
+    var sepGain = sepF * SEP_GAIN;
+    var hardGain = maxAccel * SEP_HARD_GAIN;
+    // Personal space, the same for every pair (symmetric, and no per-pair property loads): dMin = minimum centre
+    // distance, sized for the widest common bodies (mean size + half the size variation); rs = soft zone: the body
+    // plus the Personal space slider (so the slider still widens or tightens the school, on top of the body size).
+    var dMin = cc.dMin;
+    var rs = dMin + (sepDist - SEP_SPACE_OFFSET > SEP_MARGIN_MIN ? sepDist - SEP_SPACE_OFFSET : SEP_MARGIN_MIN);
+    // a closing pair looks nearer than it is by at most (closing speed * look-ahead): reject everything further away
+    var reachMax = rs + SEP_LOOKAHEAD * (s0 + maxSpeed * 1.3);
+    var reachMaxSq = reachMax * reachMax, rsSq = rs * rs;
 
     for (var r = startR; r <= endR; r++) {
         for (var gc = startC; gc <= endC; gc++) {
@@ -502,27 +589,53 @@ Fish.prototype.update = function (sim) {
                 var fdx = this.x - other.x; var fdy = this.y - other.y;
                 var distSq = fdx*fdx + fdy*fdy;
                 if (distSq < vRangeSq) {
-                    xVelAvg += other.vx; yVelAvg += other.vy;
+                    var ovx = other.vx, ovy = other.vy;
+                    xVelAvg += ovx; yVelAvg += ovy;
                     xPosAvg += other.x; yPosAvg += other.y;
-                    if (distSq < sepDistSq) {
-                        closeDx += fdx; closeDy += fdy;
-                    }
                     neighbors++;
+                    // inside the personal space, or further out but closing in (tested without a sqrt)
+                    if (distSq < rsSq || (distSq < reachMaxSq && (this.vx - ovx) * fdx + (this.vy - ovy) * fdy < 0)) {
+                        var d = Math.sqrt(distSq), nx, ny;
+                        if (d > 0.01) { nx = fdx / d; ny = fdy / d; }
+                        else { nx = Math.cos(this.wanderTheta); ny = Math.sin(this.wanderTheta); d = 0.01; }
+                        // closing speed along the offset: a neighbour that is about to arrive counts as nearer
+                        var closing = -((this.vx - ovx) * nx + (this.vy - ovy) * ny);
+                        var dEff = closing > 0 ? d - closing * SEP_LOOKAHEAD : d;
+                        if (dEff < 0) dEff = 0;
+                        if (dEff < rs) {
+                            var sz = 1 - dEff / rs;
+                            var wgt = sepGain * sz * sz * (3 - 2 * sz);   // smoothstep of the depth into the personal space: 0 at the edge
+                            if (dEff < dMin) {
+                                var pz = 1 - dEff / dMin;
+                                wgt += hardGain * pz * pz * (3 - 2 * pz);   // smoothstep of the penetration
+                            }
+                            sepX += nx * wgt; sepY += ny * wgt;
+                        }
+                        // last resort, real penetration only (not the look-ahead one)
+                        if (d < dMin) { var pen = (dMin - d) * POS_CORR_GAIN; corrX += nx * pen; corrY += ny * pen; }
+                    }
                 }
             }
         }
     }
 
+    // --- STEERING INTENT: a = sum of smooth, bounded terms (not yet applied to the velocity) ---
+    var ax = 0, ay = 0;
     if (neighbors > 0) {
         xVelAvg /= neighbors; yVelAvg /= neighbors;
         xPosAvg /= neighbors; yPosAvg /= neighbors;
-        this.vx += (xVelAvg - this.vx) * alignF;
-        this.vy += (yVelAvg - this.vy) * alignF;
-        this.vx += (xPosAvg - this.x) * cohF;
-        this.vy += (yPosAvg - this.y) * cohF;
+        ax += (xVelAvg - this.vx) * alignF + (xPosAvg - this.x) * cohF;
+        ay += (yVelAvg - this.vy) * alignF + (yPosAvg - this.y) * cohF;
     }
-    this.vx += closeDx * sepF;
-    this.vy += closeDy * sepF;
+    // Separation: smooth saturation, so a dense crowd cannot explode (|sep| -> SEP_SAT * maxAccel)
+    var sepMag2 = sepX * sepX + sepY * sepY;
+    if (sepMag2 > 0) {
+        var sepCap = maxAccel * SEP_SAT;
+        var sepScale = 1 / Math.sqrt(1 + sepMag2 / (sepCap * sepCap));
+        sepX *= sepScale; sepY *= sepScale;
+        sepMag2 *= sepScale * sepScale;
+    }
+    ax += fearX; ay += fearY;
 
     // --- WORM EATING (matches original) ---
     if (!panic && sim.entities.worms.length > 0) {
@@ -535,8 +648,8 @@ Fish.prototype.update = function (sim) {
             if (wd2 < closestDist) { closestDist = wd2; closestWorm = w; }
         }
         if (closestWorm && closestDist < 80000) {
-            this.vx += (closestWorm.x - this.x) * 0.005;
-            this.vy += (closestWorm.y - this.y) * 0.005;
+            ax += (closestWorm.x - this.x) * 0.005;
+            ay += (closestWorm.y - this.y) * 0.005;
             if (closestDist < 400) {
                 closestWorm.dead = true;
                 sim.totalWormsEaten++;
@@ -566,24 +679,37 @@ Fish.prototype.update = function (sim) {
             if (ad2 < nearestAdultDist) { nearestAdultDist = ad2; nearestAdult = a; }
         }
         if (nearestAdult && nearestAdultDist < 250*250) {
-            this.vx += (nearestAdult.x - this.x) * 0.008;
-            this.vy += (nearestAdult.y - this.y) * 0.008;
+            ax += (nearestAdult.x - this.x) * 0.008;
+            ay += (nearestAdult.y - this.y) * 0.008;
         }
     }
 
     // --- WANDER (matches original) ---
     if (!panic) {
         this.wanderTheta += (_rand() - 0.5) * 0.1;
-        this.vx += Math.cos(this.wanderTheta) * wanderF;
-        this.vy += Math.sin(this.wanderTheta) * wanderF;
+        ax += Math.cos(this.wanderTheta) * wanderF;
+        ay += Math.sin(this.wanderTheta) * wanderF;
+    }
+
+    // Meander (see FLOW_GAIN): a smooth lateral bend of the heading, like the wander not while panicking
+    if (!panic && s0 > 0.01) {
+        // sine-like waves from a folded triangle (no Math calls: this runs for every fish every step); u in cycles
+        var tt = sim.tickCount;
+        var u1 = (FLOW_K1X * this.x + FLOW_K1Y * this.y + FLOW_W1 * tt + FLOW_P1) * 0.15915494 + 1000;
+        var u2 = (FLOW_K2X * this.x + FLOW_K2Y * this.y + FLOW_W2 * tt + FLOW_P2) * 0.15915494 + 1000;
+        u1 -= (u1 | 0); u2 -= (u2 | 0);
+        u1 = u1 < 0.5 ? 4 * u1 - 1 : 3 - 4 * u1; u2 = u2 < 0.5 ? 4 * u2 - 1 : 3 - 4 * u2;
+        var fl = 0.5 * (u1 * (1.5 - 0.5 * u1 * u1) + u2 * (1.5 - 0.5 * u2 * u2));
+        var fk = FLOW_GAIN * wanderF * fl / s0;
+        ax -= vy0 * fk; ay += vx0 * fk;
     }
 
     // --- EDGE STEERING (matches original: simple, not progressive) ---
-    if (this.x < EDGE_MARGIN) this.vx += turn;
-    if (this.x > sim.width - EDGE_MARGIN) this.vx -= turn;
+    if (this.x < EDGE_MARGIN) ax += turn;
+    if (this.x > sim.width - EDGE_MARGIN) ax -= turn;
     var top = sim.top || 0;
-    if (this.y - top < EDGE_MARGIN) this.vy += turn;
-    if (this.y > sim.height - EDGE_MARGIN) this.vy -= turn;
+    if (this.y - top < EDGE_MARGIN) ay += turn;
+    if (this.y > sim.height - EDGE_MARGIN) ay -= turn;
 
     // Smooth U-turn near walls (shark turn — arc away instead of bounce)
     var UT = 75, f;
@@ -591,10 +717,41 @@ Fish.prototype.update = function (sim) {
     var eR = Math.max(0, (this.x - (sim.width - UT)) / UT);
     var eT = Math.max(0, (UT - (this.y - top)) / UT);
     var eB = Math.max(0, (this.y - (sim.height - UT)) / UT);
-    if (eL > 0) { f = eL * eL * 0.15; this.vx += f; this.vy += (this.vy >= 0 ? 1 : -1) * f * 0.5; }
-    if (eR > 0) { f = eR * eR * 0.15; this.vx -= f; this.vy += (this.vy >= 0 ? 1 : -1) * f * 0.5; }
-    if (eT > 0) { f = eT * eT * 0.15; this.vy += f; this.vx += (this.vx >= 0 ? 1 : -1) * f * 0.5; }
-    if (eB > 0) { f = eB * eB * 0.15; this.vy -= f; this.vx += (this.vx >= 0 ? 1 : -1) * f * 0.5; }
+    if (eL > 0) { f = eL * eL * 0.15; ax += f; ay += (this.vy >= 0 ? 1 : -1) * f * 0.5; }
+    if (eR > 0) { f = eR * eR * 0.15; ax -= f; ay += (this.vy >= 0 ? 1 : -1) * f * 0.5; }
+    if (eT > 0) { f = eT * eT * 0.15; ay += f; ax += (this.vx >= 0 ? 1 : -1) * f * 0.5; }
+    if (eB > 0) { f = eB * eB * 0.15; ay -= f; ax += (this.vx >= 0 ? 1 : -1) * f * 0.5; }
+
+    // Cruise thrust along the heading (smooth: proportional to the speed deficit)
+    var spNow = s0;
+    var cruise = (panic ? maxSpeed * 1.6 : maxSpeed * this.personality) * CRUISE_FRAC;
+    if (spNow > 0.01) {
+        var thrust = (cruise - spNow) * CRUISE_GAIN / spNow;
+        ax += this.vx * thrust; ay += this.vy * thrust;
+    } else {
+        ax += Math.cos(this.wanderTheta) * cruise * CRUISE_GAIN; ay += Math.sin(this.wanderTheta) * cruise * CRUISE_GAIN;
+    }
+
+    // --- INTENT -> MOTION ---
+    // Priority allocation of the acceleration budget: separation first, everything else shares what is left
+    var rest2 = ax * ax + ay * ay;
+    var remain = maxAccel - Math.sqrt(sepMag2);
+    if (remain < 0) remain = 0;
+    if (rest2 > remain * remain) {
+        var rk = remain / Math.sqrt(rest2);
+        ax *= rk; ay *= rk;
+    }
+    ax += sepX; ay += sepY;
+    // low-pass (faster when scared), then the final acceleration limit
+    var smooth = scared ? FEAR_SMOOTH : STEER_SMOOTH;
+    this.sx += (ax - this.sx) * smooth;
+    this.sy += (ay - this.sy) * smooth;
+    var sMag2 = this.sx * this.sx + this.sy * this.sy;
+    if (sMag2 > maxAccel * maxAccel) {
+        var sk = maxAccel / Math.sqrt(sMag2);
+        this.sx *= sk; this.sy *= sk;
+    }
+    this.vx += this.sx; this.vy += this.sy;
 
     // --- SPEED LIMIT (matches original) ---
     this.vx *= 0.99; this.vy *= 0.99;
@@ -610,7 +767,31 @@ Fish.prototype.update = function (sim) {
         this.vy = (this.vy/speed) * (speed + 0.015);
     }
 
+    // --- TURN LIMIT: the heading rotates by at most MAX_TURN per tick (more when scared); speed is kept ---
+    var s1 = speed > curMax ? curMax : (speed < curMin && speed > 0.01 ? speed + 0.015 : speed);   // speed after the limit above
+    if (s0 > TURN_MIN_SPEED && s1 > TURN_MIN_SPEED) {
+        var cosA = (vx0 * this.vx + vy0 * this.vy) / (s0 * s1);
+        var cosLim = scared ? _COS_TURN_SCARED : _COS_TURN;
+        if (cosA < cosLim) {
+            var crossA = vx0 * this.vy - vy0 * this.vx;
+            var sg = crossA >= 0 ? 1 : -1;
+            var cl = cosLim, sl = sg * (scared ? _SIN_TURN_SCARED : _SIN_TURN);
+            var ux = vx0 / s0, uy = vy0 / s0;
+            this.vx = (ux * cl - uy * sl) * s1;
+            this.vy = (ux * sl + uy * cl) * s1;
+        }
+    }
+
     this.x += this.vx; this.y += this.vy;
+    // last-resort anti-overlap push: clamped, damped, position only
+    if (corrX !== 0 || corrY !== 0) {
+        var cm2 = corrX * corrX + corrY * corrY;
+        if (cm2 > POS_CORR_MAX * POS_CORR_MAX) {
+            var ck = POS_CORR_MAX / Math.sqrt(cm2);
+            corrX *= ck; corrY *= ck;
+        }
+        this.x += corrX; this.y += corrY;
+    }
 
     // --- FACING (matches original threshold) ---
     if (this.vx > 0.35) this.facingRight = true;
