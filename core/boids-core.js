@@ -95,7 +95,8 @@ function _blendHex(c1, c2, f) {
 function _bounceBoundaries(sim, ent) {
     if (ent.x < 0) { ent.x = 2; ent.vx = Math.abs(ent.vx) * 0.3 + 0.05; }
     if (ent.x > sim.width) { ent.x = sim.width - 2; ent.vx = -(Math.abs(ent.vx) * 0.3 + 0.05); }
-    if (ent.y < 0) { ent.y = 2; ent.vy = Math.abs(ent.vy) * 0.3 + 0.05; }
+    var top = sim.top || 0;       // optional upper limit (a theme with a water surface line sets it; default 0)
+    if (ent.y < top) { ent.y = top + 2; ent.vy = Math.abs(ent.vy) * 0.3 + 0.05; }
     if (ent.y > sim.height) { ent.y = sim.height - 2; ent.vy = -(Math.abs(ent.vy) * 0.3 + 0.05); }
 }
 
@@ -375,7 +376,7 @@ Bubble.prototype.update = function (sim) {
     this.y += this.vy;
     this.wobble += 0.08;
     this.x += Math.sin(this.wobble) * 0.4;
-    if (this.y < -10) this.dead = true;
+    if (this.y < (sim.top || 0) - 10) this.dead = true;
 };
 
 // --- FISH (original + zen harmonics) ---
@@ -580,14 +581,15 @@ Fish.prototype.update = function (sim) {
     // --- EDGE STEERING (matches original: simple, not progressive) ---
     if (this.x < EDGE_MARGIN) this.vx += turn;
     if (this.x > sim.width - EDGE_MARGIN) this.vx -= turn;
-    if (this.y < EDGE_MARGIN) this.vy += turn;
+    var top = sim.top || 0;
+    if (this.y - top < EDGE_MARGIN) this.vy += turn;
     if (this.y > sim.height - EDGE_MARGIN) this.vy -= turn;
 
     // Smooth U-turn near walls (shark turn — arc away instead of bounce)
     var UT = 75, f;
     var eL = Math.max(0, (UT - this.x) / UT);
     var eR = Math.max(0, (this.x - (sim.width - UT)) / UT);
-    var eT = Math.max(0, (UT - this.y) / UT);
+    var eT = Math.max(0, (UT - (this.y - top)) / UT);
     var eB = Math.max(0, (this.y - (sim.height - UT)) / UT);
     if (eL > 0) { f = eL * eL * 0.15; this.vx += f; this.vy += (this.vy >= 0 ? 1 : -1) * f * 0.5; }
     if (eR > 0) { f = eR * eR * 0.15; this.vx -= f; this.vy += (this.vy >= 0 ? 1 : -1) * f * 0.5; }

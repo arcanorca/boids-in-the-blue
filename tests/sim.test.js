@@ -147,3 +147,20 @@ test('resize keeps the grid when dimensions are unchanged and clamps entities', 
     B.resize(sim, 800, 600, 1);
     for (const f of sim.entities.fish) assert.ok(f.x <= 800 && f.y <= 600);
 });
+
+test('sim.top keeps creatures below an upper limit; the default (0) is unchanged', () => {
+    const top = 120, cfg = { fishCount: 60, anglerCount: 3, orcaCount: 3, jellyCount: 6 };
+    const sim = B.createSimulation(W, H, 1, cfg);
+    sim.top = top;
+    const bub = [];
+    for (let i = 0; i < 4000; i++) {
+        B.step(sim, 1, cfg);
+        if (i === 100) B.forceSpawnBubble(sim, 900, top + 200);
+        if (i > 400 && i % 50 === 0) {
+            const all = [].concat(sim.entities.fish, sim.entities.anglers, sim.entities.orcas, sim.entities.jellies);
+            for (const e of all) assert.ok(e.y >= top, e.kind + ' above the limit: y=' + e.y.toFixed(1));
+        }
+    }
+    // bubbles pop at the limit instead of rising to the screen top
+    for (const b of sim.entities.bubbles) assert.ok(b.y >= top - 10, 'bubble above the limit');
+});

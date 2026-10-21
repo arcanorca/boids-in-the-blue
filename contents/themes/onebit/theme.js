@@ -128,7 +128,7 @@ var WATER = {
 };
 function waterFile(level) { return "water-" + level + ".png"; }
 function waterLevel(daylight) { return Math.max(0, Math.min(WATER.layers - 1, Math.floor(Math.max(0, daylight) / 0.17))); }
-var SURFACE = { cols: 128, rows: 8, y: 17 };   // y: texel row of the strip (below a top panel; a floating 46 px panel covers ~54 px = 18 texels)              // braided woodcut wave strip at the top (tiles horizontally)
+var SURFACE = { cols: 128, rows: 8, y: 17, floor: 31 };   // y: texel row of the strip (below a top panel; a floating 46 px panel covers ~54 px = 18 texels)              // braided woodcut wave strip at the top (tiles horizontally)
 
 // seabed: layered reef & dune strip along the bottom (32 of the 360 texel rows = 8.9% <= 9%), 640 texels wide
 var SEABED = { cols: 640, rows: 32 };

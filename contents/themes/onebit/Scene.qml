@@ -25,7 +25,11 @@ Item {
     // screen px per texel (a whole number of DEVICE pixels, so texels are never split)
     readonly property real ps: T.texelDevice(height * Math.max(1, dpr)) / Math.max(1, dpr)
 
-    function sync(s) { OneBitSync.sync(s, entities, entities, ps, Math.max(1, dpr)); }
+    // creatures stay below the waves: the simulation's upper limit is the wave strip plus the fish's half height
+    function sync(s) {
+        s.top = T.SURFACE.floor * ps;
+        OneBitSync.sync(s, entities, entities, ps, Math.max(1, dpr));
+    }
 
     clip: true
     Rectangle { anchors.fill: parent; color: T.INK }
