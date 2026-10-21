@@ -236,7 +236,7 @@ def kelp_rows(cls, frame):
 
 
 # ── orca: a hand-drawn sub-cell map, 18 x 24 units (3 texels across, 1.5 texels down each), quantised to blocks ──
-# B = black body (dim), G = grey saddle (normal), W = white markings (bright). Frame 1 lifts the flukes by one unit.
+# B = black body, G = saddle and W = white markings (both bright). Frame 1 lifts the flukes by one unit.
 ORCA_MAP = [
     '.........B........',
     '........BB........',
@@ -265,6 +265,9 @@ ORCA_MAP = [
 ]
 
 
+ORCA_TONES = {'W': 'b', 'G': 'b', 'B': 'n'}      # black body normal, white markings and saddle bright
+
+
 def orca_map(frame):
     m = [list(r) for r in ORCA_MAP]
     if frame == 1:
@@ -280,8 +283,8 @@ def _quantise(labels):
     fewer coloured sides, then the earlier candidate (stable output)."""
     best = None
     for mask in BLOCK_CANDIDATES:
-        for fg in (None, 'd', 'b'):
-            for bg in (None, 'd', 'b'):
+        for fg in (None, 'd', 'n', 'b'):
+            for bg in (None, 'd', 'n', 'b'):
                 err = 0
                 for y in range(CH):
                     for x in range(CW):
@@ -300,7 +303,7 @@ def orca_rows(frame, face):
         uy = min(23, int(ty * 2 / 3))
         for tx in range(54):
             c = amap[uy][tx // 3]
-            labels[ty][tx] = {'W': 'b', 'G': 'n', 'B': 'd'}.get(c)
+            labels[ty][tx] = ORCA_TONES.get(c)
     cells = []
     for cy in range(3):
         row = []
