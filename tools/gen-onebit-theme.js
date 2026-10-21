@@ -254,101 +254,85 @@ function fishSprite(ci, variant, frame, inverted) {
 // drawn with its 1-texel paper outline (added automatically). Shapes are polygons in design units (40 x 23
 // texels, full size) sampled at cell centres; the small variant (25 x 14) is the same animal. Frames: the
 // flukes beat up and down (tail section shear) and the flipper wobbles by one texel.
-// Small variant (25 x 14): its own simplified polygons, placed by hand in its own units (not a resample).
-function orcaSmallSprite(frame) {
-    const W = 25, H = 14, g = mk(W, H);
-    const dir = [0, -1, 0, 1][frame & 3], fl = frame & 1;
-    const inPoly = (poly, u, v) => {
-        let inside = false;
-        for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
-            const [xi, yi] = poly[i], [xj, yj] = poly[j];
-            if ((yi > v) !== (yj > v) && u < (xj - xi) * (v - yi) / (yj - yi) + xi) inside = !inside;
-        }
-        return inside;
-    };
-    const BODY = [[23.6, 6.2], [22, 4.6], [18, 4.2], [13, 4.4], [9, 4.8], [6, 5.0], [4, 5.6], [4, 8.0], [7, 8.4], [11, 9.0], [16, 9.6], [20, 8.8], [23, 7.6]];
-    const FIN = [[12.6, 4.6], [8.6, 0.8], [9.6, 3.4], [8.4, 4.6]];
-    const STOCK = [[4.4, 5.4], [2.4, 3.6], [0.8, 3.0], [0.6, 4.6], [2.2, 6.6], [4.4, 7.4]];
-    const FLIP = [[13.0, 9.2 + fl * 0.5], [17.6, 9.4 + fl * 0.5], [13.6, 13.4]];
-    const BELLY = [[4.6, 7.4], [9, 6.8], [14, 7.0], [17, 7.8], [16.4, 9.0], [12, 9.3], [6.4, 8.2]];
-    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
-        const u = x + 0.5, v = y + 0.5;
-        const shear = dir * Math.max(0, (4 - u) / 2);                         // flukes beat up and down
-        const body = inPoly(BODY, u, v) || inPoly(FIN, u, v) || inPoly(STOCK, u, v - shear) || inPoly(FLIP, u, v);
-        if (!body) continue;
-        let ch = 'k';
-        if (inPoly(BELLY, u, v)) ch = 'p';
-        if (((u - 12.8) / 1.6) ** 2 + ((v - 4.7) / 0.7) ** 2 <= 1) ch = 'p';  // saddle
-        if (((u - 20.0) / 1.0) ** 2 + ((v - 6.0) / 0.6) ** 2 <= 1) ch = 'p';  // eye patch
-        if (inPoly(FLIP, u, v)) ch = 'k';
-        put(g, x, y, ch);
+const ORCA_ART = {
+    full: {
+        rows: [
+            '................kk....................',
+            '................kkk...................',
+            '.................kkk..................',
+            '.................kkkk.................',
+            '..................kkkk................',
+            '..................kkkkkk..............',
+            '..................kkkkkkkkkkkkkk......',
+            'k..............kkkkkkkkkkkkkkkkkkkk...',
+            'kk..........kkkkppkkkkkkkkppppkkkkkk..',
+            '.kkk.....kkkkpppppkkkkkkkkkkpppkkkkkk.',
+            '..kkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk',
+            '...kkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk',
+            '..kkkkkkkkkkpppppkkkkkkkkkkkkkkkkkkkkk',
+            '.kk......kkkkkpppppppkkkkkkkkkkkkkkkkk',
+            '...............ppppppppppppkkkppkkkkk.',
+            '..................ppppppppkkkkpppkk...',
+            '.....................ppppkkkkkpp......',
+            '........................kkkkkk........',
+            '.......................kkkkkk.........',
+            '.......................kkkkk..........',
+            '........................kkk...........'
+        ],
+        // columns that beat with the tail: [x0, x1, row shift per frame]
+        beat: [],
+        // flukes (columns 0..4) per frame, [first row, rows]: neutral, tilted up, neutral, tilted down
+        flukes: [
+            [7, ['k....', 'kk...', '.kkk.', '..kkk', '...kk', '..kkk', '.kk..']],
+            [6, ['k....', 'kk...', '.kk..', '..kkk', '..kkk', '.kkkk', 'kk...']],
+            [7, ['k....', 'kk...', '.kkk.', '..kkk', '...kk', '..kkk', '.kk..']],
+            [9, ['kk...', '.kkkk', '..kkk', '..kkk', '.kk..', 'kk...', 'k....']]
+        ],
+        rim: [24, 5]
+    },
+    small: {
+        rows: [
+            '.........kk............',
+            '.........kkk...........',
+            '..........kkk..........',
+            '..........kkkkk........',
+            'k..........kkkkkkkkkk..',
+            'kk......kkkkkkkkpkkkkk.',
+            '.kkkkkkkkkkkkkkkkppkkkk',
+            '.kkkkkkkkkkkkkkkkkkkkkk',
+            'kk......kpppkkkkkkkkkkk',
+            '..........pppppkkppkkk.',
+            '............pppkkkpp...',
+            '..............kkkk.....',
+            '..............kkk......'
+        ],
+        beat: [[0, 2, [0, -1, 0, 1]]],
+        rim: [14, 3]
     }
-    outline(g, 'p');
-    const out = pad(g, 1, 1, 1, 1);
-    outline(out, 'p');
-    return out;
-}
+};
 
 function orcaSprite(frame, small) {
-    if (small) return orcaSmallSprite(frame);
-    const W = 40, H = 23;
-    const sx = 40 / W, sy = 23 / H;
-    const g = mk(W, H);
-    const dir = [0, -1, 0, 1][frame & 3];
-    const fl = frame & 1;                                    // flipper wobble: one texel on odd frames
-    // point in polygon (even-odd rule); poly = [[u, v], ...]
-    const inPoly = (poly, u, v) => {
-        let inside = false;
-        for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
-            const [xi, yi] = poly[i], [xj, yj] = poly[j];
-            if ((yi > v) !== (yj > v) && u < (xj - xi) * (v - yi) / (yj - yi) + xi) inside = !inside;
-        }
-        return inside;
-    };
-    const inEll = (u, v, cx, cy, rx, ry) => ((u - cx) / rx) ** 2 + ((v - cy) / ry) ** 2 <= 1;
+    return orcaFromArt(small ? ORCA_ART.small : ORCA_ART.full, frame);
+}
 
-    // body: nose at the right, widest about 40 % back from the head, tapering into the tail stock at u = 9
-    const BODY = [[38.3, 11.8], [36.5, 9.6], [33.5, 8.4], [29, 7.8], [24, 7.5], [20, 7.8], [16, 8.4], [13, 9.6],
-        [9, 10.2], [9, 13.8], [10, 14.2], [14, 14.6], [18, 15.2], [22, 15.7], [26, 15.8], [30, 15.4], [34, 14.6], [37, 13.2]];
-    // tail stock: slim, rising to the left
-    const STOCK = [[9.8, 10.0], [8.0, 9.0], [6.4, 8.2], [5.0, 7.6], [4.4, 8.6], [5.2, 10.0], [6.8, 11.6], [8.4, 13.0], [9.8, 13.8]];
-    // dorsal fin: tip leaning back toward the tail, concave trailing edge
-    const FIN = [[24.6, 8.0], [16.4, 0.2], [17.2, 3.8], [14.4, 8.0]];
-    // flukes: two lobes with a notch between them, shifted vertically by the frame
-    const flukesAt = (u, v, s) => {
-        const vv = v - s;
-        // one crescent: leading edge swept up-left, a notch in the middle, a shorter lower lobe
-        const FL = [[5.6, 7.4], [3.8, 5.4], [2.0, 3.6], [0.4, 2.2], [0.8, 4.6], [1.6, 6.6], [2.6, 7.8], [1.8, 9.2],
-            [1.2, 11.0], [1.0, 12.6], [2.6, 11.4], [4.2, 9.8], [5.6, 8.6]];
-        return inPoly(FL, u, vv);
-    };
-    // pectoral flipper: triangle hanging down and slightly back
-    const FLIP = [[22.2, 14.2], [30.2, 14.8], [26.0, 19.4], [23.8, 22.6]];
-    const flipAt = (u, v) => inPoly(FLIP.map(([a, b]) => [a, b + fl]), u, v);
-    // white lens-shaped belly: tapers to the tail, widest toward the head
-    const BELLY = [[9.4, 13.0], [14, 11.6], [20, 11.1], [25, 11.5], [29, 12.8], [30.2, 14.3], [27, 15.8], [20, 15.9], [13, 14.8]];
-
-    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
-        const u = (x + 0.5) * sx, v = (y + 0.5) * sy;
-        // tail section shears with the frame: strongest at the flukes, none at the body
-        const shear = dir * Math.max(0, (9 - u) / 4);
-        const vt = v - shear;
-        const inStock = inPoly(STOCK, u, vt);
-        const inFlukes = u <= 5.8 && flukesAt(u, v, shear);
-        const body = inPoly(BODY, u, v) || inStock || inFlukes || inPoly(FIN, u, v) || flipAt(u, v);
-        if (!body) continue;
-        let ch = 'k';
-        if (inPoly(BELLY, u, v) && !flipAt(u, v)) ch = 'p';                                // white belly
-        if (inEll(u, v, 12.2, 10.7, 2.4, 0.9) && !flipAt(u, v)) ch = 'p';                 // saddle behind the fin
-        if (inEll(u, v, 32.6, 10.0, 1.6, 0.9)) ch = 'p';                                  // eye patch
-        if (flipAt(u, v)) ch = 'k';                                                       // dark flipper on the belly
-        put(g, x, y, ch);
+function orcaFromArt(A, frame) {
+    const src = A.rows.map(r => [...r]), g = A.rows.map(r => [...r]);
+    for (const [x0, x1, dys] of A.beat) {
+        const d = dys[frame & 3];
+        for (let x = x0; x <= x1; x++) for (let y = 0; y < g.length; y++) g[y][x] = get(src, x, y - d);
     }
-    outline(g, 'p');
-    // "sticker" border: a second paper ring, so the ink body (invisible on ink water) reads as a dark
-    // silhouette framed in light like the reference pixel orca, and thin fins/flippers become solid shapes
+    if (A.flukes) {
+        const [r0, rows] = A.flukes[frame & 3];
+        for (let y = 0; y < g.length; y++) for (let x = 0; x < rows[0].length; x++) g[y][x] = '.';
+        rows.forEach((r, i) => [...r].forEach((ch, x) => { g[r0 + i][x] = ch; }));
+    }
     const out = pad(g, 1, 1, 1, 1);
     outline(out, 'p');
+    {
+        const add = [];
+        for (let y = 0; y < H_(out) - 1; y++) for (let x = 0; x < W_(out); x++) if (out[y][x] === '.' && out[y + 1][x] !== '.' && (!A.rim || (y >= A.rim[1] && x >= A.rim[0]))) add.push([x, y]);
+        pts(out, 'p', add);
+    }
     return out;
 }
 
