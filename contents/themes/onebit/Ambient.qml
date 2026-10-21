@@ -6,7 +6,7 @@ import "theme.js" as T
 // to diagonal light shafts), a wave line at the top, a seabed silhouette and line-art kelp. Nothing here flickers or
 // scrolls: the only motion is the kelp swaying one texel at a time (a step about every 2 s per plant) and a
 // few specks sinking one texel every few seconds. One Timer at 2 Hz drives it; nothing animates while `paused`.
-// Cost: 1 water strip, 1 wave strip, 8 kelp, 2 seabed tiles, 16 specks (all shared textures).
+// Cost: 1 water strip, 1 wave strip, 5 kelp, 2 seabed tiles, 16 specks (all shared textures).
 Item {
     id: root
 
@@ -44,7 +44,7 @@ Item {
 
     // ── kelp: stands on the seabed ridge, swaying whole texels ──
     Repeater {
-        model: [[0.05, 1], [0.15, 0], [0.30, 2], [0.43, 0], [0.57, 1], [0.69, 2], [0.82, 0], [0.94, 1]]
+        model: [[0.07, 1], [0.27, 2], [0.50, 0], [0.73, 1], [0.93, 2]]
         delegate: Image {
             readonly property int kx: Math.round(modelData[0] * root.width)
             x: kx - Math.floor(T.KELP[modelData[1]].cols / 2)

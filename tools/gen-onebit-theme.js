@@ -135,10 +135,12 @@ function fishSprite(ci, variant, frame, inverted) {
     const body = (x, y) => get(g, x, y) === 'p' && x >= tl;
     const eye = a.eye;
     const nearEye = (x, y) => eye && Math.abs(x - eye[0]) <= 1 && Math.abs(y - eye[1]) <= 1;
-    if (variant === 'hollow') {                         // line-art fish: paper contour, ink inside
+    if (variant === 'hollow') {                         // outline fish: solid paper, an ink contour line one texel inside the rim
         const rim = g.map((r, y) => r.map((c, x) => c === 'p' && N4.some(([dx, dy]) => get(g, x + dx, y + dy) !== 'p')));
-        for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) if (g[y][x] === 'p' && !rim[y][x]) g[y][x] = 'k';
-        if (eye) put(g, eye[0], eye[1], get(g, eye[0], eye[1]) === 'k' ? 'p' : 'k');
+        const ring = [];
+        for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) if (g[y][x] === 'p' && !rim[y][x] && x >= tl - 1 && N4.some(([dx, dy]) => get(rim, x + dx, y + dy) === true)) ring.push([x, y]);
+        for (const [x, y] of ring) g[y][x] = 'k';
+        if (eye) put(g, eye[0], eye[1], 'k');
     } else {
         if (variant === 'stripe') for (const [c, r0, r1] of a.stripe) for (let y = r0; y <= r1; y++) { if (body(c, y)) put(g, c, y, 'k'); }
         else if (variant === 'spot') for (const [x, y] of a.spot) { if (body(x, y)) put(g, x, y, 'k'); }
@@ -148,8 +150,15 @@ function fishSprite(ci, variant, frame, inverted) {
     }
     const out = pad(g, 1, 1, 1, 1);
     // outline: ink around the paper fish; the hollow fish keeps a paper rim, so its outline is ink too
+    const sil = out.map(r => r.map(c => c !== '.'));
     outline(out, 'k');
-    return inverted ? swap(out) : out;
+    if (!inverted) return out;
+    // stress state: the tones swap (ink body, paper pattern and outline); the body rim joins the outline, so the
+    // hollow fish keeps a 2 texel paper contour and still reads at a glance
+    const sw = swap(out);
+    for (let y = 0; y < H_(out); y++) for (let x = 0; x < W_(out); x++)
+        if (sil[y][x] && x - 1 >= tl && N4.some(([dx, dy]) => get(sil, x + dx, y + dy) === false && !(x + dx < 0 || y + dy < 0 || x + dx >= W_(out) || y + dy >= H_(out)) )) sw[y][x] = 'p';
+    return sw;
 }
 
 // ── orca ─────────────────────────────────────────────────────
@@ -163,27 +172,32 @@ function orcaSprite(frame, S) {
     const sh = (x, y) => y + dir * Math.max(0, (10 - x) / 10) * 2.4;          // flukes swing about the tail stock
     const fl = [[[10.5, 9.4], [7, 7.4], [4.2, 4.8], [0.6, 3.2], [0.2, 6.2], [2.4, 8.8], [4.5, 9.8]], [[10.5, 10.8], [7, 12.8], [4.2, 15.4], [0.6, 17], [0.2, 14], [2.4, 11.4], [4.5, 10.4]]]
         .map(p => p.map(([x, y]) => [x, sh(x, y)]));
-    const stock = [[5, 9.0], [10, 8.8], [10, 11.4], [5, 11.0]].map(([x, y]) => [x, sh(x, y)]);
+    const stock = [[5, 8.8], [10, 8.6], [10, 11.6], [5, 11.2]].map(([x, y]) => [x, sh(x, y)]);
     const fin = [[27.6, 6.2], [26, 3.6], [24.4, 1.0], [23, 0], [21.6, 1.2], [21, 3.4], [19.6, 5.2], [17.5, 6.6]];
-    const flipper = [[22, 14.4], [27.6, 14.6], [26.2, 17.8], [23.6, 18]];
+    const flipper = [[22, 14.4], [27.6, 14.6], [26.2, 18], [23.6, 18]];
     const col = X => Math.max(0, Math.min(26, Math.floor(X) - 8));
     const body = (X, Y) => X >= 8 && X < 35 && Y >= ORCA_TOP[col(X)] && Y < ORCA_BOT[col(X)] + 1;
+    const inFin = (X, Y) => inPoly(X, Y, fin);
     for (let y = 0; y < H; y++) for (let x = 0; x < L; x++) {
         const X = (x + 0.5) / S, Y = (y + 0.5) / S;
-        if (body(X, Y) || inPoly(X, Y, fin) || inPoly(X, Y, flipper) || inPoly(X, Y, stock) || inPoly(X, Y, fl[0]) || inPoly(X, Y, fl[1])) g[y][x] = 'k';
+        if (body(X, Y) || inFin(X, Y) || inPoly(X, Y, flipper) || inPoly(X, Y, stock) || inPoly(X, Y, fl[0]) || inPoly(X, Y, fl[1])) g[y][x] = 'p';
     }
-    // ink back and head, paper belly and chin (rising towards the nose), a tilted eye patch and a saddle; paper outline
+    // solid paper animal; the black back is a cape inside a 1 texel paper rim; eye patch and saddle stay paper;
+    // the dorsal fin carries a black blade along its base
+    const finCore = fin.map(([x, y]) => [22.6 + (x - 22.6) * 0.5, 6.6 + (y - 6.6) * 0.62]);
+    const cape = (X, Y) => X >= 13 && X < 34.6 && Y >= ORCA_TOP[col(X)] + 1.1 && Y < ORCA_TOP[col(X)] + (X < 29 ? 5.5 : 5.5 - (X - 29) * 0.55);
     for (let y = 0; y < H; y++) for (let x = 0; x < L; x++) {
-        if (g[y][x] !== 'k') continue;
+        if (g[y][x] !== 'p') continue;
         const X = (x + 0.5) / S, Y = (y + 0.5) / S;
-        if (!body(X, Y) || X < 13) continue;
-        const belly = X < 29 ? ORCA_TOP[col(X)] + 5.2 : ORCA_TOP[col(X)] + 5.2 - (X - 29) * 0.45;
-        if (Y >= belly) g[y][x] = 'p';
-        const ex = X - 29.6, ey = Y - 8.2;
-        if ((ex * 0.94 - ey * 0.34) ** 2 / 5.8 + (ey * 0.94 + ex * 0.34) ** 2 / 1.5 <= 1) g[y][x] = 'p';
-        if (S >= 0.9 && X >= 14.5 && X < 18.5 && Y >= 8.5 && Y < 10) g[y][x] = 'p';
+        if (S >= 0.9 && inPoly(X, Y, finCore) && Y < ORCA_TOP[col(X)] + 1.2) { g[y][x] = 'k'; continue; }
+        if (cape(X, Y)) {
+            g[y][x] = 'k';
+            const ex = X - 29.6, ey = Y - 8.2;
+            if ((ex * 0.94 - ey * 0.34) ** 2 / 6.4 + (ey * 0.94 + ex * 0.34) ** 2 / 1.7 <= 1) g[y][x] = 'p';
+            if (S >= 0.9 && inEll(X, Y, 16.4, 8.2, 2.2, 0.95)) g[y][x] = 'p';
+        }
     }
-    const out = pad(g, 1, 1, 1, 1); outline(out, 'p');
+    const out = pad(g, 1, 1, 1, 1); outline(out, 'k');
     return out;
 }
 
@@ -195,29 +209,29 @@ function anglerSprite(frame, S) {
     const dir = [0, -1, 0, 1][frame & 3];
     const body = (x, y) => inEll(x, y, 8.6, 9.6, 6.1, 5.2);
     const sh = (x, y) => y + dir * Math.max(0, (4 - x) / 4) * 1.4;
-    const tail = [[[4.2, 9.1], [0.4, 5.8], [1.2, 9.4]], [[4.2, 10.4], [0.4, 13.8], [1.2, 10.0]]].map(p => p.map(([x, y]) => [x, sh(x, y)]));
-    const dorsal = [[6.2, 5.5], [5.2, 2.4], [8.6, 4.6]];
+    const tail = [[[4.2, 8.9], [0.4, 5.6], [1.2, 9.4]], [[4.2, 10.6], [0.4, 14.0], [1.2, 10.0]]].map(p => p.map(([x, y]) => [x, sh(x, y)]));
+    const dorsal = [[6.2, 5.5], [5.0, 2.2], [8.8, 4.6]];
     for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
         const X = (x + 0.5) / S, Y = (y + 0.5) / S;
-        if (body(X, Y) || inPoly(X, Y, tail[0]) || inPoly(X, Y, tail[1]) || inPoly(X, Y, dorsal) || (X >= 3.4 && X <= 5 && Y >= 8.6 && Y <= 10.6)) g[y][x] = 'k';
+        if (body(X, Y) || inPoly(X, Y, tail[0]) || inPoly(X, Y, tail[1]) || inPoly(X, Y, dorsal) || (X >= 3.4 && X <= 5 && Y >= 8.6 && Y <= 10.6)) g[y][x] = 'p';
     }
+    dropOrphans(g, ['p']);
     const R = v => Math.round(v * S - 0.001);
-    // mouth: a paper gap with ink teeth hanging in from both jaws
-    const my = R(8.6), mh = S >= 0.9 ? 3 : 2;
-    for (let x = R(9); x <= R(15.2); x++) for (let y = 0; y < mh; y++) put(g, x, my + y, 'p');
-    for (let x = R(9.6); x <= R(15.2); x += 2) put(g, x, my, 'k');
-    for (let x = R(10.6); x <= R(15.2); x += 2) put(g, x, my + mh - 1, 'k');
-    // eye: 2x2 paper with the pupil in the front lower corner; a highlight on the brow
-    const ex = R(8.6), ey = R(5.6);
-    pts(g, 'p', [[ex, ey], [ex + 1, ey], [ex, ey + 1], [ex + 1, ey + 1]]); put(g, ex + 1, ey + 1, 'k');
-    if (S >= 0.9) pts(g, 'p', [[R(6), R(6.8)], [R(5.4), R(7.8)]]);
-    const out = pad(g, 1, 1, 1, 1); outline(out, 'p');
-    // stalk: paper line from the brow, arching forward, ending above the lure bulb
+    // solid paper body; mouth = an ink cavity cut into the face with paper teeth from both jaws; a big ink eye; a gill line
+    const my = R(9.0), mh = S >= 0.9 ? 3 : 2;
+    for (let x = R(9.6); x <= R(15.4); x++) for (let y = 0; y < mh; y++) if (get(g, x, my + y) === 'p') g[my + y][x] = 'k';
+    for (let x = R(10.6); x <= R(15.4); x += 2) if (get(g, x, my) === 'k') g[my][x] = 'p';
+    if (S >= 0.9) for (let x = R(11.6); x <= R(15.4); x += 2) if (get(g, x, my + mh - 1) === 'k') g[my + mh - 1][x] = 'p';
+    const ex = R(8.2), ey = R(5.4), es = S >= 0.9 ? 2 : 1;
+    for (let dy = 0; dy < es; dy++) for (let dx = 0; dx < es; dx++) put(g, ex + dx, ey + dy, 'k');
+    const out = pad(g, 1, 1, 1, 1); outline(out, 'k');
+    // stalk: bold paper line from the brow, arching forward to the lure bulb (2 texels thick near the head)
     const lp = T.LURE[S >= 0.9 ? 0 : 1][frame & 3];
-    const bx = lp.x, by = lp.y;
-    line(out, R(10.4) + 1, R(4.9) + 1, R(11.6) + 1, R(2.6) + 1, 'p');
-    line(out, R(11.6) + 1, R(2.6) + 1, Math.round((R(11.6) + 1 + bx) / 2 + 1), Math.max(0, by - 3), 'p');
-    line(out, Math.round((R(11.6) + 1 + bx) / 2 + 1), Math.max(0, by - 3), bx, Math.max(0, by - 2), 'p');
+    const bx = lp.x, by = lp.y, x1 = R(11.6) + 1, y1 = R(2.6) + 1, xm = Math.round((x1 + bx) / 2 + 1), ym = Math.max(0, by - 3);
+    const thick = (x0, y0, x2, y2, t) => { line(out, x0, y0, x2, y2, 'p'); if (t) line(out, x0 + 1, y0, x2 + 1, y2, 'p'); };
+    thick(R(10.4) + 1, R(4.9) + 1, x1, y1, S >= 0.9);
+    thick(x1, y1, xm, ym, S >= 0.9);
+    line(out, xm, ym, bx, Math.max(0, by - 2), 'p');
     return out;
 }
 
@@ -232,29 +246,26 @@ const JELLY_ART = {
 };
 function jellyDims(ci) {
     const a = JELLY_ART[T.JELLY[ci].name], hb = Math.max(...a.bell.map(b => b.length)), len = Math.max(...a.tent.map(t => t[1]));
-    return { cols: 2 * a.hw + 3, rows: hb + 2 + len };
+    return { cols: 2 * a.hw + 3, rows: 1 + hb + len };
 }
 function jellySprite(ci, frame) {
     const a = JELLY_ART[T.JELLY[ci].name], d = jellyDims(ci), cx = a.hw + 1;
     const bell = a.bell[[0, 1, 2, 1][frame & 3]], hb = bell.length;
-    const g = mk(d.cols, d.rows), dome = mk(d.cols, d.rows);
-    // dome in ink; the last row keeps every other texel, so the paper outline scallops into a frill
-    for (let r = 0; r < hb; r++) for (let x = -bell[r]; x <= bell[r]; x++) if (r < hb - 1 || x % 2 === 0) dome[1 + r][cx + x] = 'k';
-    outline(dome, 'p');
-    for (let y = 0; y < d.rows; y++) for (let x = 0; x < d.cols; x++) if (dome[y][x] !== '.') g[y][x] = dome[y][x];
-    // tentacles: 1-texel lines hanging from the frill, swaying slowly; every lateral step keeps the line 4-connected
+    const g = mk(d.cols, d.rows);
+    // solid paper dome; the last row keeps every other texel (scalloped rim); ink ribs and a frill line inside
+    for (let r = 0; r < hb; r++) for (let x = -bell[r]; x <= bell[r]; x++) if (r < hb - 1 || x % 2 === 0) g[1 + r][cx + x] = 'p';
+    for (let x = -bell[hb - 2] + 1; x <= bell[hb - 2] - 1; x++) g[hb - 1][cx + x] = 'k';       // frill: an ink band above the scalloped rim
+    outline(g, 'k');
+    // tentacles: 1-texel paper lines hanging from the rim, swaying slowly; every lateral step keeps the line 4-connected
     for (const [off, len] of a.tent) {
         let px = cx + off;
         for (let k = 0; k < len; k++) {
             const x = cx + off + Math.round(0.9 * Math.sin(k * 0.38 + frame * 1.0 + off) * (k > 1 ? 1 : 0));
-            const y = hb + 2 + k;
+            const y = hb + 1 + k;
             if (x !== px) put(g, px, y, 'p');
             put(g, x, y, 'p'); px = x;
         }
     }
-    // highlight (upper left) and a little organ ring
-    put(g, cx - bell[2] + a.hl + 1, 3, 'p');
-    if (a.hw >= 4) pts(g, 'p', [[cx - 1, hb - 2], [cx + 1, hb - 2], [cx, hb - 3]]);
     return g;
 }
 
@@ -300,7 +311,7 @@ function waterLayers() {
         let pos = Math.floor(rnd() * Wt.cols);
         const start = pos;
         while (pos < start + Wt.cols) {
-            const d = Math.round(16 + rnd() * 46), gap = Math.max(5, Math.round(d * (1 - cover) / cover * (0.7 + 0.6 * rnd())));
+            const d = Math.round(8 + rnd() * 14), gap = Math.max(8, Math.round(d * (1 - cover) / cover * (0.7 + 0.6 * rnd())));
             for (let i = 0; i < d && pos + i < start + Wt.cols; i++) on[(pos + i) % Wt.cols] = 1;
             pos += d + gap;
         }
@@ -313,7 +324,8 @@ function waterLayers() {
     });
     const paint = (y, layer, on) => { for (let x = 0; x < Wt.cols; x++) if (on === null || on[x]) layers[layer][y][x] = 'p'; };
     for (const y of Wt.seams) paint(y, 0, null);
-    for (const b of Wt.bands) for (let y = b.from; y <= b.to; y += b.pitch) {
+    for (const b of Wt.bands) for (let y0 = b.from; y0 <= b.to; y0 += b.pitch) {
+        const y = Math.min(b.to, y0 + (b.jitter ? Math.floor(rnd() * 3) - 1 : 0));
         const layer = b.full ? Math.floor(rnd() * 3) : 1 + Math.floor(rnd() * (Wt.layers - 1)), on = dashRow(b.cover);
         if (!b.full) {
             for (let x = 0; x < Wt.cols; x++) if (!beamAt(x, y)) on[x] = 0;
@@ -321,7 +333,7 @@ function waterLayers() {
             for (let x = 0; x < Wt.cols;) {
                 if (!on[x]) { x++; continue; }
                 let e = x; while (e < Wt.cols && on[e]) e++;
-                if (e - x < 6) for (let i = x; i < e; i++) on[i] = 0;
+                if (e - x < 7) for (let i = x; i < e; i++) on[i] = 0;
                 x = e;
             }
         }
@@ -342,14 +354,14 @@ function surfaceTile() {
     for (let x = 0; x < S.cols; x++) { put(g, x, y(x), 'p'); if (x > 0 && y(x) !== y(x - 1)) put(g, x, y(x - 1), 'p'); }
     return g;
 }
-// Seabed: a solid paper sand silhouette along the bottom (reads on the dark water), ink boulders outlined in paper
-// with a highlight, and ink sediment hatch dashes following the ridge (pitch 3-4). It tiles (the ridge is periodic).
+// Seabed: an ink ground under a 2 texel paper ridge line with paper sediment hatch dashes (pitch 3) and ink boulders
+// outlined in paper with a highlight. It tiles (the ridge is periodic).
 function seabedTile() {
     const W = T.SEABED.cols, H = T.SEABED.rows, g = mk(W, H), rnd = rng(99);
     const top = x => T.seabedTop(x);
     const put2 = (x, y, ch) => put(g, (x + W) % W, y, ch);
-    // ground: solid paper below the ridge (a silhouette that reads on the dark water), sediment dashes cut out in ink
-    for (let x = 0; x < W; x++) for (let y = top(x); y < H; y++) g[y][x] = 'p';
+    // ground: an ink body under a 2 texel paper ridge line, broken by paper hatch dashes (pitch 4), so passing fish keep contrast
+    for (let x = 0; x < W; x++) for (let y = top(x); y < H; y++) g[y][x] = y < top(x) + 2 ? 'p' : 'k';
     // boulders: ink with a paper outline (dark against the sand, outlined against the water), a highlight at the upper left
     const rocks = [[70, 7, 5], [82, 4, 3], [255, 9, 6], [270, 5, 3], [410, 6, 4], [470, 3, 2], [560, 8, 5], [574, 4, 2]];
     const cells = new Set(), key = (x, y) => (((x % W) + W) % W) + ',' + y;
@@ -367,16 +379,16 @@ function seabedTile() {
         const cy = top(cx) + 1, hx = cx - Math.round(rx * 0.4), hy = cy - Math.round(ry * 0.5);
         put2(hx, hy, 'p'); put2(hx + 1, hy, 'p'); put2(hx, hy + 1, 'p');
     }
-    // sediment hatch: ink dashes following the ridge (pitch 3-4), thinning with depth
+    // sediment hatch: paper dashes following the ridge
     const dash = (depth, cover, minL, maxL) => {
         let x = Math.floor(rnd() * 20);
         while (x < W) {
             const d = Math.round(minL + rnd() * (maxL - minL)), gap = Math.max(4, Math.round(d * (1 - cover) / cover * (0.6 + 0.8 * rnd())));
-            for (let i = 0; i < d; i++) { const xx = (x + i) % W, y = top(xx) + depth; if (y < H && g[y][xx] === 'p' && !cells.has(xx + ',' + y)) g[y][xx] = 'k'; }
+            for (let i = 0; i < d; i++) { const xx = (x + i) % W, y = top(xx) + depth; if (y < H && g[y][xx] === 'k' && !cells.has(xx + ',' + y)) g[y][xx] = 'p'; }
             x += d + gap;
         }
     };
-    dash(2, 0.5, 4, 12); dash(5, 0.4, 3, 10); dash(8, 0.3, 3, 8);
+    dash(4, 0.65, 6, 18); dash(8, 0.5, 5, 14); dash(12, 0.3, 4, 9);
     return g;
 }
 // Kelp: a wavy stem 2 texels thick and curling fronds 2 texels thick, line art in paper; swaying in whole texels.
@@ -384,25 +396,26 @@ function kelpSprite(ci, frame) {
     const K = T.KELP[ci], h = K.rows, W = K.cols, g = mk(W, h), bx = Math.floor(W / 2) - 1;
     const ph = frame * Math.PI / 2, A = 1.0 + ci * 0.5;
     const sway = y => Math.round(Math.sin((h - y) * 0.11 + ph) * A * Math.pow((h - y) / h, 1.4) * 1.6);
+    const thick = y => (h - y) > h * 0.4 ? 3 : 2;
     for (let y = 0; y < h; y++) {
-        const x = bx + sway(y);
-        put(g, x, y, 'p'); put(g, x + 1, y, 'p');
-        if (y > 0) { const xp = bx + sway(y - 1); if (xp !== x) { put(g, xp, y, 'p'); put(g, xp + 1, y, 'p'); } }  // keep steps 4-connected
+        const x = bx + sway(y), t = thick(y);
+        for (let i = 0; i < t; i++) put(g, x + i, y, 'p');
+        if (y > 0) { const xp = bx + sway(y - 1); if (xp !== x) for (let i = 0; i < t; i++) put(g, xp + i, y, 'p'); }   // keep steps 4-connected
     }
-    // fronds: every 9 rows, alternating sides, 2 texels thick, curling up; shorter towards the tip
+    // fronds: solid blades every 11 rows, alternating sides, 3 texels thick at the root tapering to 1, curling up
     let side = 1;
-    for (let y = h - 8; y > 6; y -= 9) {
-        const x = bx + sway(y), len = Math.max(4, Math.round(7 * Math.min(1, (y + 6) / (h * 0.55))));
+    for (let y = h - 10; y > 8; y -= 11) {
+        const x = bx + sway(y), len = Math.max(5, Math.round(8 * Math.min(1, (y + 6) / (h * 0.55))));
         for (let i = 0; i < len; i++) {
-            const dx = side > 0 ? 2 + i : -1 - i, dy = -Math.floor(i * 0.6 + (i > len - 3 ? 1 : 0));
-            put(g, x + dx, y + dy, 'p'); put(g, x + dx, y + dy - 1, 'p');
+            const dx = side > 0 ? thick(y) + i : -1 - i, dy = -Math.floor(i * 0.6), th = Math.max(1, 3 - Math.floor(i / 3));
+            for (let t = 0; t < th; t++) put(g, x + dx, y + dy - t, 'p');
             if (i > 0 && Math.floor((i - 1) * 0.6) !== Math.floor(i * 0.6)) put(g, x + dx - side, y + dy, 'p');
         }
         side = -side;
     }
-    // tip: a small curl
+    // tip: a small tapered crown
     const tx = bx + sway(0);
-    pts(g, 'p', [[tx - 1, 1], [tx - 1, 0], [tx + 2, 1], [tx + 2, 0]]);
+    pts(g, 'p', [[tx - 1, 2], [tx - 1, 1], [tx + 2, 2], [tx + 2, 1], [tx, 0], [tx + 1, 0]]);
     return g;
 }
 

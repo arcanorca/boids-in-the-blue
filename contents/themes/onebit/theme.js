@@ -52,7 +52,7 @@ function fishFile(cls, variant, frame, inverted) {
 // Reference at 1080p: orca ~3x fish length, angler ~1.5x, jelly bell ~1x, worm ~0.3x.
 var ORCA = [{ name: "orca", cols: 37, rows: 20 }, { name: "orca-s", cols: 23, rows: 13 }];       // [full, small]
 var ANGLER = [{ name: "angler", cols: 18, rows: 17 }, { name: "angler-s", cols: 12, rows: 11 }];
-var JELLY = [{ name: "t", cols: 9, rows: 14 }, { name: "s", cols: 11, rows: 18 }, { name: "l", cols: 13, rows: 20 }];  // tiny, small, large bell
+var JELLY = [{ name: "t", cols: 9, rows: 13 }, { name: "s", cols: 11, rows: 17 }, { name: "l", cols: 13, rows: 19 }];  // tiny, small, large bell
 var WORM = { cols: 4, rows: 8, frames: 4 };
 var BUBBLE = [{ cols: 2, rows: 2 }, { cols: 4, rows: 4 }];
 var SPARKLE_SIZE = 5;
@@ -104,14 +104,14 @@ function bubbleFile(scale) { return bubbleClass(scale) ? "bubble-b.png" : "bubbl
 var WATER = {
     cols: 640, rows: 240, layers: 6, seed: 20241021,
     bands: [                                       // [first row, last row, pitch, share of each row that is paper, full width?]
-        { from: 7,   to: 26,  pitch: 4,  cover: 0.70, full: true },
-        { from: 38,  to: 92,  pitch: 5,  cover: 0.62 },
-        { from: 100, to: 170, pitch: 8,  cover: 0.50 },
-        { from: 182, to: 236, pitch: 13, cover: 0.40 }
+        { from: 9,   to: 27,  pitch: 8,  cover: 0.36, full: true, jitter: true },
+        { from: 42,  to: 94,  pitch: 9,  cover: 0.32, jitter: true },
+        { from: 106, to: 172, pitch: 14, cover: 0.26, jitter: true },
+        { from: 190, to: 236, pitch: 23, cover: 0.2, jitter: true }
     ],
     seams: [31],                                   // solid line under the surface band
     beams: [[60, 1.0], [215, 0.8], [350, 1.15], [495, 0.9], [590, 1.0]],     // [centre column at the top, width factor]; lean 1 col per 2 rows
-    beamHalf: 24, beamGrow: 0.1
+    beamHalf: 19, beamGrow: 0.08
 };
 // water-<n>.png holds the lines of layers 0..n; daylight picks n (layer 0 is always shown, also at night)
 function waterFile(level) { return "water-" + level + ".png"; }
@@ -125,6 +125,6 @@ function seabedTop(x) {
     var a = 6.2831853 * ((x % 640) + 640) / 640;
     return Math.round(20 + 2.6 * Math.sin(3 * a + 0.5) + 1.6 * Math.sin(7 * a + 2.0) + 0.9 * Math.sin(13 * a + 4.0));
 }
-// kelp: line-art fronds 2 texels thick, 4 sway frames (whole texels, one step every ~2 s)
-var KELP = [{ cols: 15, rows: 34 }, { cols: 17, rows: 46 }, { cols: 19, rows: 58 }];
+// kelp: solid fronds 2-3 texels thick, 4 sway frames (whole texels, one step every ~2 s)
+var KELP = [{ cols: 19, rows: 34 }, { cols: 21, rows: 46 }, { cols: 23, rows: 58 }];
 var KELP_FRAMES = 4;
