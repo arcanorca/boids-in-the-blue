@@ -148,7 +148,7 @@ const FISH_S = [
 const FISH_S_TAIL = [[[2, 2], [2, 4]], [[2, 3]]];
 // colour roles -> palette index per variant: [palette, {role: index 1..3}]
 const FISH_ROLES = {
-    aqua:    [['teal'],  { o: 1, b: 2, l: 3, f: 2, e: 1, p: 1 }],
+    aqua:    [['ink'],   { o: 1, b: 2, l: 3, f: 2, e: 1, p: 1 }],
     orchid:  [['lilac'], { o: 1, b: 2, l: 3, f: 3, e: 1, p: 3 }],
     amber:   [['gold'],  { o: 1, b: 2, l: 3, f: 2, e: 1, p: 1 }],
     coral:   [['coral'], { o: 1, b: 2, l: 3, f: 2, e: 1, p: 3 }],
@@ -179,32 +179,49 @@ function fishSprite(cls, variant, frame) {
 }
 
 // ── ORCA ─────────────────────────────────────────────────────
-// 24x16 (3x2 tiles), faces right. K dark body (the navy slate of palette 'teal'), S rim light on the back, W white.
-const ORCA_TOP = [8, 7, 6, 6, 5, 5, 5, 4, 4, 4, 4, 4, 4, 4, 4, 5, 5, 6, 7, 8];     // x = 4..23
-const ORCA_BOT = [9, 10, 11, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 11, 11, 10];
+// 32x16 (4x2 tiles), faces right, hand-drawn on the tile grid; palette 'ink' ($0F black, $21 sky blue,
+// $30 white). Black body (K) with a hard silhouette, a one-pixel sky-blue sheen (B) just inside the
+// top outline from the snout over the dorsal fin's leading edge to the tail stock (so the black body
+// reads on the navy floor), a grey-blue saddle behind the fin, white (W) eye patch, chin, belly and the
+// flank sweep. The tail stock stays level and ends in a notched fluke. Two frames: the fluke beats one
+// pixel up, the paddle flipper tucks in.
+const ORCA = [[
+    '.............K..................',
+    '.............KK.................',
+    '.............KBK................',
+    '............KKBK................',
+    'KK..........KKKBK...............',
+    'KBK......KKKKKKKBKKKKKKKKKK.....',
+    '.KBK..KKKBBBKKKKKBBBBBBBBBBK....',
+    '.KKKKKBBBBBBKKKKKKKKKKKKKKKBK...',
+    '..KKKKKKKKKKKKKKKKKKKWWWKKKKBK..',
+    '.KKKKKKKKWWKKKKKKKKKWWWKKKKKKK..',
+    '.KKK..KKKKWWKKKKKKKKKKKKWWWWWK..',
+    'KKK.....KKKWWWWWWWWWWWWWWWWWK...',
+    'KK........KKKKKKKKKKKKKKKKK.....',
+    '..................KKKK..........',
+    '.................KBKK...........',
+    '................KK..............'
+], [
+    '.............K..................',
+    '.............KK.................',
+    '.............KBK................',
+    'KK..........KKBK................',
+    'KBK.........KKKBK...............',
+    '.KB......KKKKKKKBKKKKKKKKKK.....',
+    '.KKK..KKKBBBKKKKKBBBBBBBBBBK....',
+    '..KKKKBBBBBBKKKKKKKKKKKKKKKBK...',
+    '.KKKKKKKKKKKKKKKKKKKKWWWKKKKBK..',
+    '.KKKKKKKKWWKKKKKKKKKWWWKKKKKKK..',
+    'KKKK..KKKKWWKKKKKKKKKKKKWWWWWK..',
+    'KK......KKKWWWWWWWWWWWWWWWWWK...',
+    '..........KKKKKKKKKKKKKKKKK.....',
+    '..................KKKK..........',
+    '..................KBKK..........',
+    '................................'
+]];
 function orcaSprite(frame) {
-    const g = mk(24, 16), top = x => ORCA_TOP[x - 4], bot = x => ORCA_BOT[x - 4];
-    ORCA_TOP.forEach((t, i) => { for (let y = t; y <= ORCA_BOT[i]; y++) put(g, 4 + i, y, 'K'); });
-    // dorsal fin
-    for (const [y, x0, x1] of [[0, 15, 15], [1, 15, 16], [2, 14, 16], [3, 13, 17]]) for (let x = x0; x <= x1; x++) put(g, x, y, 'K');
-    pts(g, 'S', [[15, 0], [15, 1], [14, 2], [13, 3]]);
-    // rim light along the back
-    for (let x = 6; x <= 21; x++) if (get(g, x, top(x)) === 'K') put(g, x, top(x), 'S');
-    // belly + chin
-    for (let x = 8; x <= 22; x++) { const b = bot(x), d = (x < 10 || x > 19) ? 0 : 2; for (let y = b - d; y <= b; y++) put(g, x, y, 'W'); }
-    pts(g, 'W', [[22, 11], [23, 10], [23, 9]]);
-    // eye patch
-    pts(g, 'W', [[17, 6], [18, 6], [19, 6], [17, 7], [18, 7]]);
-    // flipper
-    const fl = frame === 0 ? [[13, 13], [14, 13], [15, 13], [13, 14], [14, 14], [13, 15]] : [[13, 13], [14, 13], [15, 13], [14, 14], [15, 14]];
-    pts(g, 'K', fl);
-    // tail: stalk + flukes (a crescent with a notched trailing edge), the fan sags on the odd frame
-    const dy = frame === 0 ? 0 : 2, fdy = dy / 2;
-    const fluke = [[3, 8, 10], [2, 6, 12], [1, 4, 7], [1, 11, 14], [0, 3, 5], [0, 13, 15]];
-    for (const [x, y0, y1] of fluke) for (let y = y0; y <= y1; y++) put(g, x, y + fdy + (x === 0 ? fdy : 0), 'K');
-    pts(g, 'K', [[4, 8], [4, 9], [4, 10]]);
-    pts(g, 'S', [[0, 3 + dy], [1, 4 + fdy], [1, 5 + fdy]]);
-    return single(toIdx(g, { K: 1, S: 2, W: 3 }, 'orca'), ['teal']);
+    return single(toIdx(fromRows(ORCA[frame]), { K: 1, B: 2, W: 3 }, 'orca'), ['ink']);
 }
 
 // ── ANGLER ───────────────────────────────────────────────────
@@ -481,8 +498,8 @@ function allImages() {
         out[T.spriteFile('worm', 'm', '', f)] = wormSprite(f);
         for (let l = 0; l < 3; l++) out[T.spriteFile('angler', 'm', '', f, l)] = anglerSprite(f, l);
     }
-    for (const c of ['s', 'm', 'l']) out[T.spriteFile('bubble', c)] = single(BUBBLES[c], ['teal']);
-    SPARKLE.forEach((idx, f) => { out['sparkle-' + f + '.png'] = single(idx, ['teal']); });
+    for (const c of ['s', 'm', 'l']) out[T.spriteFile('bubble', c)] = single(BUBBLES[c], ['ink']);
+    SPARKLE.forEach((idx, f) => { out['sparkle-' + f + '.png'] = single(idx, ['ink']); });
     const sPlane = surfacePlane(); sPlane.attributes('surface', BG_CHR);
 
     const gPlanes = [0, 1].map(glintPlane); gPlanes.forEach((g, f) => g.attributes('glint ' + f, BG_CHR));

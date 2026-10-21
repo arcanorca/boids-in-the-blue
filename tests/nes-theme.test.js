@@ -72,7 +72,7 @@ test('nes art obeys the hardware: master palette, 3-colour palettes, 4+4 palette
             const pal = new Set([...sprPal(T.SPR_PAL.lilac), ...sprPal(T.SPR_PAL.gold)]);
             for (const c of cs) assert.ok(pal.has(c), f + ' ' + c);
         } else if (/^(orca|bubble|sparkle)-/.test(f)) {
-            for (const c of cs) assert.ok(sprPal(T.SPR_PAL.teal).has(c), f + ' ' + c);
+            for (const c of cs) assert.ok(sprPal(T.SPR_PAL.ink).has(c), f + ' ' + c);
         } else if (/^jelly-/.test(f)) {
             for (const c of cs) assert.ok(sprPal(T.SPR_PAL.lilac).has(c), f + ' ' + c);
         } else if (/^worm-/.test(f)) {
