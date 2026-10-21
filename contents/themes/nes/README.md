@@ -14,10 +14,14 @@ for palettes, sizes and pacing.
   things on screen, and the night water is a flat navy.
 * Sprites: fish were heavy black outlines with stripes and dots, so school mates merged into one
   smear. Each fish has a one-pixel outline in its own colour family's dark shade, a two-tone body,
-  one eye and at most one marking. The palettes are muted: salmon, sand-gold, soft teal and soft
+  one eye and at most one marking. The palettes are muted: salmon, sand-gold, sky blue (black outline) and soft
   lilac. The jelly is a soft lilac-pink and the angler an indigo body with a warm gold lure.
+* Orca (second pass): the navy cartoon blob that vanished into the navy floor is now a hand-drawn
+  black-and-white killer whale on its own `ink` palette (true black $0F, sky blue $21, white $30),
+  drawn tile by tile like an NES metasprite: hard black silhouette, flat shading, no soft curves. See
+  "Orca" below.
 * Proportions: one virtual pixel at 1080p is 4 screen pixels. Fish are 40x28 px, the angler is 1.5
-  fish, the orca 96 px, the jelly bell 32 px, the worm about 0.3 fish, bubbles 8 and 12 px. The
+  fish, the orca 120 px (30 virtual px of art in a 32x16 metasprite, about 3 fish), the jelly bell 32 px, the worm about 0.3 fish, bubbles 8 and 12 px. The
   tallest kelp is about 19 % of the screen height and the sand band about 6 %.
 * Motion: positions were snapped to the 4-px grid and crawled. A sprite now animates its position
   over one 40 ms sim tick (linear) and is drawn on whole screen pixels, so it moves smoothly and
@@ -38,7 +42,7 @@ for palettes, sizes and pacing.
 | Metasprites of 8x8 tiles, one palette per sprite | A creature is a grid of whole tiles; the generator folds mirrored duplicates (horizontal flip attribute) and fails if a part leaves the tile grid. |
 | 4 background palettes, one per 16x16 area | The seabed and waterline are painted into palette-tagged cells; the generator fails when a 16x16 area mixes palettes. The water is drawn as flat bands (a texture) from two NES entries. |
 | One universal backdrop colour | The deepest water. It is the "transparent" colour of every background tile. |
-| Background tiles cannot flip | About 214 unique tiles per CHR bank (limit 256). The kelp sway is a CHR bank switch (two banks, 1 s apart). |
+| Background tiles cannot flip | About 204 unique tiles per CHR bank (limit 256). The kelp sway is a CHR bank switch (two banks, 1 s apart). |
 | Low internal resolution | One virtual pixel = `floor(height / 240)` screen pixels (at least 2): 1080p is 480x270 at 4x, 1440p 427x240 at 6x. Sprite art is drawn on whole screen pixels. |
 | 2-frame animation | Fish, orca, angler, jelly and worm each have two frames chosen by the sim state; the angler's lure has three tile variants. |
 | No alpha | Nothing is translucent: jellies are opaque tiles, a dying worm blinks, a newborn fish gets a twinkling sparkle sprite. |
@@ -53,16 +57,34 @@ Sprite palettes (colours 1..3; `theme.js` SPR_PAL, slot order = OAM palette numb
 |---|---|---|---|
 | 0 | coral | $06 $26 $36 (dark red, salmon, peach) | coral fish, stress (alarm states $06 $26 $36 and $06 $16 $36) |
 | 1 | gold | $08 $18 $38 (dark brown, sand-gold, pale yellow) | amber and lemon fish, worms, the angler's lure |
-| 2 | teal | $0C $2B $30 (navy, soft mint-teal, white) | aqua fish, bubbles, sparkles, the orca |
-| 3 | lilac | $03 $23 $34 (indigo, lavender, pale pink) | orchid fish, the jelly, the angler's indigo body |
+| 2 | ink | $0F $21 $30 (black, sky blue, white) | the orca, aqua fish, bubbles, sparkles |
+| 3 | lilac | $03 $23 $34 (indigo, lavender, pale pink) | orchid fish, the jelly (indigo outline), the angler's indigo body |
 
 Five fish variants share the four palettes. Each has one marking: coral a back stripe, amber a
 spot, aqua a belly stripe, orchid pale fins, lemon none. Amber and lemon share the gold palette and
 differ by which colour is the body.
 
-The orca has a navy body ($0C) with a white belly and eye patch, not black: the four sprite palettes
-cannot hold a black body beside the teal fish, and black is kept for nothing else than sprite
-outlines and eyes.
+Allocation: the old teal slot ($0C navy, $2B mint, white) became `ink` so the orca can be truly
+black. Everything that lived in teal still fits: the aqua fish become a sky-blue fish with a hard
+black outline and eye and a white belly (closer to the simulation's #4DCCE6 than the mint was),
+bubbles are white with a sky-blue glint, sparkles stay white. Coral (also the stress palette), gold
+and lilac are unchanged, so no other creature moved. The angler's lure stalk is drawn in gold $18
+instead of dark brown $08, which vanished on the navy floor; the jelly bell got a hard indigo outline.
+
+## Orca
+
+`ORCA` in `tools/gen-nes-theme.js`: two hand-authored 32x16 grids (4x2 tiles, 8 tiles per frame),
+art 30x16 virtual px, facing right (sync.js mirrors it; the simulation's orca facing flag is inverted
+and is used as is). Roles: K black ($0F), B sky blue ($21), W white ($30).
+
+* Silhouette: rounded blunt melon, a tall back-swept dorsal fin (5 rows over an 8-row body), a paddle
+  flipper under the chest, a tail stock that stays level with the body and ends in a notched fluke.
+* Markings: white eye patch (an oval behind the eye), white chin and a one-row belly line that ends
+  in the flank sweep rising toward the tail, a sky-blue saddle behind the fin.
+* Readability on the navy floor: a black body has almost no contrast with $0C, so a one-pixel
+  sky-blue sheen runs just inside the top outline from the snout over the fin's leading edge to the
+  saddle (the NES trick for shiny black sprites); the bottom edge is carried by the white belly.
+* Animation: frame 1 lifts the fluke by one pixel and tucks the flipper in.
 
 Background palettes, day (universal colour $0C): water $1C (surface) and $0C (floor), sand $08 $18
 $36, kelp $0A $1A $2A, foam $1C $3B $30. Dusk and night use the same structure with hand-picked sand
@@ -75,9 +97,8 @@ of the water is a dot pattern.
 
 Why only two entries and not 5-6: the NES teal/blue/navy entries are all fully saturated, so every
 flat band reads as a stripe, and dithered bands read as a dot grid (the owner's rejected look). The
-two-band water is the calmest compromise the palette allows. Trade-offs: the orca's navy body sits
-on the navy floor (its white belly and eye patch carry it), and a true black-bodied orca would need
-one of the four sprite palettes (the teal fish or the angler) to be given up.
+two-band water is the calmest compromise the palette allows. The black orca stays readable on the
+navy floor through its sky-blue back sheen and white markings (see "Orca").
 
 ## Stress
 

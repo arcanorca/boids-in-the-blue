@@ -195,13 +195,13 @@ const ORCA = [[
     '.KBK..KKKBBBKKKKKBBBBBBBBBBK....',
     '.KKKKKBBBBBBKKKKKKKKKKKKKKKBK...',
     '..KKKKKKKKKKKKKKKKKKKWWWKKKKBK..',
-    '.KKKKKKKKWWKKKKKKKKKWWWKKKKKKK..',
-    '.KKK..KKKKWWKKKKKKKKKKKKWWWWWK..',
-    'KKK.....KKKWWWWWWWWWWWWWWWWWK...',
+    '.KKKKKKWWKKKKKKKKKKKWWWKKKKKKK..',
+    '.KKK..KKWWKKKKKKKKKKKKKKWWWWWK..',
+    'KKK.....KKWWWWWWWWWWWWWWWWWWK...',
     'KK........KKKKKKKKKKKKKKKKK.....',
     '..................KKKK..........',
-    '.................KBKK...........',
-    '................KK..............'
+    '................KBBKK...........',
+    '...............KKK..............'
 ], [
     '.............K..................',
     '.............KK.................',
@@ -212,12 +212,12 @@ const ORCA = [[
     '.KKK..KKKBBBKKKKKBBBBBBBBBBK....',
     '..KKKKBBBBBBKKKKKKKKKKKKKKKBK...',
     '.KKKKKKKKKKKKKKKKKKKKWWWKKKKBK..',
-    '.KKKKKKKKWWKKKKKKKKKWWWKKKKKKK..',
-    'KKKK..KKKKWWKKKKKKKKKKKKWWWWWK..',
-    'KK......KKKWWWWWWWWWWWWWWWWWK...',
+    '.KKKKKKWWKKKKKKKKKKKWWWKKKKKKK..',
+    'KKKK..KKWWKKKKKKKKKKKKKKWWWWWK..',
+    'KK......KKWWWWWWWWWWWWWWWWWWK...',
     '..........KKKKKKKKKKKKKKKKK.....',
     '..................KKKK..........',
-    '..................KBKK..........',
+    '..................KBBKK.........',
     '................................'
 ]];
 function orcaSprite(frame) {
@@ -256,7 +256,7 @@ function lureTile(level) {
     pts(g, 'r', [[3, 2], [4, 2], [5, 2], [3, 3], [5, 3], [3, 4], [4, 4], [5, 4]]);
     pts(g, 'c', [[4, 3]]);
     if (level === 2) pts(g, 'h', [[4, 0], [4, 1], [2, 3], [6, 3], [4, 5], [5, 5], [6, 1], [6, 5], [2, 1]]);
-    const map = [{ o: 1, r: 1, c: 2, h: 2 }, { o: 1, r: 2, c: 3, h: 2 }, { o: 1, r: 3, c: 3, h: 2 }][level];
+    const map = [{ o: 2, r: 1, c: 2, h: 2 }, { o: 2, r: 2, c: 3, h: 2 }, { o: 2, r: 3, c: 3, h: 2 }][level];   // stalk in sand-gold: dark brown vanished on the navy
     return toIdx(g, map, 'lure');
 }
 function anglerSprite(frame, lure) {
@@ -267,13 +267,14 @@ function anglerSprite(frame, lure) {
 }
 
 // ── JELLY ────────────────────────────────────────────────────
-// 8x16 (1x2 tiles), palette 'lilac': B bell (pale), s rim, t tentacle, u tentacle highlight.
-// Three tentacles; the bell pulses by one row between the two frames.
+// 8x16 (1x2 tiles), palette 'lilac': o hard indigo outline of the bell, B bell (pale pink), s rim and
+// shine (lavender), t tentacle, u tentacle highlight. Three tentacles; the bell squashes by one row
+// between the two frames (the pulse).
 function jellySprite(frame) {
     const g = mk(8, 16);
     ascii(g, frame === 0
-        ? ['..BBBB..', '.BBBBBB.', 'BBBBBBBB', 'BBBBBBBB', 'ssssssss']
-        : ['........', '..BBBB..', '.BBBBBB.', 'BBBBBBBB', 'ssssssss']);
+        ? ['..oooo..', '.oBBBBo.', 'oBsBBBBo', 'oBBBBBBo', 'osssssso']
+        : ['........', '..oooo..', '.oBsBBo.', 'oBBBBBBo', 'osssssso']);
     const ph = frame * Math.PI;
     [1, 4, 6].forEach((x0, t) => {
         const len = 9 + (t % 2);
@@ -282,7 +283,7 @@ function jellySprite(frame) {
             put(g, Math.max(0, Math.min(7, x)), 5 + j, j % 3 === 2 ? 'u' : 't');
         }
     });
-    return single(toIdx(g, { B: 3, s: 2, t: 2, u: 3 }, 'jelly'), ['lilac']);
+    return single(toIdx(g, { o: 1, B: 3, s: 2, t: 2, u: 3 }, 'jelly'), ['lilac']);
 }
 
 // ── WORM ─────────────────────────────────────────────────────
