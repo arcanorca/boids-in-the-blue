@@ -117,15 +117,16 @@ function lchMix(c1, c2, t, ref) {
 
 
 // ── FISH ─────────────────────────────────────────────────────
-// Four hand-tuned sizes (T.kinds.fish.arts: 10x7, 14x10, 20x14, 25x17), all facing right. The silhouette
+// Five hand-tuned sizes (T.kinds.fish.arts: 10x7, 14x10, 17x12, 20x14, 23x16), all facing right. The silhouette
 // is a head-heavy body whose half height follows a hand-set profile, a forked tail on a slim stalk and
 // dorsal / belly / pectoral fins; tones: l light back, b base, w pale belly, d shadow, f/F fins, with
 // species markings stamped by `kind` (bar, freckles, lateral line, light back stripe, pale spots).
 const FISH_P = [
     { W: 10, H: 7,  bx0: 3, bx1: 8,  by0: 2, by1: 5,  stalk: 0.45, tx0: 1, th: 2.2, notch: 0.0, dh: 1, du: [-0.35, 0.15], vh: 0, pec: null, eye: 'dot', gill: false },
     { W: 14, H: 10, bx0: 4, bx1: 12, by0: 3, by1: 7,  stalk: 0.36, tx0: 1, th: 3.0, notch: 0.4, dh: 2, du: [-0.4, 0.2],  vh: 1, pec: null, eye: 'pair', gill: false },
+    { W: 17, H: 12, bx0: 4, bx1: 15, by0: 3, by1: 9,  stalk: 0.32, tx0: 1, th: 3.5, notch: 0.55, dh: 2, du: [-0.45, 0.2], vh: 1, pec: null, eye: 'pair', gill: true },
     { W: 20, H: 14, bx0: 5, bx1: 18, by0: 4, by1: 11, stalk: 0.28, tx0: 1, th: 4.2, notch: 0.7, dh: 3, du: [-0.5, 0.25], vh: 1, pec: { u: 0.1, w: 2 }, eye: 'sq', gill: true },
-    { W: 25, H: 17, bx0: 6, bx1: 23, by0: 5, by1: 14, stalk: 0.26, tx0: 1, th: 5.2, notch: 0.9, dh: 4, du: [-0.55, 0.3], vh: 2, pec: { u: 0.08, w: 3 }, eye: 'sq', gill: true }
+    { W: 23, H: 16, bx0: 5, bx1: 21, by0: 5, by1: 13, stalk: 0.27, tx0: 1, th: 4.8, notch: 0.8, dh: 4, du: [-0.55, 0.3], vh: 1, pec: { u: 0.08, w: 3 }, eye: 'sq', gill: true }
 ];
 const FISH_PAL = {
     coral:  { l: '#FFB8AA', b: '#FF7C7E', d: '#D9546E', w: '#FFD6CB', f: '#EC6074', o: '#582250', q: '#9B3F60', p: '#E2566F' },
@@ -217,7 +218,8 @@ function fishFrame(art, variant, frame) {
     outline(g, () => true);
     const p = FISH_PAL[variant], pal = { '.': null, e: hex('#FFFFFF'), k: hex('#15122A') };
     for (const k of 'lbdwfoqp') pal[k] = hex(p[k]);
-    pal.F = hex(lchMix(p.f, p.l, 0.45));
+    pal.f = hex(lchMix(p.b, p.d, 0.55));                       // fins a shade deeper than the body, their leading rays lighter
+    pal.F = hex(lchMix(p.b, p.l, 0.4));
     return render(g, pal);
 }
 
@@ -256,9 +258,9 @@ const ORCA_PAL = {
     K: '#1D2A40', k: '#111B2E', s: '#3D5679', S: '#5878A2', W: '#F5F9FD', w: '#B1C2D9', g: '#6E829F', o: '#080F1E', q: '#2A4263',
     E: '#070B16', e: '#FFFFFF'
 };
-const ORCA_TOP = [[1, 19], [3, 16.5], [6, 14.5], [10, 13], [16, 12], [22, 11.8], [28, 12.3], [34, 13.6], [40, 15.2], [46, 16.6], [52, 17.4]];
-const ORCA_BOT = [[1, 20.2], [3, 22.6], [6, 24.4], [10, 25.6], [16, 26.2], [22, 26], [28, 24.9], [34, 23], [40, 21.2], [46, 19.6], [52, 18.6]];
-const ORCA_WHITE = [[1, 2.4], [8, 4], [16, 5.6], [26, 5.6], [34, 4.8], [40, 3.2], [46, 1.4], [49, 0]];   // belly depth below the bottom edge
+const ORCA_TOP = [[1, 19.4], [2, 17.4], [4, 15], [7, 13.2], [11, 12.2], [17, 11.8], [24, 11.9], [31, 12.8], [37, 14.4], [43, 16.2], [49, 17.2], [52, 17.6]];
+const ORCA_BOT = [[1, 20.4], [2, 22.2], [4, 24.2], [8, 26], [13, 27], [19, 27.2], [25, 26.6], [31, 25.2], [37, 23.2], [43, 20.9], [49, 19.1], [52, 18.4]];
+const ORCA_WHITE = [[1, 3.6], [6, 5.2], [14, 6.6], [24, 6.4], [32, 5.2], [40, 3.2], [46, 1.4], [49, 0]];   // belly depth below the bottom edge
 function orcaFrame(art, frame) {
     const A = T.kinds.orca.arts[art], s = A.cols / 60, g = mk(A.cols, A.rows);
     const sc = ps => ps.map(([x, y]) => [x * s, y * s]);
@@ -270,13 +272,13 @@ function orcaFrame(art, frame) {
         for (let y = 0; y < A.rows; y++) if (y + 0.5 >= topAt(bx) && y + 0.5 <= botAt(bx)) g[y][x] = 'K';
     }
     // dorsal fin: tall, swept back, concave trailing edge
-    poly(g, sc([[19.5, 13.5], [21.5, 9], [25, 4.6], [29.5, 1.2], [31.8, 1.2], [31.2, 4.6], [32.6, 8.6], [36.5, 14.5]]), 'K');
+    poly(g, sc([[19, 13.5], [21, 8.8], [24.5, 4.2], [29, 1.1], [31.6, 1.1], [31.6, 4.4], [33, 8.4], [37.5, 14.8]]), 'K');
     // flukes: crescent on the tail stock, sheared by the beat; level stock
     const sh = ([x, y]) => [x * s, (y + dy * Math.max(0, x - 49) / 9) * s];
-    poly(g, [[49, 16.4], [52, 14.2], [55.5, 11], [58.4, 9.6], [58, 12.6], [55.8, 15.4], [54, 17.6], [55, 18.4], [54, 19.4], [56, 21.6], [58, 24.6], [58.4, 27.4], [55.5, 26], [52, 22.6], [49, 20.6]].map(sh), 'K');
+    poly(g, [[48, 16.6], [51.5, 14], [54.5, 10.6], [58, 7.8], [58.6, 10.6], [57, 14.2], [54.6, 16.6], [55.6, 18], [54.6, 19.4], [57, 21.6], [58.6, 25.2], [58, 28], [54.5, 25.2], [51.5, 22.2], [48, 19.6]].map(sh), 'K');
     // pectoral flipper: a paddle swept back and down, flexing with the beat
     const fx = [0, 1, 0, -1][frame] * 0.9;
-    poly(g, sc([[12.5, 24.5], [17, 26], [21.5, 29.5], [23.6 + fx, 32.2], [20.5 + fx, 32], [16, 30], [12.2, 27.6]]), 'K');
+    poly(g, sc([[11, 25.5], [15.5, 26], [20.5, 28.4], [24 + fx, 31.8], [22.4 + fx, 33], [18 + fx * 0.5, 32.4], [13.5, 30], [10.4, 27.6]]), 'K');
     // tones: lit back (top-left), shaded underside
     const inb = (x, y) => g[y] && g[y][x] === 'K';
     for (let x = 0; x < A.cols; x++) {
@@ -458,8 +460,8 @@ function jellyFrame(art, frame) {
         }
     });
     const pal = {
-        b: hex('#A58AE8', 0.5), i: hex('#C9B8FF', 0.62), h: hex('#E8DEFF', 0.92), r: hex('#D8C8FF', 0.88), H: hex('#FFFFFF', 0.9), R: hex('#CDBBFF', 0.8),
-        g: hex('#F6A8DA', 0.85), a: hex('#C9A8F0', 0.7), A: hex('#E6C8FA', 0.8), t: hex('#B7A0F0', 0.62), f: hex('#B7A0F0', 0.34)
+        b: hex('#A58AE8', 0.62), i: hex('#C9B8FF', 0.72), h: hex('#E8DEFF', 0.95), r: hex('#D8C8FF', 0.88), H: hex('#FFFFFF', 0.9), R: hex('#CDBBFF', 0.8),
+        g: hex('#F6A8DA', 0.85), a: hex('#C9A8F0', 0.7), A: hex('#E6C8FA', 0.8), t: hex('#B7A0F0', 0.72), f: hex('#B7A0F0', 0.42)
     };
     return render(g, pal);
 }
@@ -546,7 +548,7 @@ function seabedImg() {
             if (y < 0 || y >= H || !'MmkKGg'.includes(g[y][x] || '.')) continue;
         }
     };
-    rock(60, 22, 11, true); rock(76, 12, 7, false); rock(210, 30, 14, true); rock(244, 14, 7, false); rock(400, 18, 9, true); rock(520, 26, 12, true); rock(540, 12, 6, false);
+    rock(58, 30, 15, true); rock(80, 16, 9, false); rock(210, 38, 18, true); rock(246, 18, 9, false); rock(398, 24, 12, true); rock(520, 34, 16, true); rock(548, 14, 8, false); rock(330, 12, 6, false); rock(120, 10, 5, false);
     // pebbles, shells, starfish on the near dune
     for (const x of [14, 31, 47, 99, 118, 139, 171, 184, 233, 291, 322, 350, 377, 433, 468, 497, 563, 585]) {
         const y = surfaceY(x) + 3 + (x % 4);
@@ -604,7 +606,7 @@ function floraImg() {
         }
         P(sx, y0 - h, lh); P(sx, y0 - h - 1, lh);
     };
-    const KT = [['#1d6a58', '#2f9b78', '#5cc79b'], ['#1c5f5e', '#2b8c86', '#54b9ac'], ['#356b3a', '#5c9a4c', '#93c76b']];
+    const KT = [['#1f7a63', '#37ad86', '#72dcab'], ['#1d6e6e', '#2fa0a0', '#66d2c8'], ['#3b7a3c', '#68b052', '#a4dc72']];
     const kc = c => c.map(h => hex(h));
     const kelpList = [[28, 104, 5, 0.3, 0], [34, 78, 4, 1.4, 1], [41, 60, 4, 2.2, 0], [150, 96, 5, 4.0, 1], [157, 70, 4, 5.1, 0], [236, 108, 6, 2.7, 0], [244, 84, 5, 0.9, 2], [252, 52, 4, 3.3, 1],
                       [330, 88, 5, 1.1, 1], [338, 64, 4, 2.9, 0], [415, 100, 5, 5.5, 0], [423, 72, 4, 0.2, 2], [492, 94, 5, 3.6, 1], [500, 58, 4, 4.4, 0], [575, 80, 5, 1.9, 0]];
@@ -633,7 +635,7 @@ function floraImg() {
         };
         br(x0, y0, 0, -1, h, 3);
     };
-    stag(112, 9, 'C1', 'C2'); stag(268, 11, 'C3', 'C4'); stag(396, 9, 'C1', 'C2'); stag(520, 10, 'C3', 'C4');
+    stag(112, 13, 'C1', 'C2'); stag(268, 15, 'C3', 'C4'); stag(396, 13, 'C1', 'C2'); stag(520, 14, 'C3', 'C4'); stag(52, 11, 'C3', 'C4'); stag(200, 11, 'C1', 'C2');
     // fan coral (sea fan): a mesh in an arc on a short stalk
     const fan = (x0, r, c1, c2) => {
         const y0 = rootY(x0);
@@ -641,10 +643,10 @@ function floraImg() {
         for (let j = 0; j < r * 2; j++) for (let i = -r; i <= r; i++) {
             const yy = j - 0, d = Math.hypot(i, (j - r) * 1.0);
             if (d > r || (j < r && false)) continue;
-            if (((i + j) & 1) === 0 || j < 3) P(x0 + i, y0 - 5 - j * 0.9, (i + j) % 4 === 0 ? c2 : c1);
+            if ((i & 1) === 0 || j % 4 === 0) P(x0 + i, y0 - 5 - j * 0.9, (j % 4 === 0 || i === 0) ? c2 : c1);
         }
     };
-    fan(72, 9, 'F1', 'F2'); fan(322, 8, 'F3', 'F4'); fan(470, 9, 'F1', 'F2');
+    fan(72, 13, 'F1', 'F2'); fan(322, 12, 'F3', 'F4'); fan(470, 13, 'F1', 'F2'); fan(585, 10, 'F3', 'F4');
     // brain coral domes
     const brain = (x0, w, h, c1, c2, c3) => {
         const y0 = rootY(x0) + 1;
@@ -655,13 +657,13 @@ function floraImg() {
             P(x0 + i, y0 - (h - 1 - j), maze ? c3 : (lit > 0.35 ? c1 : c2));
         }
     };
-    brain(194, 13, 8, 'B1', 'B2', 'B3'); brain(432, 15, 9, 'B1', 'B2', 'B3'); brain(7, 11, 7, 'B1', 'B2', 'B3');
+    brain(168, 18, 11, 'B1', 'B2', 'B3'); brain(432, 21, 12, 'B1', 'B2', 'B3'); brain(7, 14, 9, 'B1', 'B2', 'B3'); brain(298, 14, 8, 'B1', 'B2', 'B3');
     // tube sponges: little clusters
     const tubes = (x0, list, c1, c2, c3) => {
         const y0 = rootY(x0);
         list.forEach(([dx, h], i) => { for (let j = 0; j < h; j++) { P(x0 + dx, y0 - j, c1); P(x0 + dx + 1, y0 - j, c2); } P(x0 + dx, y0 - h, c3); P(x0 + dx + 1, y0 - h, c3); });
     };
-    tubes(130, [[0, 8], [3, 12], [6, 6]], 'S1', 'S2', 'S3'); tubes(358, [[0, 10], [3, 6], [-3, 7]], 'S4', 'S5', 'S6'); tubes(560, [[0, 9], [3, 13], [6, 7]], 'S1', 'S2', 'S3');
+    tubes(130, [[0, 11], [3, 17], [6, 8], [9, 12]], 'S1', 'S2', 'S3'); tubes(358, [[0, 14], [3, 8], [-3, 10], [6, 12]], 'S4', 'S5', 'S6'); tubes(560, [[0, 12], [3, 18], [6, 9]], 'S1', 'S2', 'S3');
     const col = {
         G1: '#2b8e70', G2: '#5cc79b', G3: '#3f8a4a', C1: '#e0728f', C2: '#ffb0b4', C3: '#a56fcc', C4: '#d3a8ee',
         F1: '#d2563f', F2: '#f58a5a', F3: '#c04a86', F4: '#e888c0', B1: '#c8c46a', B2: '#8f9f4a', B3: '#657a3c',
@@ -704,8 +706,8 @@ function shaftImg() {
         for (let x = 0; x < W; x++) {
             const d = Math.abs(x - (6 + lean + half)) / half;
             if (d >= 1) continue;
-            const strength = (1 - d * d) * Math.pow(1 - t, 1.25);
-            const lvl = Math.min(3, Math.floor(strength * 3.1 + BAYER[y & 3][x & 3] / 16));
+            const strength = Math.pow(1 - d * d, 1.3) * Math.pow(1 - t, 1.6);
+            const lvl = Math.min(3, Math.floor(strength * 3.2 + (BAYER[y & 3][x & 3] / 16) * (0.3 + 0.7 * (1 - t))));
             if (!lvl) continue;
             const o = (y * W + x) * 4, a = [0, 0.3, 0.55, 0.85][lvl];
             px[o] = 226; px[o + 1] = 247; px[o + 2] = 255; px[o + 3] = Math.round(a * 255);
@@ -763,7 +765,7 @@ function allImages() {
 function contactSheet(imgs, file) {
     const row = (kind, art, variant) => [0, 1, 2, 3].map(f => T.frameFile(kind, art, variant, f));
     const rows = [];
-    for (const a of [3, 2, 1, 0]) for (const v of ['coral', 'amber', 'lemon', 'aqua', 'orchid', 'red', 'alarm', 'aqua-w2']) if (a >= 2 || ['coral', 'aqua', 'red'].includes(v)) rows.push(row('fish', a, v));
+    for (const a of [4, 3, 2, 1, 0]) for (const v of ['coral', 'amber', 'lemon', 'aqua', 'orchid', 'red', 'alarm', 'aqua-w2']) if (a >= 3 || ['coral', 'aqua', 'red'].includes(v)) rows.push(row('fish', a, v));
     for (const a of [1, 0]) rows.push(row('orca', a, ''));
     for (const a of [1, 0]) rows.push(row('angler', a, ''));
     for (let a = 3; a >= 0; a--) rows.push(row('jelly', a, ''));

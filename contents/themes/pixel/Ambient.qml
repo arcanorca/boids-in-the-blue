@@ -19,7 +19,7 @@ Item {
     property string customBottom: ""
 
     readonly property real lightK: 0.25 + 0.75 * daylight
-    readonly property real floorK: 0.3 + 0.7 * daylight        // plants and sand fade into the dark at night
+    readonly property real floorK: 0.24 + 0.76 * daylight        // plants and sand fade into the dark at night
 
     // Animators read their from/to only when they start: wait for a real size and restart them
     // (one event-loop turn off, then on) whenever the size changes, so they follow resolution changes.

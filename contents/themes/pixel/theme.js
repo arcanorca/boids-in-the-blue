@@ -10,9 +10,9 @@
 // used for every sprite and all scenery; only the size sliders pick another hand-drawn class or an
 // integer multiple (`mul`) of one, so the cast always shares the same pixel grid.
 //
-// At 1080p and the default sliders: fish 20x14 texels = 40x28 px, angler 30x26 = 60x52 px (1.5 fish),
+// At 1080p and the default sliders: fish 20x14 texels = 40x28 px (17..23 wide with the size variation), angler 30x26 = 60x52 px (1.5 fish),
 // orca 60x34 = 120x68 px (3 fish), jelly bell 20 wide = 40 px (1 fish) with tentacles to 64 px,
-// worm 4x8 = 8x16 px, bubbles 3-7 texels = 6-14 px.
+// worm 4x6 = 8x12 px, bubbles 3-7 texels = 6-14 px.
 //
 // Contract (shared by all themes):
 //   id, NAMES (delegate type -> kind), kinds{} (per kind: arts, classes, frames, layer),
@@ -32,14 +32,16 @@ function psFor(height) { return Math.max(2, Math.round(height / 540)); }
 //           classes [{art, mul, below}]   a config size < below uses that art at mul x the pixel size }
 var kinds = {
     fish: { type: 1, frames: 4, layer: 4,
-        arts: [{ cols: 10, rows: 7 }, { cols: 14, rows: 10 }, { cols: 20, rows: 14 }, { cols: 25, rows: 17 }],
+        arts: [{ cols: 10, rows: 7 }, { cols: 14, rows: 10 }, { cols: 17, rows: 12 }, { cols: 20, rows: 14 }, { cols: 23, rows: 16 }],
         classes: [
             { art: 0, mul: 1, below: 1.6 },        // newborns spiralling out
-            { art: 1, mul: 1, below: 3.4 },        // babies and the smallest adults
-            { art: 2, mul: 1, below: 4.5 },        // the default fish
-            { art: 3, mul: 1, below: 6.2 },        // the largest adults
-            { art: 2, mul: 2, below: 7.6 },        // sliders far above the default: integer magnification
-            { art: 3, mul: 2, below: 1e9 }] },
+            { art: 1, mul: 1, below: 2.9 },        // babies
+            { art: 2, mul: 1, below: 3.6 },        // the smallest adults (-15 %)
+            { art: 3, mul: 1, below: 4.4 },        // the default fish
+            { art: 4, mul: 1, below: 6.2 },        // the largest adults (+15 %)
+            { art: 2, mul: 2, below: 7.0 },        // sliders far above the default: integer magnification
+            { art: 3, mul: 2, below: 8.2 },
+            { art: 4, mul: 2, below: 1e9 }] },
     jelly: { type: 2, frames: 4, layer: 1,
         arts: [{ cols: 12, rows: 22 }, { cols: 16, rows: 27 }, { cols: 20, rows: 33 }, { cols: 24, rows: 39 }],
         classes: [
@@ -70,7 +72,7 @@ var kinds = {
             { art: 3, mul: 1, below: 2.8 },
             { art: 4, mul: 1, below: 1e9 }] },
     worm: { type: 6, frames: 4, layer: 3,
-        arts: [{ cols: 4, rows: 8 }, { cols: 5, rows: 10 }, { cols: 6, rows: 12 }],
+        arts: [{ cols: 4, rows: 6 }, { cols: 5, rows: 8 }, { cols: 6, rows: 10 }],
         classes: [
             { art: 0, mul: 1, below: 5.5 },
             { art: 1, mul: 1, below: 8.0 },
@@ -90,7 +92,7 @@ var LURE = [
 ];
 var LURE_SIZE = 5;
 var SPARK_SIZE = 5;                                // spark.png: newborn star
-var GLOW_SIZE = 33;                                // glow.png is 33x33 texels, centred on the lure
+var GLOW_SIZE = 25;                                // glow.png is 25x25 texels, centred on the lure
 
 // Fish: the simulation's classic palette colour -> this theme's colour ramp.
 var FISH_VARIANT = {
