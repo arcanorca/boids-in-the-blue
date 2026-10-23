@@ -3,7 +3,7 @@ import "theme.js" as T
 
 // Backdrop of the "ukiyoe" theme, in texel space (see Scene.qml): a bokashi sea (deep indigo at the floor, lighter
 // Prussian blue at the surface) printed with the Seigaiha wave-scale pattern in its upper part (water-<n>.png,
-// three variants by daylight), a Hokusai-style surface strip of curling crests and foam claws, 9 wakame kelp
+// three variants by daylight), a calm Hokusai-style surface strip of small rolling crests with foam caps, 9 wakame kelp
 // plants and a Matsushima seabed of rocks, pines, coral and dunes. All flat colour, no lines of water strokes.
 // Nothing here flickers or scrolls: the only motion is the kelp swaying one texel at a time (one frame
 // step every 2 s per plant = 0.5 Hz). There are no drifting specks.
@@ -36,7 +36,7 @@ Item {
         source: T.DIR + T.waterFile(root.level)
     }
 
-    // ── surface: curling wave crests with foam claws (same variant, so it melts into the sea) ──
+    // ── surface: small rolling wave crests with foam caps (same variant, so it melts into the sea) ──
     Image {
         y: T.SURFACE.y
         width: root.width
