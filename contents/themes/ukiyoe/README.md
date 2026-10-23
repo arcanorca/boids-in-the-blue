@@ -19,9 +19,9 @@ offscreen renders.
 
 Twenty traditional pigments (`PALETTE`), muted and harmonious: sumi black `#14161c`, indigo `#0a1a2e`, washi cream
 `#e8dfc6` (foam, highlights), beni vermilion `#d95343`, ukon ochre `#d9a441`, malachite `#4f8a5b`, wisteria
-`#8a6a9c`, asagi blue-grey, rock browns and sand tones, each with a deep shade. Every opaque texel of every sprite,
-the surface strip and the seabed is exactly one of them (a test checks it). Only the water layers are blends: a smooth
-bokashi plus the pattern offsets.
+`#8a6a9c`, asagi blue-grey, rock browns and sand tones, each with a deep shade. Every opaque texel of every sprite
+and the seabed is exactly one of them, and the surface strip is the palette plus its variant's five blues and two creams
+(a test checks it). Only the water layers are blends: a smooth bokashi plus the pattern offsets.
 
 ## Scale
 
@@ -29,25 +29,59 @@ One texel is a whole number of device pixels: `GRID_ROWS = 360` texel rows (3 px
 (`Ambient.qml`) is drawn in a texel world; creatures are placed in screen pixels so they glide, but drawn at the same
 texel size, nearest-neighbour.
 
+## The wave form: what was wrong, and the fix
+
+The owner found the waves tiring and sloppy. Looking at zoomed crops, both wave layers were at fault.
+
+What was wrong:
+
+- **Surface strip.** One 64-texel crest drawn ten times in a row: every 192 px the same crest, same size, same lean,
+  same claws, same two foam dots. A perfectly regular row reads as a machine, not as water. The crests were
+  hand-stepped pixel runs with uneven step lengths (jaggies), four foam claws of 1-2 texels with 1-texel gaps (a
+  stipple of cream, outline, cream, outline), loose 2x2 spray flecks, and under the row a hard, perfectly straight
+  dark band with no relation to the crests.
+- **Seigaiha.** Scales of radius 16 texels (48 px), many rows of them across a third of the screen, drawn in two
+  close blues with a lighter 2-texel outline that was a luminance step of 34 levels (13 % of full scale), over the
+  whole upper sea and fading out only at row 210 (58 % of the height). That is a dense, high-contrast, high-frequency
+  pattern behind everything that moves: it competes with the fish, and the eye keeps trying to resolve it. The
+  overlaps also left small bat-shaped notches.
+
+What changed:
+
+- **Crests** (`surface-<n>.png`, now 640x26 texels = 1920 px at 1080p, so it is drawn once and never repeats on a
+  1080p screen): ten crests of different size (4 to 16 texels high), spacing (47 to 92 texels), lean (three curl to
+  the left) and form: two large curlers with three claw fingers (clean tapering fills), three mid crests (hollow
+  barrel, one swept lip or one finger) and five small ripples between. Every crest is built from smooth splines (a long concave back
+  slope that rolls into a round curl with a dark hollow barrel under the lip), rasterised at 8x and cut to texels
+  by majority coverage, so each slope keeps one steady step rhythm. A cleanup removes 1-texel channels, pinholes
+  and foam specks. The outline is one indigo texel everywhere; the foam is two flat creams (day: the washi
+  pigments; dusk and night: dimmer creams so the white never glares). The wave line itself is a long, gentle swell
+  of at most +-1 texel. Under it runs a two-tone undertow (deep and mid blue) that follows the swell and melts into
+  the sea. Nothing in the strip moves.
+- **Seigaiha**: scale radius 28 texels (84 px, 1.75x), rings 5 texels, outer arc 3 texels, outline lighter by only
+  about 10 levels of luminance (4 %), alternate rings by about 5; the pattern fades in under the wave line and is
+  gone by row 125, a third of the screen height, so the lower two thirds are plain bokashi. The tile is 672 wide
+  (12 scales), wider than a 1080p screen in texels, so no seam is visible.
+
 ## Water: bokashi and Seigaiha
 
-- Three baked 640x300 texel images (`water-0` night, `water-1` dusk, `water-2` day), chosen by daylight in visible
-  steps only. Each is a vertical bokashi from a lighter Prussian blue at the surface (`#3a7aa6` .. `#1f4f7e` in
+- Three baked 672x300 texel images (`water-0` night, `water-1` dusk, `water-2` day), chosen by daylight in visible
+  steps only. Each is a vertical bokashi from a lighter Prussian blue at the surface (`#2f6a96` .. `#1f4f7e` in
   the day) through `#1b4573`, `#153862`, `#0e2a48` to indigo `#0a1a2e` at the floor, in steps of 3 texel rows (a
   step is at most 4 levels per channel, so it never reads as a stripe).
-- The upper sea carries the **Seigaiha** (blue ocean waves) pattern: overlapping concentric wave scales of radius 16
-  texels, rings 4 texels wide in two close blues, the outer arc 2 texels wide in a lighter blue (never a 1-texel
-  line). It fades in under the surface strip, is full strength down to row 90 and gone by row 210; below that the sea
-  is plain bokashi. The tile is 640 wide (20 scales), so it repeats without a seam.
+- The upper sea carries the **Seigaiha** (blue ocean waves) pattern: large overlapping concentric wave scales of
+  radius 28 texels, rings 5 texels wide in two very close blues, the outer arc 3 texels wide and only slightly
+  lighter (never a 1-texel line). It fades in under the surface strip and is gone by row 125; below that the sea is
+  plain bokashi.
 - There are no strokes and no dashes anywhere in the water.
 
 ## Surface
 
-`surface-<n>.png` (128x18, two wave cells of 64 texels, one per daylight variant): wave bodies in three flat blues
-that lighten downward and melt into the sea, a cream foam cap on each crest and four tapering foam claws hanging
-down the curling front, with indigo keyblock outlines and two cream flecks of spray. The strip sits at texel row 18
-(54 px), so the first drawn pixel is below the 54 px top panel. The simulation keeps creature centres below texel
-row 44 (`SURFACE.floor`, `sim.top`), so a fish never swims over the crests.
+`surface-<n>.png` (640x26, one per daylight variant): the crest line described above, painted in five flat blues
+(deep, mid, the sea's own top blue, the pale sky) plus two creams per variant, with indigo keyblock outlines. The
+strip sits at texel row 18 (54 px), so the first drawn pixel is below the 54 px top panel; the biggest crest outline starts
+at texel row 19 (57 px). The simulation keeps creature centres below texel row 44 (`SURFACE.floor`, `sim.top`), the row where
+the strip ends, so a fish never swims over the crests.
 
 ## Seabed and kelp
 
@@ -83,11 +117,13 @@ row 44 (`SURFACE.floor`, `sim.top`), so a fish never swims over the crests.
 ## Measured (1920x1080, default settings, `node tests/ukiyoe-measure.js`)
 
 - Calm backdrop: at most 0.70 % of pixels differ between frames 0.1-10 s apart (limit 2 %, only the kelp moves); the
-  fastest pixel changes 0.49 times per second (limit 2 Hz).
-- Glide: residual of on-screen x against a straight line 0.68 px (limit 1); sprites land on whole screen pixels.
-- Mean luminance (gamma-encoded): day 25.8 %, crowded 26.5 %, feeding 26.1 %, stress 25.6-25.7 %, night 16.1 %. The
-  limit for this theme is 28 % (the comfort rule is 25 % for the one-colour themes; colour costs a little more).
-- Busy 24x24 px windows (period <= 2 texels) in the creature-free backdrop: none flagged (worst 45 %, flag at 50 %).
+  fastest pixel changes 0.49 times per second (limit 2 Hz). The wave strip and the Seigaiha are static.
+- Glide: residual of on-screen x against a straight line 0.67 px (limit 1); sprites land on whole screen pixels.
+- Mean luminance (gamma-encoded): day 23.9 % (was 25.8 % before the calmer waves), crowded 25.2 %, feeding 24.2 %,
+  stress 23.7-23.8 %, night 14.6 %. The limit for this theme is 28 % (25 % for the one-colour themes) and the day scene
+  must not be brighter than the previous design (checked).
+- Busy 24x24 px windows (period <= 2 texels) in the creature-free backdrop: none flagged (worst 47 %, flag at 50 %).
+  Surface strip: no 24 px window above 47 %, one-column zigzags in the wave line 12 at most, no foam piece under 8 texels.
 - Sizes: fish 39x27 px, orca 3.08 fish lengths, angler 1.46, jelly 1.08, worm 0.31; seabed 8.9 %, tallest kelp 17.8 %.
 - Stress 1.5: at most 1.63 alarm/normal flips per second per fish (limit 2); tremble at most 2.13 changes per second
   (limit 4).

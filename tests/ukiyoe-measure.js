@@ -143,6 +143,8 @@ function measureC() {
     for (const name in files) {
         const im = png32(files[name]), L = lumaStats(im);
         check(L.gamma < 0.28, 'C ' + name.padEnd(9) + ' mean luma ' + (L.gamma * 100).toFixed(1) + '% (linear ' + (L.linear * 100).toFixed(1) + '%), colours ' + L.colours + ', limit 28%');
+        // the calmer wave form must not make the screen brighter than the previous design did (day 25.8 %)
+        if (name === 'day') check(L.gamma <= 0.258, 'C day scene not brighter than the previous design: ' + (L.gamma * 100).toFixed(1) + '% vs 25.8%');
     }
     // busy 24x24 px windows (period <= 2 texels) of the backdrop: the calm grabs have no creatures
     if (!calmDir) { calmDir = path.join(OUT, 'calm'); fs.mkdirSync(calmDir, { recursive: true }); qml('ukiyoe-measure.qml', ['calm', calmDir], 90000); }
