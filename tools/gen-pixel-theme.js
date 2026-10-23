@@ -247,15 +247,19 @@ function sheet(imgs, file, rows, S) {
 // ── ORCA ─────────────────────────────────────────────────────
 // Designed on a 60x34 grid (the default orca, three fish long) and rasterised at the art's scale (the small
 // class is 0.6x). Natural orientation faces LEFT (the simulation's orca flag is inverted: it flips
-// when moving right). Features: blunt head, tall swept dorsal fin, white eye patch, white belly and chin, grey
-// saddle behind the fin, paddle flipper, level tail stock ending in notched flukes that sway with the beat.
+// when moving right). A thick smooth torpedo with a blunt head and no mouth line, a tall slender dorsal fin
+// swept back, a white oval eye patch behind and above the small eye, a soft grey saddle behind the fin, a white
+// chin and a belly that sweeps up the flank behind the flipper, a big rounded paddle flipper hanging below, and a
+// stock that tapers and curves slightly up into notched flukes that sway with the beat. The blacks are ramped
+// (cool rim light along the back, blue-black body, deep navy underside).
 const ORCA_PAL = {
-    K: '#1D2A40', k: '#111B2E', s: '#3D5679', S: '#5878A2', W: '#F5F9FD', w: '#B1C2D9', g: '#6E829F', o: '#080F1E', q: '#2A4263',
-    E: '#070B16', e: '#FFFFFF'
+    S: '#4F73A0', s: '#2D4668', n: '#1B2B47', K: '#111C31', k: '#0A1121', o: '#050914', q: '#27405F',
+    W: '#F5F9FD', w: '#B4C5DC', g: '#6F849F', G: '#8EA2BC', E: '#05080F', e: '#FFFFFF'
 };
-const ORCA_TOP = [[1, 19.4], [2, 17.4], [4, 15], [7, 13.2], [11, 12.2], [17, 11.8], [24, 11.9], [31, 12.8], [37, 14.4], [43, 16.2], [49, 17.2], [52, 17.6]];
-const ORCA_BOT = [[1, 20.4], [2, 22.2], [4, 24.2], [8, 26], [13, 27], [19, 27.2], [25, 26.6], [31, 25.2], [37, 23.2], [43, 20.9], [49, 19.1], [52, 18.4]];
-const ORCA_WHITE = [[1, 3.6], [6, 5.2], [14, 6.6], [24, 6.4], [32, 5.2], [40, 3.2], [46, 1.4], [49, 0]];   // belly depth below the bottom edge
+const ORCA_TOP = [[1.5, 17.6], [2.5, 15.6], [5, 13.8], [9, 12.6], [14, 12.0], [20, 11.8], [27, 12.2], [33, 13.0], [39, 14.2], [44, 15.4], [48, 15.0], [53, 14.6]];
+const ORCA_BOT = [[1.5, 19.6], [2.5, 21.4], [5, 23.4], [9, 25.0], [14, 26.0], [20, 26.4], [26, 26.0], [32, 24.6], [38, 22.6], [44, 20.9], [48, 19.2], [53, 17.9]];
+const ORCA_CHIN = [[1.5, 2.4], [3, 5.0], [8, 5.6], [12, 4.4], [14.5, 2.0], [16, 0]];             // chin depth above the bottom edge
+const ORCA_BELLY = [[29.5, 0], [31, 3.4], [35, 3.6], [39, 3.0], [43, 1.9], [47, 1.1], [50, 0]];   // belly stripe behind the flipper
 function orcaFrame(art, frame) {
     const A = T.kinds.orca.arts[art], s = A.cols / 60, g = mk(A.cols, A.rows);
     const sc = ps => ps.map(([x, y]) => [x * s, y * s]);
@@ -263,43 +267,66 @@ function orcaFrame(art, frame) {
     // body
     const topAt = x => curve(ORCA_TOP, x) * s, botAt = x => curve(ORCA_BOT, x) * s;
     for (let x = 0; x < A.cols; x++) {
-        const bx = (x + 0.5) / s; if (bx < 1 || bx > 53) continue;
+        const bx = (x + 0.5) / s; if (bx < 1.5 || bx > 54) continue;
         for (let y = 0; y < A.rows; y++) if (y + 0.5 >= topAt(bx) && y + 0.5 <= botAt(bx)) g[y][x] = 'K';
     }
-    // dorsal fin: tall, swept back, concave trailing edge
-    poly(g, sc([[19.5, 13.5], [21.4, 8.4], [24, 4], [27.4, 1.1], [30.2, 1.1], [30.6, 4.6], [32.4, 9], [36.5, 14.8]]), 'K');
-    // flukes: crescent on the tail stock, sheared by the beat; level stock
-    const sh = ([x, y]) => [x * s, (y + dy * Math.max(0, x - 49) / 9) * s];
+    // dorsal fin: tall, slender, swept back, concave trailing edge
+    poly(g, sc([[22.4, 12.8], [23.8, 8.6], [25.6, 4.8], [27.4, 1.8], [28.6, 0.9], [29.6, 1.6], [29.9, 4.6], [30.4, 8.4], [31.8, 12.4], [34.2, 13.6]]), 'K');
+    // flukes: notched crescent at the end of the stock, sheared by the beat
+    const sh = ([x, y]) => [Math.min(x, 57.5) * s, (17.0 + (y - 17.9) * 0.78 + dy * Math.max(0, x - 49) / 9) * s];
     poly(g, [[48, 16.6], [51.5, 14], [54.5, 10.6], [58, 7.8], [58.6, 10.6], [57, 14.2], [54.6, 16.6], [55.6, 18], [54.6, 19.4], [57, 21.6], [58.6, 25.2], [58, 28], [54.5, 25.2], [51.5, 22.2], [48, 19.6]].map(sh), 'K');
-    // pectoral flipper: a paddle swept back and down, flexing with the beat
+    // pectoral flipper: a big rounded paddle hanging below the body, flexing with the beat
     const fx = [0, 1, 0, -1][frame] * 0.9;
-    poly(g, sc([[11, 25.5], [15.5, 26], [20.5, 28.4], [24 + fx, 31.8], [22.4 + fx, 33], [18 + fx * 0.5, 32.4], [13.5, 30], [10.4, 27.6]]), 'K');
-    // tones: lit back (top-left), shaded underside
-    const inb = (x, y) => g[y] && g[y][x] === 'K';
+    poly(g, sc([[15.5, 24.8], [19, 25.2], [23.6, 25.8], [26.2, 28], [26.6 + fx * 0.4, 31], [25.2 + fx, 33.2], [22.4 + fx, 33.7], [19.9 + fx * 0.7, 32.4], [18 + fx * 0.4, 29.6], [15.8, 27.2]]), 'K');
+    // ramped blacks: rim light along the back, blue-black body, deep navy underside
+    const body = (x, y) => g[y] && g[y][x] === 'K';
     for (let x = 0; x < A.cols; x++) {
-        const bx = (x + 0.5) / s;
-        if (bx >= 3 && bx <= 36) { const y = Math.floor(topAt(bx) + 0.5 - 0.5 + 1e-6) + 0; for (let k = 0; k < Math.max(1, Math.round(1.6 * s)); k++) { const yy = Math.ceil(topAt(bx) - 0.5) + k; if (inb(x, yy)) g[yy][x] = k === 0 ? 'S' : 's'; } }
+        const bx = (x + 0.5) / s; if (bx < 2.5 || bx > 52) continue;
+        const t0 = topAt(bx), t1 = botAt(bx), th = t1 - t0;
+        for (let y = Math.max(0, Math.ceil(t0 - 0.5)); y <= Math.min(A.rows - 1, Math.floor(t1 - 0.5)); y++) {
+            if (!body(x, y)) continue;
+            const t = (y + 0.5 - t0) / th;
+            g[y][x] = t < 0.1 && bx < 40 ? 'S' : t < 0.2 && bx < 40 ? 's' : t < 0.3 ? 'n' : t > 0.8 ? 'k' : 'K';
+        }
     }
-    // dorsal fin leading edge light, trailing edge dark
-    for (let y = 0; y < A.rows; y++) {
+    // dorsal fin: lit leading edge, dark trailing edge
+    for (let y = 0; y < Math.floor(12 * s); y++) {
         let x0 = -1, x1 = -1;
-        for (let x = 0; x < A.cols; x++) if (g[y][x] === 'K' && y < Math.floor(12 * s)) { if (x0 < 0) x0 = x; x1 = x; }
-        if (x0 >= 0 && y < Math.floor(11 * s)) { g[y][x0] = 'S'; if (x1 > x0 + 1) g[y][x1] = 'k'; if (x1 > x0 + 2) g[y][x0 + 1] = 's'; }
+        for (let x = 0; x < A.cols; x++) if (g[y][x] === 'K') { if (x0 < 0) x0 = x; x1 = x; }
+        if (x0 < 0) continue;
+        g[y][x0] = 'S'; if (x1 > x0 + 1) g[y][x1] = 'k'; if (x1 > x0 + 2) g[y][x0 + 1] = 's'; if (x1 > x0 + 3) g[y][x0 + 2] = 'n';
     }
-    // white belly, chin and underside of the stock, bottom row shaded
+    // flipper below the body: lit leading edge, dark lower edge
     for (let x = 0; x < A.cols; x++) {
-        const bx = (x + 0.5) / s; if (bx < 1.5 || bx > 49) continue;
-        const dep = curve(ORCA_WHITE, bx) * s, bt = botAt(bx);
+        const bx = (x + 0.5) / s; if (bx < 13 || bx > 29) continue;
+        const bt = botAt(bx); let last = -1;
+        for (let y = Math.ceil(bt - 0.5) + 1; y < A.rows; y++) if (g[y][x] === 'K') { last = y; if (g[y][x - 1] === '.' || x === 0) g[y][x] = 'n'; }
+        if (last >= 0) g[last][x] = 'k';
+    }
+    // flukes: lit upper surface, dark trailing edge
+    for (let y = 0; y < A.rows; y++) {
+        let x1 = -1; for (let x = Math.floor(48 * s); x < A.cols; x++) if (g[y][x] === 'K') x1 = x;
+        if (x1 >= 0) g[y][x1] = 'k';
+    }
+    // white chin, then the belly stripe that sweeps up the flank behind the flipper
+    for (let x = 0; x < A.cols; x++) {
+        const bx = (x + 0.5) / s, bt = botAt(bx);
+        let dep = 0; if (bx >= 1.5 && bx <= 16) dep = curve(ORCA_CHIN, bx); else if (bx >= 29.5 && bx <= 50) dep = curve(ORCA_BELLY, bx);
+        dep *= s; if (dep <= 0) continue;
         for (let y = 0; y < A.rows; y++) if (y + 0.5 > bt - dep && y + 0.5 <= bt && g[y][x] !== '.') g[y][x] = (y + 1.5 > bt) ? 'w' : 'W';
     }
-    // white lobe up the flank behind the flipper
-    poly(g, sc([[33, 23.2], [37, 20.4], [41, 20.4], [43, 21.6], [40, 23]]), (x, y) => g[y][x] !== '.' ? 'W' : '.');
-    // eye patch: white oval above and behind the eye, then the eye
-    poly(g, sc([[7.8, 15.2], [11, 14], [14.4, 14.8], [13.6, 16.6], [10.5, 17.2], [8.2, 16.6]]), (x, y) => g[y][x] !== '.' ? 'W' : '.');
-    // grey saddle behind the dorsal fin
-    poly(g, sc([[35, 13.6], [38, 12.8], [43, 13.8], [45, 15.6], [40, 15.4], [36.4, 15]]), (x, y) => (g[y][x] === 'K' || g[y][x] === 's') ? 'g' : '.');
-    const ex = Math.round(7.2 * s), ey = Math.round(17.4 * s);
-    put(g, ex, ey, 'E'); if (s > 0.8) { put(g, ex + 1, ey, 'E'); put(g, ex, ey - 1, 'E'); put(g, ex + 1, ey - 1, 'E'); put(g, ex + 2, ey - 1, 'w'); }
+    poly(g, sc([[30.4, 25], [31.6, 22], [34.4, 19.8], [38.4, 19.2], [41.2, 20.2], [42, 21.6], [39.4, 22.8]]), (x, y) => g[y][x] !== '.' ? 'W' : '.');
+    // elongated eye patch behind and above the small eye
+    const ang = -0.13, ca = Math.cos(ang), sa = Math.sin(ang);
+    for (let y = 0; y < A.rows; y++) for (let x = 0; x < A.cols; x++) {
+        const dx = (x + 0.5) / s - 10.8, dyy = (y + 0.5) / s - 15.4, u = (dx * ca + dyy * sa) / 4.6, v = (-dx * sa + dyy * ca) / 1.55;
+        if (u * u + v * v <= 1 && g[y][x] !== '.') g[y][x] = (v > 0.35 && u > -0.2) ? 'w' : 'W';
+    }
+    // soft grey saddle behind the dorsal fin
+    poly(g, sc([[35.2, 13.1], [39.4, 13.2], [40.4, 14.4], [36, 17.3], [33, 17.6], [32.6, 16.4]]), (x, y) => 'KnksS'.includes(g[y][x]) ? 'g' : '.');
+    poly(g, sc([[35.6, 13.2], [38.6, 13.3], [38.8, 14], [35.2, 14.6]]), (x, y) => g[y][x] === 'g' ? 'G' : '.');
+    const ex = Math.round(6.0 * s), ey = Math.round(17.0 * s);
+    put(g, ex, ey, 'E'); if (s > 0.8) { put(g, ex, ey + 1, 'E'); put(g, ex - 1, ey - 1, 'n'); }
     outline(g, () => true);
     const pal = {}; for (const k in ORCA_PAL) pal[k] = hex(ORCA_PAL[k]);
     return render(g, pal);
