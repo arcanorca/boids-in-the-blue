@@ -10,8 +10,8 @@
 // used for every sprite and all scenery; only the size sliders pick another hand-drawn class or an
 // integer multiple (`mul`) of one, so the cast always shares the same pixel grid.
 //
-// At 1080p and the default sliders: fish 20x14 texels = 40x28 px (17..23 wide with the size variation), angler 30x26 = 60x52 px (1.5 fish),
-// orca 60x34 = 120x68 px (3 fish), jelly bell 20 wide = 40 px (1 fish) with tentacles to 64 px,
+// At 1080p and the default sliders: fish 16x12 texels = 32x24 px (babies 22x16, newborns 16x12), angler 22x18 = 44x36 px (1.4 fish),
+// orca 60x34 = 120x68 px (3.75 fish), jelly bell 20 wide = 40 px with tentacles to 64 px,
 // worm 4x6 = 8x12 px, bubbles 3-7 texels = 6-14 px.
 //
 // Contract (shared by all themes):
@@ -32,16 +32,12 @@ function psFor(height) { return Math.max(2, Math.round(height / 540)); }
 //           classes [{art, mul, below}]   a config size < below uses that art at mul x the pixel size }
 var kinds = {
     fish: { type: 1, frames: 4, layer: 4,
-        arts: [{ cols: 10, rows: 7 }, { cols: 14, rows: 10 }, { cols: 17, rows: 12 }, { cols: 20, rows: 14 }, { cols: 23, rows: 16 }],
+        arts: [{ cols: 8, rows: 6 }, { cols: 11, rows: 8 }, { cols: 16, rows: 12 }],
         classes: [
             { art: 0, mul: 1, below: 1.6 },        // newborns spiralling out
             { art: 1, mul: 1, below: 2.9 },        // babies
-            { art: 2, mul: 1, below: 3.6 },        // the smallest adults (-15 %)
-            { art: 3, mul: 1, below: 4.4 },        // the default fish
-            { art: 4, mul: 1, below: 6.2 },        // the largest adults (+15 %)
-            { art: 2, mul: 2, below: 7.0 },        // sliders far above the default: integer magnification
-            { art: 3, mul: 2, below: 8.2 },
-            { art: 4, mul: 2, below: 1e9 }] },
+            { art: 2, mul: 1, below: 6.5 },        // adults, every colour and size variation: 16x12 texels
+            { art: 2, mul: 2, below: 1e9 }] },     // sliders far above the default: integer magnification
     jelly: { type: 2, frames: 4, layer: 1,
         arts: [{ cols: 12, rows: 22 }, { cols: 16, rows: 27 }, { cols: 20, rows: 33 }, { cols: 24, rows: 39 }],
         classes: [
@@ -58,11 +54,10 @@ var kinds = {
             { art: 1, mul: 1, below: 8.2 },        // the default orca: three fish long
             { art: 1, mul: 2, below: 1e9 }] },
     angler: { type: 4, frames: 4, layer: 5,
-        arts: [{ cols: 20, rows: 17 }, { cols: 30, rows: 26 }],
+        arts: [{ cols: 22, rows: 18 }],
         classes: [
-            { art: 0, mul: 1, below: 3.0 },
-            { art: 1, mul: 1, below: 6.1 },
-            { art: 1, mul: 2, below: 1e9 }] },
+            { art: 0, mul: 1, below: 7.0 },
+            { art: 0, mul: 2, below: 1e9 }] },
     bubble: { type: 5, frames: 1, layer: 2,
         arts: [{ cols: 3, rows: 3 }, { cols: 4, rows: 4 }, { cols: 5, rows: 5 }, { cols: 6, rows: 6 }, { cols: 7, rows: 7 }],
         classes: [
@@ -87,8 +82,7 @@ function classFor(kind, size) {
 // Angler lure: bulb centre per art and body frame (texels, unflipped, from the sprite's top-left).
 // The stalk in the body art ends there; the bulb itself is an overlay (lure-<n>.png, LURE_SIZE square).
 var LURE = [
-    [{ x: 17, y: 3 }, { x: 17, y: 4 }, { x: 17, y: 3 }, { x: 17, y: 2 }],
-    [{ x: 26, y: 4 }, { x: 26, y: 5 }, { x: 26, y: 4 }, { x: 26, y: 3 }]
+    [{ x: 19, y: 3 }, { x: 19, y: 4 }, { x: 19, y: 3 }, { x: 19, y: 2 }]
 ];
 var LURE_SIZE = 5;
 var SPARK_SIZE = 5;                                // spark.png: newborn star

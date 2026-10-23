@@ -50,18 +50,18 @@ test('psFor: one integer art-pixel scale from the screen height (1080p -> 2)', (
     assert.strictEqual(t.psFor(1080), 2); assert.strictEqual(t.psFor(1440), 3); assert.strictEqual(t.psFor(2160), 4); assert.strictEqual(t.psFor(300), 2);
 });
 
-test('proportions at 1080p and the default sliders: fish 40x28, orca ~3 fish, angler ~1.5, jelly bell ~1, worm, bubbles', () => {
+test('proportions at 1080p and the default sliders: fish 32x24, orca ~3.75 fish, angler ~1.4, jelly bell ~1.25, worm, bubbles', () => {
     const t = T(), ps = t.psFor(1080), K = t.kinds;
     const dim = (kind, size) => { const c = K[kind].classes[t.classFor(kind, size)], a = K[kind].arts[c.art]; return [a.cols * c.mul * ps, a.rows * c.mul * ps]; };
     const fish = dim('fish', 4.0), orca = dim('orca', 5.5), angler = dim('angler', 4.2), worm = dim('worm', 4);
-    assert.deepStrictEqual(fish, [40, 28]);
-    assert.ok(orca[0] >= 2.7 * fish[0] && orca[0] <= 3.3 * fish[0], 'orca ' + orca);
+    assert.deepStrictEqual(fish, [32, 24]);
+    assert.ok(orca[0] >= 3.4 * fish[0] && orca[0] <= 4.0 * fish[0], 'orca ' + orca);
     assert.ok(orca[1] >= 60 && orca[1] <= 72, 'orca height ' + orca[1]);
-    assert.ok(angler[0] >= 1.35 * fish[0] && angler[0] <= 1.65 * fish[0], 'angler ' + angler);
-    for (const js of [3, 3.5, 4, 5]) { const j = dim('jelly', js); assert.ok(j[0] >= 0.8 * fish[0] && j[0] <= 1.25 * fish[0] && j[1] >= 1.4 * j[0] * 0.9 && j[1] <= 2.2 * j[0], 'jelly ' + js + ' ' + j); }
+    assert.ok(angler[0] >= 1.25 * fish[0] && angler[0] <= 1.5 * fish[0], 'angler ' + angler);
+    for (const js of [3, 3.5, 4, 5]) { const j = dim('jelly', js); assert.ok(j[0] >= 0.8 * fish[0] && j[0] <= 1.6 * fish[0] && j[1] >= 1.4 * j[0] * 0.9 && j[1] <= 2.2 * j[0], 'jelly ' + js + ' ' + j); }
     assert.ok(worm[1] >= 0.25 * fish[0] && worm[1] <= 0.4 * fish[0], 'worm ' + worm);
     for (const bs of [1.5, 2.25, 3]) { const b = dim('bubble', bs); assert.ok(b[0] >= 6 && b[0] <= 14, 'bubble ' + bs + ' ' + b); }
-    // the school varies by +-15 % around the default fish (size 4 +- 1) and babies are clearly smaller
+    // adults share one hand-drawn size (size 4 +- 1) and babies are clearly smaller
     for (const s of [3, 5]) { const f = dim('fish', s); assert.ok(f[0] >= 0.8 * fish[0] && f[0] <= 1.2 * fish[0], 'fish ' + s + ' ' + f); }
     assert.ok(dim('fish', 2.5)[0] <= 0.75 * fish[0] && dim('fish', 0.5)[0] <= 0.55 * fish[0]);
 });

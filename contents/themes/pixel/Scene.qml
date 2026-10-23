@@ -23,7 +23,7 @@ Item {
 
     function sync(s) {
         s.top = 20 * ps;            // creatures stay below the surface strip (the orca is 34 texels tall)
-        s.bodyScale = 20 * ps / 28; // mid fish 20 texels wide (40 px at 1080p; the classic fish is 28)
+        s.bodyScale = 16 * ps / 28; // adult fish 16 texels wide (32 px at 1080p; the classic fish is 28)
         PixelSync.sync(s, entities, entities);
     }
 

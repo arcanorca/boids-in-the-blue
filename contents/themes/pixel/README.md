@@ -11,16 +11,16 @@ writes a contact sheet of every sprite at 8x, `--scenery out.png` the backdrop t
 1. **One art-pixel scale.** `psFor(height)` = `max(2, round(height / 540))` screen px per texel (1080p: 2).
    Every creature and every piece of scenery uses it; the size sliders pick the nearest hand-drawn class
    (`kinds[].classes`) or an integer magnification `mul` of one. Art is never scaled by a fraction.
-2. **Proportions (1080p, default sliders).** fish 20x14 texels = 40x28 px (the size variation picks 17x12 /
-   23x16 = -15 % / +15 %, babies 14x10, newborns 10x7), angler 30x26 = 60x52 px (1.5 fish), orca 60x34 =
-   120x68 px (3 fish), jelly bell 16-24 wide (20 = 40 px, one fish) with tentacles to 1.8x the bell, worm
-   4x6 = 8x12 px, bubbles 3-7 texels = 6-14 px. `Scene.qml` sets `sim.bodyScale = 20 * ps / 28` (the mid fish is 20
-   texels wide) and `sim.top = 20 * ps` so creatures stay below the surface.
+2. **Proportions (1080p, default sliders).** fish 16x12 texels = 32x24 px (babies 11x8, newborns 8x6), angler
+   22x18 = 44x36 px (1.4 fish), orca 60x34 = 120x68 px (3.75 fish), jelly bell 16-24 wide (20 = 40 px) with
+   tentacles to 1.8x the bell, worm 4x6 = 8x12 px, bubbles 3-7 texels = 6-14 px. `Scene.qml` sets
+   `sim.bodyScale = 16 * ps / 28` (the adult fish is 16 texels wide) and `sim.top = 20 * ps` so creatures stay
+   below the surface strip.
 3. **Craft.** Silhouettes (body profiles, polygons) and details are placed by hand and rasterised; 3-4 tones per
    colour with the light from the top left, a 1 px outline in a dark shade of the creature's own hue (softer on the
    lit top edge), no orphan texels (tested). Fish have five species with their own markings (bar, freckles,
-   lateral line, light back stripe, pale spots) and fins a shade deeper than the body. The orca has a blunt head,
-   white chin and belly, eye patch, tall swept dorsal fin, paddle flipper and notched flukes. The pixel orca art
+   lateral line, light back stripe, pale spots). The orca has a blunt, smooth head
+   (no mouth line), white chin and belly, eye patch, tall swept dorsal fin, paddle flipper and notched flukes. The pixel orca art
    faces LEFT; the simulation's orca flag is inverted, so `sync.js` flips it exactly like the fish.
 4. **Calm.** The backdrop is static art except for a drifting ripple strip under the waterline, two light shafts
    that breathe over about a minute and ~40 specks of marine snow. `tests/amiga-measure.js --theme pixel`: with

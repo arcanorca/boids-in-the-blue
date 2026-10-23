@@ -64,7 +64,7 @@ Item {
 
     // angler lure halo (shared soft glow texture, centred on the bulb)
     Image {
-        readonly property int s: T.GLOW_SIZE * Math.max(1, root._px * (root._art > 0 ? 1 : 0.5))
+        readonly property int s: T.GLOW_SIZE * root._px
         visible: root._angler
         x: root._ox + (root._angler ? root._lure.x * root._px + Math.floor(root._px / 2) : 0) - Math.floor(s / 2)
         y: root._oy + (root._angler ? root._lure.y * root._px + Math.floor(root._px / 2) : 0) - Math.floor(s / 2)

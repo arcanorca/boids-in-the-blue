@@ -117,16 +117,60 @@ function lchMix(c1, c2, t, ref) {
 
 
 // ── FISH ─────────────────────────────────────────────────────
-// Five hand-tuned sizes (T.kinds.fish.arts: 10x7, 14x10, 17x12, 20x14, 23x16), all facing right. The silhouette
-// is a head-heavy body whose half height follows a hand-set profile, a forked tail on a slim stalk and
-// dorsal / belly / pectoral fins; tones: l light back, b base, w pale belly, d shadow, f/F fins, with
-// species markings stamped by `kind` (bar, freckles, lateral line, light back stripe, pale spots).
-const FISH_P = [
-    { W: 10, H: 7,  bx0: 3, bx1: 8,  by0: 2, by1: 5,  stalk: 0.45, tx0: 1, th: 2.2, notch: 0.0, dh: 1, du: [-0.35, 0.15], vh: 0, pec: null, eye: 'dot', gill: false },
-    { W: 14, H: 10, bx0: 4, bx1: 12, by0: 3, by1: 7,  stalk: 0.36, tx0: 1, th: 3.0, notch: 0.4, dh: 2, du: [-0.4, 0.2],  vh: 1, pec: null, eye: 'pair', gill: false },
-    { W: 17, H: 12, bx0: 4, bx1: 15, by0: 3, by1: 9,  stalk: 0.32, tx0: 1, th: 3.5, notch: 0.55, dh: 2, du: [-0.45, 0.2], vh: 1, pec: null, eye: 'pair', gill: true },
-    { W: 20, H: 14, bx0: 5, bx1: 18, by0: 4, by1: 11, stalk: 0.28, tx0: 1, th: 4.2, notch: 0.7, dh: 3, du: [-0.5, 0.25], vh: 1, pec: { u: 0.1, w: 2 }, eye: 'sq', gill: true },
-    { W: 23, H: 16, bx0: 5, bx1: 21, by0: 5, by1: 13, stalk: 0.27, tx0: 1, th: 4.8, notch: 0.8, dh: 4, du: [-0.55, 0.3], vh: 1, pec: { u: 0.08, w: 3 }, eye: 'sq', gill: true }
+// Adult 16x12 (T.kinds.fish.arts[2]), faces right. l highlight, b base, d shadow, w belly, f fin, e/k eye,
+// p pattern. Babies (11x8) and newborns (8x6) are the same fish drawn smaller, without markings.
+const FISH_BODY = [
+    '................',
+    '......fff.......',
+    '.....ffflbb.....',
+    '.....lllbbbbb...',
+    '....llbbbbbekb..',
+    '....lbbbbbbkkbb.',
+    '....wwbbffbbbbb.',
+    '....wwwwwwwwwd..',
+    '.....wwwwwwdd...',
+    '......ddddd.....',
+    '.......ff.......',
+    '................'
+];
+// gill line
+const FISH_GILL = [[10, 4], [10, 5], [10, 6]];
+const TAIL = [          // cols 0..4 (neutral); lobes at rows 3..8, stalk rows 5-6
+    'ff...',
+    'fff..',
+    '.fff.',
+    '.fff.',
+    'fff..',
+    'ff...'
+];
+const BABY_BODY = [     // 11x8
+    '...........',
+    '.....ff....',
+    '....fflbb..',
+    '....lbbebk.',
+    '....wbbbbb.',
+    '....wwwwwd.',
+    '.....ddd...',
+    '...........'
+];
+const BABY_TAIL = [     // cols 0..3, stalk rows 1-2
+    'ff..',
+    '.fff',
+    '.fff',
+    'ff..'
+];
+const NEWBORN_BODY = [  // 8x6
+    '........',
+    '....f...',
+    '...lbek.',
+    '...wbbb.',
+    '...wwd..',
+    '........'
+];
+const NEWBORN_TAIL = [  // cols 0..2, stalk row 1
+    'f..',
+    '.ff',
+    'f..'
 ];
 const FISH_PAL = {
     coral:  { l: '#FFB8AA', b: '#FF7C7E', d: '#D9546E', w: '#FFD6CB', f: '#EC6074', o: '#582250', q: '#9B3F60', p: '#E2566F' },
@@ -137,89 +181,40 @@ const FISH_PAL = {
     red:    { l: '#FF9F8D', b: '#EE3C39', d: '#B12135', w: '#FFB59D', f: '#D12B37', o: '#4A0F2A', q: '#8B1E33', p: '#C42433' },
     alarm:  { l: '#C9444F', b: '#8E1328', d: '#5B0B20', w: '#A62F3C', f: '#701124', o: '#2A0511', q: '#4A0A1B', p: '#6C0E22' }
 };
-// markings per base variant, applied where u (-1 tail .. +1 nose) and v (-1 back .. +1 belly) fall inside
+// species markings, per variant: [char, [[x,y]...]] stamped on the body (p = pattern tone)
 const FISH_MARK = {
-    coral:  (u, v, x, y, P) => (u > -0.18 && u < 0.06 + (P.W > 15 ? 0.06 : 0)) ? 'p' : null,                              // one soft bar
-    amber:  (u, v, x, y) => (u > -0.6 && u < 0.35 && v > -0.55 && v < 0.35 && ((x * 7 + y * 5) % 9 === 0)) ? 'p' : null,   // freckles
-    lemon:  (u, v, x, y, P) => (Math.abs(v - 0.02) < (P.W > 15 ? 0.14 : 0.1) && u > -0.65 && u < 0.35) ? 'p' : null,        // lateral line
-    aqua:   (u, v, x, y) => (v > -0.62 && v < -0.34 && u > -0.7 && u < 0.4) ? 'l' : (v > 0.42 && v < 0.6 && u > -0.4 && u < 0.3 ? 'p' : null),   // bright back stripe
-    orchid: (u, v, x, y) => (u > -0.55 && u < 0.35 && v > -0.5 && v < 0.4 && ((x * 5 + y * 3) % 8 === 0)) ? 'l' : null    // pale spots
+    coral:  [['p', [[7, 3], [7, 4], [7, 5], [8, 6], [8, 2]]]],                           // one soft bar
+    amber:  [['p', [[7, 4], [9, 5], [8, 3], [6, 5]]]],                                   // freckles
+    lemon:  [['p', [[6, 5], [7, 5], [8, 5], [9, 5]]]],                                   // lateral line
+    aqua:   [['l', [[6, 4], [7, 4], [8, 4], [9, 4]]], ['p', [[7, 7], [8, 7]]]],           // bright back stripe
+    orchid: [['l', [[6, 5], [8, 4], [9, 6], [7, 6]]]],                                   // pale spots
+    red:    [['p', [[7, 3], [7, 4], [7, 5], [8, 6], [8, 2]]]],
+    alarm:  [['p', [[7, 3], [7, 4], [7, 5], [8, 6], [8, 2]]]]
 };
-FISH_MARK.red = FISH_MARK.alarm = FISH_MARK.coral;
 // stress "flush" steps: <colour>-w<k> = the colour ramp mixed k/4 of the way to the red ramp
 for (const c of ['coral', 'amber', 'lemon', 'aqua', 'orchid']) for (let k = 1; k <= 3; k++) {
     FISH_PAL[c + '-w' + k] = {}; FISH_MARK[c + '-w' + k] = FISH_MARK[c];
     { const ref = wrap(toLch(FISH_PAL.red.b)[2] - toLch(FISH_PAL[c].b)[2]); for (const t in FISH_PAL[c]) FISH_PAL[c + '-w' + k][t] = lchMix(FISH_PAL[c][t], FISH_PAL.red[t], k / 4, ref); }
 }
 function fishFrame(art, variant, frame) {
-    const P = FISH_P[art], g = mk(P.W, P.H);
-    const cx = (P.bx0 + P.bx1 + 1) / 2, rx = (P.bx1 - P.bx0 + 1) / 2, cy = (P.by0 + P.by1 + 1) / 2, ry = (P.by1 - P.by0 + 1) / 2;
-    // body: half height by u (head side: round, tail side: tapering to the stalk)
-    const half = u => u >= 0 ? ry * Math.pow(Math.max(0, 1 - Math.pow(u, 2.2)), 1 / 2.2)
-                             : ry * (P.stalk + (1 - P.stalk) * Math.pow(Math.max(0, 1 - Math.pow(-u, 1.7)), 1 / 1.7));
-    const top = [], bot = [];
-    for (let x = P.bx0; x <= P.bx1; x++) {
-        const u = (x + 0.5 - cx) / rx, h = half(u);
-        let t = 1e9, b = -1;
-        for (let y = P.by0; y <= P.by1; y++) if (Math.abs(y + 0.5 - cy) <= h) { t = Math.min(t, y); b = Math.max(b, y); }
-        top[x] = t; bot[x] = b;
-        if (t > b) { top[x] = Math.round(cy - 0.5); bot[x] = Math.round(cy - 0.5); }
-    }
-    const mark = FISH_MARK[variant];
-    for (let x = P.bx0; x <= P.bx1; x++) for (let y = top[x]; y <= bot[x]; y++) {
-        const u = (x + 0.5 - cx) / rx, h = Math.max(0.5, (bot[x] - top[x] + 1) / 2), v = (y + 0.5 - (top[x] + bot[x] + 1) / 2) / h;
-        let ch = 'b';
-        if (y === top[x] && (bot[x] - top[x] >= 2)) ch = 'l';                          // lit back edge
-        else if (v < -0.45 && u < 0.2) ch = 'l';                                       // top-left sheen
-        if (v > 0.18 && ch === 'b') ch = 'w';                                          // pale belly
-        if (y === bot[x] && bot[x] - top[x] >= 3) ch = (v > 0.18 ? 'd' : ch);          // shaded underside
-        const m = mark && mark(u, v, x, y, P);
-        if (m && P.W >= 14) ch = m;
-        put(g, x, y, ch);
-    }
-    // gill line + mouth
-    if (P.gill) { const gx = Math.round(cx + rx * 0.42); for (let y = top[gx] + 1; y <= bot[gx] - 1; y++) put(g, gx, y, 'd'); }
-    const nose = P.bx1, ny = Math.round(cy + ry * 0.18);
-    if (P.W >= 14) put(g, nose, ny, 'd');
-    // eye
-    const ex = Math.round(cx + rx * 0.58), ey = Math.round(cy - ry * 0.28);
-    if (P.eye === 'sq') { pts(g, 'e', [[ex - 1, ey], [ex, ey], [ex - 1, ey + 1]]); put(g, ex, ey + 1, 'k'); }
-    else if (P.eye === 'pair') { put(g, ex - 1, ey, 'e'); put(g, ex, ey, 'k'); }
-    else put(g, ex, ey, 'k');
-    // dorsal fin: rises steeply behind the head and trails back along the body
-    const du = P.du;
-    for (let x = P.bx0; x <= P.bx1; x++) {
-        const u = (x + 0.5 - cx) / rx;
-        if (u < du[0] || u > du[1]) continue;
-        const t = (u - du[0]) / (du[1] - du[0]), hgt = Math.max(1, Math.round(P.dh * Math.sin(Math.pow(1 - t, 0.75) * Math.PI * 0.5 + 0.2) * (t < 0.12 ? 0.6 : 1)));
-        for (let k = 1; k <= hgt; k++) put(g, x, top[x] - k, (k === hgt && hgt > 1) ? 'F' : 'f');
-    }
-    // pelvic fin below the belly, small anal fin
-    if (P.vh) for (let x = Math.round(cx - rx * 0.05); x <= Math.round(cx + rx * 0.25); x++) for (let k = 1; k <= P.vh; k++) if (k === 1 || x < Math.round(cx + rx * 0.15)) put(g, x, bot[x] + k, k === P.vh ? 'F' : 'f');
-    if (P.W >= 20) for (let x = Math.round(cx - rx * 0.55); x <= Math.round(cx - rx * 0.35); x++) put(g, x, bot[x] + 1, 'f');
-    // tail: slim stalk, forked fan; the whole fan sways with the beat (neutral, up, neutral, down)
-    const dy = [0, -1, 0, 1][frame], tbx = P.bx0, span = tbx - P.tx0;
-    const th = P.th, sh = ry * P.stalk;
-    for (let x = P.tx0; x < tbx; x++) {
-        const t = (tbx - (x + 0.5)) / span;                                             // 0 at the stalk .. 1 at the tip
-        const hh = lerp(sh, th, Math.pow(t, 1.15));
-        const notch = t > 0.5 ? (t - 0.5) * 2 * P.notch : 0;
-        const c = cy + dy * t * 0.99;
-        for (let y = 0; y < P.H; y++) {
-            const d = Math.abs(y + 0.5 - c);
-            if (d <= hh && d >= notch) put(g, x, y, (c - (y + 0.5)) > hh * 0.55 ? 'F' : 'f');
-        }
-    }
-    // pectoral fin flutters on the odd frames
-    if (P.pec) {
-        const px0 = Math.round(cx + rx * P.pec.u - P.pec.w + 1), py = Math.round(cy + ry * 0.12) + (frame % 2);
-        for (let i = 0; i < P.pec.w; i++) { put(g, px0 + i, py, i === 0 ? 'F' : 'f'); put(g, px0 + i, py + 1, i < P.pec.w - 1 ? 'f' : 'd'); }
+    const A = T.kinds.fish.arts[art], g = mk(A.cols, A.rows), dy = [0, -1, 0, 1][frame];
+    if (art === 2) {
+        ascii(g, FISH_BODY);
+        pts(g, 'd', FISH_GILL);
+        for (const [ch, list] of FISH_MARK[variant]) pts(g, ch, list.filter(([x, y]) => get(g, x, y) !== '.' && !'ekf'.includes(get(g, x, y))));
+        ascii(g, TAIL, 0, 3 + dy);
+        // pectoral fin flutters on the odd-beat frames
+        if (frame === 2) { pts(g, 'b', [[8, 6]]); pts(g, 'f', [[8, 7]]); }
+    } else if (art === 1) {
+        ascii(g, BABY_BODY);
+        ascii(g, BABY_TAIL, 0, 2 + dy);
+    } else {
+        ascii(g, NEWBORN_BODY);
+        ascii(g, NEWBORN_TAIL, 0, 2 + dy);
     }
     outline(g, () => true);
     const p = FISH_PAL[variant], pal = { '.': null, e: hex('#FFFFFF'), k: hex('#15122A') };
     for (const k of 'lbdwfoqp') pal[k] = hex(p[k]);
-    pal.f = hex(lchMix(p.b, p.d, 0.55));                       // fins a shade deeper than the body, their leading rays lighter
-    pal.F = hex(lchMix(p.b, p.l, 0.4));
     return render(g, pal);
 }
 
@@ -305,73 +300,56 @@ function orcaFrame(art, frame) {
     poly(g, sc([[35, 13.6], [38, 12.8], [43, 13.8], [45, 15.6], [40, 15.4], [36.4, 15]]), (x, y) => (g[y][x] === 'K' || g[y][x] === 's') ? 'g' : '.');
     const ex = Math.round(7.2 * s), ey = Math.round(17.4 * s);
     put(g, ex, ey, 'E'); if (s > 0.8) { put(g, ex + 1, ey, 'E'); put(g, ex, ey - 1, 'E'); put(g, ex + 1, ey - 1, 'E'); put(g, ex + 2, ey - 1, 'w'); }
-    // mouth line
-    if (s > 0.8) for (let i = 0; i < 9; i++) { const mx = 2 + i, my = 20.4 + i * 0.28; put(g, mx, Math.floor(my * s + 0.3), 'k'); }
     outline(g, () => true);
     const pal = {}; for (const k in ORCA_PAL) pal[k] = hex(ORCA_PAL[k]);
     return render(g, pal);
 }
 
 // ── ANGLER ───────────────────────────────────────────────────
-// Designed on a 30x26 grid (default size, 1.5 fish long) and rasterised at the art's scale (the small
-// class is 0.667x). Faces right; the stalk ends at T.LURE[art][frame] (the bulb is a separate overlay).
+// 22x18, faces right; stalk ends at T.LURE[art][frame] (bulb is a separate overlay, see lureImg).
+const ANG_TOP = [8, 8, 7, 6, 5, 5, 4, 4, 4, 4, 4, 5, 5, 6, 7, 7, 8, 8];   // x = 3..20  (we draw x0=3)
+const ANG_BOT = [11, 12, 13, 14, 15, 15, 15, 15, 15, 15, 15, 15, 15, 14, 14, 13, 13, 12];
 const ANGLER_PAL = {
-    b: '#4A3C6E', l: '#7461A4', L: '#9A87CC', d: '#2C2347', s: '#9482C8', f: '#6A5AA0', F: '#8C7BC2', m: '#5E1C40',
+    b: '#4A3C6E', l: '#7461A4', d: '#2C2347', s: '#9482C8', f: '#6A5AA0', F: '#8C7BC2', m: '#5E1C40',
     w: '#F7F1DE', e: '#FFE27A', k: '#25160F', a: '#5B4A86', o: '#150F27', q: '#261C42', t: '#B7A4E2'
 };
-const ANG_TOP = [[5, 15.2], [8, 12], [12, 9.6], [17, 8.8], [22, 10], [26, 12.4], [28.4, 14.6]];
-const ANG_BOT = [[5, 17.6], [8, 21], [12, 23.4], [17, 24.2], [22, 23], [26, 21], [29, 19.4]];
 function anglerFrame(art, frame) {
-    const A = T.kinds.angler.arts[art], s = A.cols / 30, g = mk(A.cols, A.rows);
-    const sc = ps => ps.map(([x, y]) => [x * s, y * s]);
-    const dy = [0, -1, 0, 1][frame];
-    const topAt = x => curve(ANG_TOP, x) * s, botAt = x => curve(ANG_BOT, x) * s;
-    for (let x = 0; x < A.cols; x++) {
-        const bx = (x + 0.5) / s; if (bx < 5 || bx > 29.3) continue;
-        for (let y = 0; y < A.rows; y++) if (y + 0.5 >= topAt(bx) && y + 0.5 <= botAt(bx)) g[y][x] = 'b';
+    const A = T.kinds.angler.arts[art], g = mk(A.cols, A.rows);
+    fillProfile(g, 3, ANG_TOP, ANG_BOT, 'b');
+    // top rim light and underside shadow
+    for (let x = 6; x <= 17; x++) {
+        const t = ANG_TOP[x - 3], bt = ANG_BOT[x - 3];
+        put(g, x, t, 'l'); if (x > 7 && x < 15) put(g, x, t + 1, 'l');
+        put(g, x, bt, 'd'); put(g, x, bt - 1, 'd');
     }
-    const at = (x, y) => (g[y] && g[y][x]) || '.';
-    // rim light on the back, shadow under the belly, speckles
-    for (let x = 0; x < A.cols; x++) {
-        const bx = (x + 0.5) / s; if (bx < 7 || bx > 26) continue;
-        const t = Math.ceil(topAt(bx) - 0.5), b = Math.floor(botAt(bx) - 0.5);
-        if (at(x, t) === 'b') g[t][x] = 'L';
-        if (at(x, t + 1) === 'b' && bx < 22) g[t + 1][x] = 'l';
-        if (at(x, b) === 'b') g[b][x] = 'd';
-        if (at(x, b - 1) === 'b' && bx > 9) g[b - 1][x] = 'd';
-    }
-    for (const [x, y] of [[9, 15], [12, 13], [15, 19], [10, 19], [18, 21], [13, 16.5], [21, 18], [8.5, 17.5]]) { const cx = Math.floor(x * s), cy = Math.floor(y * s); if (at(cx, cy) === 'b' || at(cx, cy) === 'l') g[cy][cx] = 's'; }
-    // gaping, up-curved mouth full of teeth: the lower jaw juts out
-    const mouth = [[29, 18.6], [26, 18.3], [23, 17.8], [20, 17.2], [17.5, 16.4], [16, 15.2]];
-    for (let i = 0; i < mouth.length - 1; i++) for (let k = 0; k <= 8; k++) {
-        const x = lerp(mouth[i][0], mouth[i + 1][0], k / 8), y = lerp(mouth[i][1], mouth[i + 1][1], k / 8);
-        const cx = Math.floor(x * s), cy = Math.floor(y * s);
-        if (at(cx, cy) !== '.') g[cy][cx] = 'm';
-        if (s > 0.8 && at(cx, cy + 1) !== '.' && i < 4) g[cy + 1][cx] = 'm';
-    }
-    const teeth = s > 0.8 ? [[27.5, 0], [25, 0], [22.5, 0], [20, 0], [18, 0], [26.2, 1], [23.8, 1], [21.2, 1], [19, 1]] : [[17, 0], [14.5, 0], [15.5, 1]];
-    teeth.forEach(([tx, lower]) => {
-        const my = interp(mouth.slice().reverse(), tx), cx = Math.floor(tx * s), cy = Math.floor(my * s);
-        const ty = lower ? cy + (s > 0.8 ? 2 : 1) : cy - 1;
-        if (at(cx, ty) !== '.') g[ty][cx] = 'w';
-    });
+    // bioluminescent speckles
+    pts(g, 's', [[8, 8], [10, 7], [11, 10], [7, 11], [9, 12], [12, 12], [6, 9]]);
+    // mouth: wide, up-curved, full of teeth
+    for (let x = 12; x <= 20; x++) { put(g, x, 10, 'm'); put(g, x, 11, 'm'); }
+    pts(g, 'd', [[11, 11], [11, 12]]);
+    pts(g, 'w', [[13, 10], [15, 10], [17, 10], [19, 10], [14, 11], [16, 11], [18, 11], [20, 11]]);
+    pts(g, 'b', [[20, 9], [20, 8]]);
     // eye: glowing ring + pupil
-    const ex = Math.round(21.6 * s), ey = Math.round(12.4 * s);
-    if (s > 0.8) { for (let j = -1; j <= 1; j++) for (let i = -1; i <= 1; i++) put(g, ex + i, ey + j, 'e'); put(g, ex + 1, ey, 'k'); put(g, ex + 1, ey + 1, 'k'); put(g, ex, ey, 'k'); }
-    else { pts(g, 'e', [[ex - 1, ey], [ex, ey - 1], [ex, ey + 1]]); put(g, ex, ey, 'k'); put(g, ex + 1, ey, 'e'); }
-    // fins: dorsal, anal, pectoral (frame-flexed)
-    poly(g, sc([[9, 10.4], [12, 7], [14.6, 6.6], [15.6, 9.2]]), (x, y) => at(x, y) === '.' ? 'f' : (at(x, y) === 'L' ? 'F' : '.'));
-    poly(g, sc([[9.5, 22.2], [12, 25.2], [14.6, 25.4], [15.2, 23.4]]), (x, y) => at(x, y) === '.' ? 'f' : '.');
-    poly(g, sc([[13.6, 19], [18, 19.8], [18.6 + dy * 0.4, 23.6], [15.4, 22.2]]), 'f');
-    poly(g, sc([[13.8, 19.2], [17, 19.6], [16.4, 20.8]]), 'F');
-    // tail fan: tilts with the beat, with rays
-    poly(g, sc([[5.6, 15], [2.4, 10.6 + dy], [0.8, 12.5 + dy], [0.8, 20 + dy * 1.5], [2.4, 22.6 + dy], [5.6, 18]]), (x, y) => ((y + (x >> 1)) % 3 === 0) ? 'F' : 'f');
-    // lure stalk: a curve from the brow, up and forward, into the bulb
-    const L = T.LURE[art][frame], p0 = [20.6 * s, 9.2 * s], p1 = [(L.x - 3) , 0.4 + dy * 0.5], p2 = [L.x - 1.4, L.y + 0.2];
-    for (let i = 0; i <= 28; i++) {
-        const t = i / 28, u = 1 - t;
-        put(g, Math.floor(u * u * p0[0] + 2 * u * t * p1[0] + t * t * p2[0]), Math.floor(u * u * p0[1] + 2 * u * t * p1[1] + t * t * p2[1]), 'a');
+    ascii(g, ['eee', 'eke', 'eee'], 13, 6);
+    // pectoral + dorsal + anal fins
+    pts(g, 'f', [[9, 13], [10, 13], [8, 14], [9, 14], [10, 14], [11, 14]]);
+    pts(g, 'F', [[9, 13], [8, 14]]);
+    pts(g, 'f', [[7, 3], [8, 3], [9, 3], [8, 4], [9, 4], [10, 4], [11, 4]]);
+    pts(g, 'F', [[8, 3]]);
+    pts(g, 'f', [[7, 16], [8, 16], [9, 16], [8, 17], [9, 17]]);
+    // tail fan: tilts with the beat
+    const dy = [0, -1, 0, 1][frame];
+    const tail = [[0, 6], [0, 7], [0, 8], [0, 9], [0, 10], [0, 11], [0, 12],
+                  [1, 7], [1, 8], [1, 9], [1, 10], [1, 11], [1, 12], [2, 8], [2, 9], [2, 10], [2, 11]];
+    for (const [x, y] of tail) put(g, x, y + dy + (x === 0 ? dy : 0), (x + y) % 2 ? 'f' : 'F');
+    pts(g, 'f', [[2, 9 + dy], [2, 10 + dy]]);
+    // lure stalk: a curve from the brow, up and forward, into the bulb (anchor from theme.js)
+    const L = T.LURE[art][frame], p0 = [14, 5], p1 = [15.5, 0 + dy], p2 = [L.x - 1, L.y];
+    for (let i = 0; i <= 24; i++) {
+        const t = i / 24, u = 1 - t;
+        put(g, Math.round(u * u * p0[0] + 2 * u * t * p1[0] + t * t * p2[0]), Math.round(u * u * p0[1] + 2 * u * t * p1[1] + t * t * p2[1]), 'a');
     }
+    put(g, L.x - 2, L.y, 'a');                               // joins the stalk tip (under the bulb) so no texel is left alone
     outline(g, c => c !== 'e' && c !== 'a');
     const pal = {}; for (const k in ANGLER_PAL) pal[k] = hex(ANGLER_PAL[k]);
     return render(g, pal);
@@ -764,9 +742,9 @@ function allImages() {
 function contactSheet(imgs, file) {
     const row = (kind, art, variant) => [0, 1, 2, 3].map(f => T.frameFile(kind, art, variant, f));
     const rows = [];
-    for (const a of [4, 3, 2, 1, 0]) for (const v of ['coral', 'amber', 'lemon', 'aqua', 'orchid', 'red', 'alarm', 'aqua-w2']) if (a >= 3 || ['coral', 'aqua', 'red'].includes(v)) rows.push(row('fish', a, v));
+    for (const a of [2, 1, 0]) for (const v of ['coral', 'amber', 'lemon', 'aqua', 'orchid', 'red', 'alarm', 'aqua-w2']) if (a === 2 || ['coral', 'aqua', 'red'].includes(v)) rows.push(row('fish', a, v));
     for (const a of [1, 0]) rows.push(row('orca', a, ''));
-    for (const a of [1, 0]) rows.push(row('angler', a, ''));
+    for (const a of [0]) rows.push(row('angler', a, ''));
     for (let a = 3; a >= 0; a--) rows.push(row('jelly', a, ''));
     for (let a = 2; a >= 0; a--) rows.push(row('worm', a, ''));
     rows.push([0, 1, 2, 3, 4].map(a => T.frameFile('bubble', a, '', 0)).concat(['lure-0.png', 'lure-1.png', 'lure-2.png', 'spark.png', 'glow.png']));
