@@ -24,7 +24,6 @@ function sync(sim, parent, component) {
 
 function _sync(sim, parent, component) {
     var cc = sim._c, stress = sim.cpuStress, cell = component.cell;
-    var t0 = component.t;                          // tween progress of the tick that is ending
     component.beginTick();
     var now = Boids._now();
     var pulse = Core.stressPulse(stress, now);
@@ -45,20 +44,18 @@ function _sync(sim, parent, component) {
             else if (kind === 'bubble') size = ent.scale;
             else size = cc.wormSize;
 
-            var tx = ent.x, ty = ent.y;
             var dg = ent.delegate;
             if (!dg) {
-                dg = component.createObject(parent, { ax0: tx, ay0: ty, ax1: tx, ay1: ty, size: size, type: kd.type,
-                                                      spriteData: [], colorString: "#FFFFFF", rotation: 0 });
+                dg = component.createObject(parent, { size: size, type: kd.type, spriteData: [], colorString: "#FFFFFF", rotation: 0 });
                 ent.delegate = dg;
                 if (!dg) continue;
                 dg.z = kd.layer * Z + dg.z;
                 dg.phase = (ent.x * 7.31 + ent.y * 3.17) % 4;      // desynchronise the beat of a school
                 if (kind === 'fish') dg.variant = T.fishVariant(ent.color);
+                component.place(dg, ent.x, ent.y);                 // no glide from a stale pooled position
+            } else {
+                component.target(dg, ent.x, ent.y);
             }
-            var cx = dg.ax0 + (dg.ax1 - dg.ax0) * t0, cy = dg.ay0 + (dg.ay1 - dg.ay0) * t0;
-            if (Math.abs(tx - cx) > 160 || Math.abs(ty - cy) > 160) { cx = tx; cy = ty; }      // teleport: no streak
-            dg.ax0 = cx; dg.ay0 = cy; dg.ax1 = tx; dg.ay1 = ty;
             var cls = kd.classes.length > 1 ? T.classFor(kind, size) : 0;
             if (dg.cls !== cls) dg.cls = cls;
 

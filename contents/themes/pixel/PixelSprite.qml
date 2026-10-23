@@ -7,7 +7,7 @@ import "theme.js" as T
 //
 // Sprites are shared textures shown with nearest-neighbour filtering at `cell * mul` px per texel, so every
 // creature uses the same art-pixel grid. The position is interpolated between the two last sim ticks by the
-// layer's shared tween and then rounded to WHOLE SCREEN PIXELS (not art pixels): smooth glide.
+// layer's frame loop and then rounded to WHOLE SCREEN PIXELS (not art pixels): smooth glide.
 // Fish = body image + (stress) tint image; angler = glow + body + lure; the rest = one image.
 // No per-entity layers, effects, timers or animation objects: frames are chosen by the adapter.
 Item {
@@ -30,13 +30,7 @@ Item {
     property var pool: null
     function release() { if (pool) pool._release(root); }
 
-    // position: previous and current sim target (screen px), written by sync.js
-    property real ax0: 0
-    property real ay0: 0
-    property real ax1: 0
-    property real ay1: 0
-    x: Math.round(ax0 + (ax1 - ax0) * (pool ? pool.t : 1))
-    y: Math.round(ay0 + (ay1 - ay0) * (pool ? pool.t : 1))
+    property var rec: null                 // glide record owned by the layer (targets, pool slot)
 
     // theme state (written by sync.js)
     property string variant: "aqua"        // fish: colour ramp of the body image

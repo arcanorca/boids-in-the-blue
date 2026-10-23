@@ -36,5 +36,5 @@ Item {
         customTop: scene.customWater ? scene.waterTop : ""
         customBottom: scene.customWater ? scene.waterBottom : ""
     }
-    EntityLayer { id: entities; anchors.fill: parent; z: 1; enabled: false; cell: scene.ps; paused: scene.paused }
+    EntityLayer { id: entities; anchors.fill: parent; z: 1; enabled: false; cell: scene.ps; dpr: Math.max(1, scene.dpr); paused: scene.paused }
 }

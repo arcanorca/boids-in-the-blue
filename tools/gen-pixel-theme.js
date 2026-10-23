@@ -272,7 +272,7 @@ function orcaFrame(art, frame) {
         for (let y = 0; y < A.rows; y++) if (y + 0.5 >= topAt(bx) && y + 0.5 <= botAt(bx)) g[y][x] = 'K';
     }
     // dorsal fin: tall, swept back, concave trailing edge
-    poly(g, sc([[19, 13.5], [21, 8.8], [24.5, 4.2], [29, 1.1], [31.6, 1.1], [31.6, 4.4], [33, 8.4], [37.5, 14.8]]), 'K');
+    poly(g, sc([[19.5, 13.5], [21.4, 8.4], [24, 4], [27.4, 1.1], [30.2, 1.1], [30.6, 4.6], [32.4, 9], [36.5, 14.8]]), 'K');
     // flukes: crescent on the tail stock, sheared by the beat; level stock
     const sh = ([x, y]) => [x * s, (y + dy * Math.max(0, x - 49) / 9) * s];
     poly(g, [[48, 16.6], [51.5, 14], [54.5, 10.6], [58, 7.8], [58.6, 10.6], [57, 14.2], [54.6, 16.6], [55.6, 18], [54.6, 19.4], [57, 21.6], [58.6, 25.2], [58, 28], [54.5, 25.2], [51.5, 22.2], [48, 19.6]].map(sh), 'K');
@@ -640,10 +640,10 @@ function floraImg() {
     const fan = (x0, r, c1, c2) => {
         const y0 = rootY(x0);
         for (let j = 0; j < 5; j++) P(x0, y0 - j, c1);
-        for (let j = 0; j < r * 2; j++) for (let i = -r; i <= r; i++) {
-            const yy = j - 0, d = Math.hypot(i, (j - r) * 1.0);
-            if (d > r || (j < r && false)) continue;
-            if ((i & 1) === 0 || j % 4 === 0) P(x0 + i, y0 - 5 - j * 0.9, (j % 4 === 0 || i === 0) ? c2 : c1);
+        const R = Math.round(r * 1.45);
+        for (let j = 0; j <= R; j++) for (let i = -R; i <= R; i++) {
+            if (Math.abs(i) > 1 + j * 0.8 || Math.hypot(i, j) > R) continue;
+            if ((i & 1) === 0 || j % 4 === 0) P(x0 + i, y0 - 4 - j, (j % 4 === 0 || Math.abs(i) > j * 0.8 - 1) ? c2 : c1);
         }
     };
     fan(72, 13, 'F1', 'F2'); fan(322, 12, 'F3', 'F4'); fan(470, 13, 'F1', 'F2'); fan(585, 10, 'F3', 'F4');

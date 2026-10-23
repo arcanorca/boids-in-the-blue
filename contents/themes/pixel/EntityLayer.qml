@@ -6,10 +6,9 @@ import QtQuick
 // and no ghosts remain). The pool grows on demand; there is no cap.
 // `cell` = screen px per art texel (set by Scene.qml).
 //
-// Smooth motion: sync.js calls beginTick() once per sim tick; ONE shared tween `t` (0..1, linear, as long
-// as the real tick interval) interpolates every sprite between its previous and its new position, and the
-// sprite lands on whole screen pixels (Math.round), so slow fish glide instead of stepping at 25 Hz.
-// No per-sprite animation objects.
+// Smooth motion: sync.js calls beginTick() once per sim tick and target() per sprite; ONE frame loop
+// interpolates every sprite between its previous and its new position and rounds to whole screen pixels,
+// so slow fish glide instead of stepping at 25 Hz. No per-sprite animation objects.
 Item {
     id: layer
 
@@ -17,9 +16,7 @@ Item {
     property bool paused: false
     property int created: 0
     property int live: 0
-    property real t: 1                     // tween between the last two sim ticks
-    property double _last: 0
-    property real _ema: 40                 // smoothed real interval between ticks (ms)
+    property real dpr: 1                   // device pixel ratio (sprites land on whole device pixels)
 
     property var _free: [[], [], [], [], [], [], []]       // indexed by delegate type
     // Stacking: the old renderer created one child per entity, so the newest was always on top.
@@ -28,26 +25,41 @@ Item {
 
     Component { id: spriteComponent; PixelSprite {} }
 
-    NumberAnimation {
-        id: tween
-        target: layer
-        property: "t"
-        from: 0
-        to: 1
-        duration: 40
-        running: false
-    }
-
-    // called by sync.js at the start of every tick: restart the tween. Its length is 1.35x the smoothed tick
-    // interval, so a late or early tick neither stalls nor jumps the sprites.
+    // ── gliding: every live sprite moves from where it is to its newest target in about one tick (40 ms),
+    //    whole screen pixels, one JS loop per frame (instead of two bindings per sprite) ──
+    property var _live: []                      // glide records of the visible sprites
+    property double _t0: 0                      // time of the newest simulation tick (ms)
+    property bool _moving: false
+    property real _dur: 40                      // glide time: the smoothed interval between simulation ticks (ms)
     function beginTick() {
-        var now = Date.now();
-        if (_last > 0) _ema = _ema * 0.85 + Math.max(10, Math.min(150, now - _last)) * 0.15;
-        _last = now;
-        tween.stop();
-        tween.duration = Math.round(_ema * 1.35);
-        t = 0;
-        if (!paused) tween.start(); else t = 1;
+        var now = Date.now(), dt = now - _t0;
+        if (dt > 15 && dt < 120) _dur += (Math.max(30, Math.min(60, dt)) - _dur) * 0.3;
+        _t0 = now; _moving = !paused;
+    }
+    function place(d, x, y) {                  // jump (new entity): no glide from a stale position
+        var r = d.rec;
+        r.x0 = r.x1 = r.cx = x; r.y0 = r.y1 = r.cy = y;
+        d.x = Math.round(x * dpr) / dpr; d.y = Math.round(y * dpr) / dpr;
+    }
+    function target(d, x, y) {                 // continue from where the sprite is now (a teleport jumps)
+        var r = d.rec;
+        if (Math.abs(x - r.cx) > 160 || Math.abs(y - r.cy) > 160) { place(d, x, y); return; }
+        r.x0 = r.cx; r.y0 = r.cy; r.x1 = x; r.y1 = y;
+    }
+    FrameAnimation {
+        running: layer._moving
+        onTriggered: {
+            var t = (Date.now() - layer._t0) / layer._dur, k = layer.dpr, live = layer._live;
+            // past the target (a late tick) keep gliding at the same speed for a moment instead of stalling
+            if (t >= 1.3) { t = 1.3; layer._moving = false; }
+            for (var i = 0; i < live.length; i++) {
+                var r = live[i], d = r.d;
+                r.cx = r.x0 + (r.x1 - r.x0) * t; r.cy = r.y0 + (r.y1 - r.y0) * t;
+                var nx = Math.round(r.cx * k) / k, ny = Math.round(r.cy * k) / k;
+                if (d.x !== nx) d.x = nx;
+                if (d.y !== ny) d.y = ny;
+            }
+        }
     }
 
     function createObject(parent, props) {
@@ -58,6 +70,7 @@ Item {
             d = spriteComponent.createObject(layer, { type: t, visible: false });
             if (!d) return null;
             d.pool = layer;
+            d.rec = { d: d, i: -1, x0: 0, y0: 0, x1: 0, y1: 0, cx: 0, cy: 0 };
             created++;
         }
         d.z = ++_zc;
@@ -66,6 +79,7 @@ Item {
         d.sparkle = 0; d.cls = 0; d.frame = 0; d.glow = 0.4; d.lure = 1;
         for (var k in props) d[k] = props[k];
         d.visible = true;
+        d.rec.i = _live.length; _live.push(d.rec);
         live++;
         return d;
     }
@@ -73,6 +87,9 @@ Item {
     function _release(d) {
         if (!d.visible) return;
         d.visible = false;
+        var r = d.rec, last = _live.pop();                 // swap-remove from the glide list
+        if (last !== r) { _live[r.i] = last; last.i = r.i; }
+        r.i = -1;
         _free[d.type].push(d);
         live--;
     }
