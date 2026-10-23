@@ -544,12 +544,12 @@ const SURF_CRESTS = [
     { x: 28,  h: 5,  d: 1,  claws: 0, sw: 0.9 },
     { x: 120, h: 16, d: 1,  claws: 3, sw: 1.0 },
     { x: 190, h: 6,  d: 1,  claws: 0, sw: 1.0 },
-    { x: 256, h: 12, d: 1,  claws: 2, sw: 1.0 },
+    { x: 256, h: 12, d: 1,  claws: 1, sw: 1.0 },
     { x: 316, h: 5,  d: -1, claws: 0, sw: 0.85 },
-    { x: 372, h: 8,  d: 1,  claws: 0, sw: 1.0 },
+    { x: 372, h: 9,  d: 1,  claws: 0, sw: 1.0 },
     { x: 440, h: 14, d: 1,  claws: 3, sw: 1.05 },
     { x: 505, h: 6,  d: 1,  claws: 0, sw: 0.9 },
-    { x: 552, h: 12, d: -1, claws: 2, sw: 1.0 },
+    { x: 552, h: 12, d: -1, claws: 1, sw: 1.0 },
     { x: 612, h: 5,  d: -1, claws: 0, sw: 0.9 }
 ];
 const surfBase = x => 18.2 + 0.6 * Math.sin(2 * Math.PI * x / 640 * 3 + 0.7) + 0.3 * Math.sin(2 * Math.PI * x / 640 * 5 + 2.1);
@@ -593,7 +593,7 @@ function crestShapes(c) {
     shapes.body = (hollow ? outer.concat(innerArc.slice().reverse().reverse(), wall.slice(1)) : outer.concat([[0.84, 0.0]])).map(world);
     if (hollow) shapes.hollow = innerArc.concat([]).map(world);
     // foam band along the outside of the curl
-    const foamDeg0 = 150, n = 60;
+    const foamDeg0 = hollow ? 150 : 128, n = 60;
     const fo = [], fi = [], f2 = [];
     for (let i = 0; i <= n; i++) {
         const deg = foamDeg0 + (tipDeg - foamDeg0) * i / n, a = rad(deg);
@@ -606,14 +606,14 @@ function crestShapes(c) {
     shapes.foam = fo.concat(fi.slice().reverse()).map(world);
     if (hollow && h >= 12) shapes.foam2 = f2.slice(Math.floor(n * 0.2), Math.floor(n * 0.85)).concat(fi.slice(Math.floor(n * 0.2), Math.floor(n * 0.85)).reverse()).map(world);
     // claw fingers fanning out of the front of the curl and drooping
-    const N = c.claws, degs = N === 3 ? [58, 28, -2] : [46, 6], lens = N === 3 ? [0.52, 0.58, 0.48] : [0.58, 0.5];
+    const N = c.claws, degs = [[], [24], [54, 0], [62, 26, -10]][N], lens = [[], [0.6], [0.58, 0.5], [0.52, 0.58, 0.48]][N];
     for (let k = 0; k < N; k++) {
         const a = rad(degs[k]), rd = [Math.cos(a), Math.sin(a)], tg = [Math.sin(a), -Math.cos(a)];
-        const ad = a - rad(N === 3 ? [38, 36, 32][k] : [36, 30][k]);
+        const ad = a - rad([[], [34], [36, 30], [44, 40, 34]][N][k]);
         let dir = [Math.cos(ad), Math.sin(ad)];
         const dm = Math.hypot(dir[0], dir[1]); dir = [dir[0] / dm, dir[1] / dm];
         const s0 = [C[0] + KX * (Ro - 0.07) * rd[0], C[1] + (Ro - 0.07) * rd[1]];
-        const Lc = lens[k], w0 = Math.max(2.8, 0.21 * h) / h, cl = [];
+        const Lc = lens[k], w0 = Math.max(3.1, 0.235 * h) / h, cl = [];
         for (let i = 0; i <= 18; i++) {
             const t = i / 18;
             cl.push({ p: [s0[0] + dir[0] * Lc * t + 0.03 * t * t, s0[1] + dir[1] * Lc * t - 0.16 * t * t], w: w0 * Math.pow(1 - t, 0.65) });
@@ -677,15 +677,42 @@ function surfaceStrip() {
     paint(sh.map(s => s.foam), '6');
     paint(sh.filter(s => s.foam2).map(s => s.foam2), '7');
     paint([].concat(...sh.map(s => s.claws)), '6');
-    // clean-up: a clear texel squeezed between foam on two opposite sides (a 1-texel channel) becomes foam
-    const isF = (x, y) => foamCh(get(g, (x + W) % W, y));
-    for (let pass = 0; pass < 2; pass++) {
+    // clean-up: a foam piece smaller than 8 texels (a claw tip cut off by the texel grid) is a speck: it takes the
+    // blue around it, or clears
+    {
+        const seen = new Set();
+        for (let y0 = 0; y0 < H; y0++) for (let x0 = 0; x0 < W; x0++) {
+            if (!foamCh(g[y0][x0]) || seen.has(y0 * W + x0)) continue;
+            const comp = [], st = [[x0, y0]]; seen.add(y0 * W + x0);
+            while (st.length) {
+                const [cx, cy] = st.pop(); comp.push([cx, cy]);
+                for (const [dx, dy] of N4) {
+                    const nx = (cx + dx + W) % W, ny = cy + dy;
+                    if (ny < 0 || ny >= H || seen.has(ny * W + nx) || !foamCh(g[ny][nx])) continue;
+                    seen.add(ny * W + nx); st.push([nx, ny]);
+                }
+            }
+            if (comp.length >= 8) continue;
+            for (const [cx, cy] of comp) {
+                const blues = N4.map(([dx, dy]) => get(g, (cx + dx + W) % W, cy + dy)).filter(ch => ch !== '.' && !foamCh(ch));
+                g[cy][cx] = blues.length ? blues[0] : '.';
+            }
+        }
+    }
+    // clean-up: a clear texel squeezed between filled texels on two opposite sides (a 1-texel channel) is filled
+    // (with the blue next to it, else foam), so outlines never run as a double line or leave a pinhole of water
+    const at = (x, y) => get(g, (x + W) % W, y);
+    for (let pass = 0; pass < 3; pass++) {
         const fill = [];
         for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
-            if (foamCh(g[y][x])) continue;
-            if ((isF(x - 1, y) && isF(x + 1, y)) || (isF(x, y - 1) && isF(x, y + 1))) fill.push([x, y]);
+            if (g[y][x] !== '.') continue;
+            for (const [a, b] of [[at(x - 1, y), at(x + 1, y)], [at(x, y - 1), at(x, y + 1)]]) {
+                if (a === '.' || b === '.') continue;
+                const blue = [a, b].find(ch => !foamCh(ch));
+                fill.push([x, y, blue || '6']); break;
+            }
         }
-        for (const [x, y] of fill) g[y][x] = '6';
+        for (const [x, y, ch] of fill) g[y][x] = ch;
     }
     // keyblock outlines: indigo outside the silhouette and between foam and blue
     const foam = foamCh;
@@ -699,6 +726,16 @@ function surfaceStrip() {
         }
     }
     for (const [x, y] of add) g[y][x] = 'i';
+    // a single blue texel squeezed between two outline texels is outline too (no 'i3i' pinholes)
+    for (let pass = 0; pass < 2; pass++) {
+        const pin = [];
+        for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+            const c = g[y][x];
+            if (c === 'i' || c === '.' || foam(c)) continue;
+            if ((at(x - 1, y) === 'i' && at(x + 1, y) === 'i') || (at(x, y - 1) === 'i' && at(x, y + 1) === 'i')) pin.push([x, y]);
+        }
+        for (const [x, y] of pin) g[y][x] = 'i';
+    }
     return g;
 }
 

@@ -138,7 +138,7 @@ function bubbleFile(scale) { return bubbleClass(scale) ? "bubble-b.png" : "bubbl
 // at the top); `foam` are the two creams of the crests (light, shade): the washi pigments by day, dimmer at dusk
 // and night so the white of the foam never glares in a dark room.
 var WATER = {
-    cols: 672, rows: 300, step: 3, scale: 28, ring: 5, arcW: 3, startRow: 40, fadeIn: 16, fadeFrom: 58, fadeTo: 124,
+    cols: 672, rows: 300, step: 3, scale: 28, ring: 5, arcW: 3, startRow: 40, fadeIn: 16, fadeFrom: 58, fadeTo: 125,
     variants: [
         { name: "night", daylight: 0,   tone: [1, 3, 4], arc: [3, 6, 9],
           stops: [[0, "#1d4066"], [36, "#14304f"], [60, "#10294a"], [150, "#0c2038"], [230, "#09182b"], [285, "#0a1a2e"]],
