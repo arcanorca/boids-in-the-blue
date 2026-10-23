@@ -481,174 +481,152 @@ function bubbleImg(art) {
 }
 
 // ── AMBIENT TEXTURES ─────────────────────────────────────────
-// Three seabed layers share one width and tile horizontally: far.png (hazy distant hills and plants, bluer and
-// dimmer), flora.png (kelp, corals, grass standing on the floor; drawn behind the sand so the roots are covered)
-// and seabed.png (sand dunes with ripples, rocks, shells, starfish). All periodic functions use whole cycles
-// per tile, so the seams do not show.
+// Three seabed layers share one width and tile horizontally: far.png (hazy distant hills, a few soft kelp and
+// coral silhouettes, bluer and dimmer), flora.png (a calm cartoon garden: ribbon kelp, chunky rounded corals,
+// flower anemones on stalks, tube sponges; drawn behind the sand so the roots are covered) and seabed.png
+// (smooth layered dunes, a few round rocks, two starfish). Every shape is a rounded blob with a one-pixel dark
+// outline and three flat tones (light from the top-left); no dithering, no noise. All periodic functions use
+// whole cycles per tile, so the seams do not show.
 const SB = T.SEABED, FL = T.FLORA, FA = T.FAR, TAU = Math.PI * 2, TW = SB.cols;
 const per = (x, k, ph) => Math.sin(TAU * k * x / TW + ph);
-const surf = x => 18 + 2.4 * per(x, 2, 0.3) + 1.7 * per(x, 5, 1.7) + 0.9 * per(x, 11, 0.4);        // sand surface row in seabed.png
-const farSurf = x => 42 + 2.6 * per(x, 3, 0.9) + 1.8 * per(x, 7, 2.1) + 0.9 * per(x, 13, 1.1);     // distant hills row in far.png
+const surf = x => 18 + 2.2 * per(x, 2, 0.3) + 1.4 * per(x, 5, 1.7);                    // sand surface row in seabed.png
+const surf2 = x => surf(x) + 9 + 1.6 * per(x, 3, 2.2) + 1.0 * per(x, 7, 0.5);          // a second, darker dune line below it
+const farSurf = x => 42 + 2.4 * per(x, 3, 0.9) + 1.5 * per(x, 7, 2.1);                 // distant hills row in far.png
 const wrapX = x => ((x % TW) + TW) % TW;
-const dim = (c, t) => lchMix(c, '#12537f', t);                                                       // shift a colour towards the deep water
+const dim = (c, t) => lchMix(c, '#12537f', t);                                          // shift a colour towards the deep water (far layer)
+const dimRgb = (c, t) => { const a = hex(c), b = hex('#12537f'); return '#' + [0, 1, 2].map(i => Math.round(a[i] + (b[i] - a[i]) * t).toString(16).padStart(2, '0')).join(''); };   // same, hue-true (flora, sand)
+
+// a painter bound to one grid: wrapped writes, optional clip below `ymax`, shaded outlined discs, ribbon kelp
+function painter(g) {
+    const H = g.length;
+    const P = (x, y, ch, ymax) => { x = wrapX(Math.round(x)); y = Math.round(y); if (y >= 0 && y < H && (ymax === undefined || y <= ymax)) g[y][x] = ch; };
+    // ellipse centred on (cx, cy); tones = [light, mid, dark] keys; ring = outline key (or null); ymax clips the bottom
+    const disc = (cx, cy, rx, ry, tones, ring, ymax) => {
+        for (let y = Math.floor(cy - ry - 1); y <= Math.ceil(cy + ry + 1); y++) for (let x = Math.floor(cx - rx - 1); x <= Math.ceil(cx + rx + 1); x++) {
+            const u = (x + 0.5 - cx) / rx, v = (y + 0.5 - cy) / ry, d = u * u + v * v;
+            if (d <= 1) {
+                const lit = -u * 0.45 - v * 0.55;
+                P(x, y, lit > 0.42 ? tones[0] : lit > -0.3 ? tones[1] : tones[2], ymax);
+            } else if (ring && ((x + 0.5 - cx) / (rx + 1)) ** 2 + ((y + 0.5 - cy) / (ry + 1)) ** 2 <= 1) P(x, y, ring, ymax);
+        }
+    };
+    // wavy ribbon rising from (x0, y0): width swells and narrows, rounded tip. wid = [base, swell]; outlined if ring
+    const ribbon = (x0, y0, h, amp, ph, wph, wid, tones, ring) => {
+        const cx = [], hw = [];
+        for (let j = 0; j <= h; j++) {
+            cx.push(x0 + Math.sin(j * 0.075 + ph) * amp * Math.min(1, j / 16));
+            hw.push((wid[0] + wid[1] * (0.5 + 0.5 * Math.sin(j * 0.19 + wph))) * (j > h - 9 ? Math.sqrt(Math.max(0.05, (h - j) / 9)) : 1));
+        }
+        const span = (j, pad) => {
+            const p = cx[Math.max(0, j - 1)], w = hw[j] + pad;
+            return [Math.round(Math.min(p, cx[j]) - w), Math.round(Math.max(p, cx[j]) + w)];
+        };
+        if (ring) {
+            for (let j = 0; j <= h; j++) { const [a, b] = span(j, 1); for (let x = a; x <= b; x++) P(x, y0 - j, ring); }
+            for (let x = Math.round(cx[h] - 1); x <= Math.round(cx[h] + 1); x++) P(x, y0 - h - 1, ring);
+        }
+        for (let j = 0; j <= h; j++) {
+            const [a, b] = span(j, 0), w = Math.max(0.5, hw[j]);
+            for (let x = a; x <= b; x++) P(x, y0 - j, x < cx[j] - w * 0.25 ? tones[0] : x > cx[j] + w * 0.45 ? tones[2] : tones[1]);
+        }
+    };
+    return { P, disc, ribbon };
+}
 
 function seabedImg() {
-    const W = SB.cols, H = SB.rows, g = mk(W, H);
+    const W = SB.cols, H = SB.rows, g = mk(W, H), { P, disc } = painter(g);
     for (let x = 0; x < W; x++) {
-        const n = Math.round(surf(x));
-        for (let y = n; y < H; y++) {
-            const d = y - n, dith = BAYER[y & 3][x & 3] / 16;
-            g[y][x] = d === 0 ? 'h' : d === 1 ? 'a' : (d < 4 ? (dith < 0.5 ? 'a' : 'b') : d < 9 ? (dith < 0.4 ? 'b' : 'c') : (dith < 0.45 ? 'c' : 'e'));
-        }
-        // sand ripples: short light dashes following the dune, in shallow bands
-        for (const [off, ph] of [[3, 0.0], [6, 2.1], [10, 4.0], [15, 1.3]]) {
-            const y = n + off + Math.round(Math.sin(x * 0.07 + ph) * 0.8);
-            if (y < H && Math.sin(x * 0.19 + ph * 3 + off) > 0.35) g[y][x] = off < 8 ? 'r' : 's';
-        }
+        const n = Math.round(surf(x)), m = Math.round(surf2(x));
+        for (let y = n; y < H; y++) g[y][x] = y === n ? 'h' : y < m ? 'a' : y === m ? 's' : y < m + 10 ? 'b' : y < m + 15 ? 'c' : 'e';
     }
     const surfaceY = x => Math.round(surf(wrapX(x)));
-    // rocks: rounded domes sitting in the sand, lit from the top-left
-    const rock = (x0, w, h, moss) => {
-        const base = surfaceY(x0 + w / 2) + 2;
-        for (let j = 0; j < h; j++) for (let i = 0; i < w; i++) {
-            const u = (i + 0.5) / w * 2 - 1, v = 1 - (j + 0.5) / h;
-            const edge = Math.sqrt(Math.max(0, 1 - u * u));
-            if (v > edge * (0.85 + 0.15 * Math.sin(i * 1.7 + w))) continue;
-            const x = wrapX(x0 + i), y = base - (h - 1 - j) - 0;
-            const lit = -u * 0.55 + v * 0.8;
-            let ch = lit > 0.62 ? 'M' : lit > 0.18 ? 'm' : lit > -0.35 ? 'k' : 'K';
-            if (moss && v > 0.55 && Math.sin(i * 2.1 + w) > -0.2) ch = lit > 0.4 ? 'G' : 'g';
-            if (y >= 0 && y < H) g[y][x] = ch;
-        }
-        // outline the dome
-        for (let j = -1; j <= h; j++) for (let i = -1; i <= w; i++) {
-            const x = wrapX(x0 + i), y = base - (h - 1 - j);
-            if (y < 0 || y >= H || !'MmkKGg'.includes(g[y][x] || '.')) continue;
-        }
+    // round rocks: half-domes sitting in the sand, three tones and a dark outline (flat at the bottom)
+    const rock = (x, w, h, mossy) => {
+        const base = surfaceY(x) + 3;
+        disc(x, base, w / 2, h, ['M', 'm', 'k'], 'u', base);
+        if (mossy) disc(x - w * 0.12, base - h * 0.62, w * 0.3, h * 0.26, ['G', 'g', 'g'], null, base - 2);
     };
-    rock(58, 30, 15, true); rock(80, 16, 9, false); rock(210, 38, 18, true); rock(246, 18, 9, false); rock(398, 24, 12, true); rock(520, 34, 16, true); rock(548, 14, 8, false); rock(330, 12, 6, false); rock(120, 10, 5, false);
-    // pebbles, shells, starfish on the near dune
-    for (const x of [14, 31, 47, 99, 118, 139, 171, 184, 233, 291, 322, 350, 377, 433, 468, 497, 563, 585]) {
-        const y = surfaceY(x) + 3 + (x % 4);
-        g[y][x] = 'p'; g[y][wrapX(x + 1)] = 'P'; if (x % 2) g[y + 1][x] = 'c';
-    }
-    const shell = x => { const y = surfaceY(x) + 2; for (const [dx, dy, ch] of [[0, 0, 'Q'], [1, 0, 'Q'], [2, 0, 'q'], [0, 1, 'q'], [1, 1, 'Q'], [1, -1, 'Q']]) g[y + dy][wrapX(x + dx)] = ch; };
-    [160, 302, 458, 556].forEach(shell);
+    rock(196, 40, 17, true); rock(222, 18, 8); rock(372, 34, 15); rock(396, 14, 7); rock(520, 44, 18, true); rock(548, 16, 8);
+    for (const x of [30, 150, 330, 455, 590]) { const y = surfaceY(x) + 4; P(x, y, 'p'); P(x + 1, y, 'P'); }          // a few pebbles
     const star = (x, c1, c2) => {
-        const y = surfaceY(x) + 3;
-        for (const [dx, dy] of [[0, -2], [-1, -1], [0, -1], [1, -1], [-2, 0], [-1, 0], [0, 0], [1, 0], [2, 0], [-1, 1], [0, 1], [1, 1], [-2, 2], [2, 2]]) g[y + dy][wrapX(x + dx)] = (dx + dy < 0 && dx < 1) ? c1 : c2;
-        g[y][wrapX(x)] = 'Y';
+        const y = surfaceY(x) + 4;
+        for (const [dx, dy] of [[0, -2], [-1, -1], [0, -1], [1, -1], [-2, 0], [-1, 0], [0, 0], [1, 0], [2, 0], [-1, 1], [0, 1], [1, 1], [-2, 2], [2, 2]]) P(x + dx, y + dy, (dx + dy < 0 && dx < 1) ? c1 : c2);
+        P(x, y, 'Y');
     };
-    star(130, 'T', 't'); star(340, 'T', 't'); star(505, 'T', 't');
+    star(170, 'T', 't'); star(450 + 5, 'T', 't');
     const pal = {
-        h: hex('#b9cdb2'), a: hex('#9dbda7'), b: hex('#7ca4a2'), c: hex('#5e8c95'), e: hex('#44708b'), r: hex('#c9dbbd'), s: hex('#6d9aa0'),
-        p: hex('#cbd9c6'), P: hex('#8fb2a2'), M: hex('#9cb3b7'), m: hex('#738f9a'), k: hex('#516d7f'), K: hex('#3a5568'),
-        G: hex('#5f9a7c'), g: hex('#3f7a67'), Q: hex('#f0e2d2'), q: hex('#d9a49e'), T: hex('#f09a62'), t: hex('#c8683f'), Y: hex('#ffd9a0')
+        h: hex(dimRgb('#d6d9b0', 0.18)), a: hex(dimRgb('#c6cfa6', 0.21)), s: hex(dimRgb('#a5bb9c', 0.25)), b: hex(dimRgb('#b2c4a0', 0.23)), c: hex(dimRgb('#96b19a', 0.27)), e: hex(dimRgb('#78a096', 0.31)),
+        p: hex(dimRgb('#e0e2c0', 0.18)), P: hex(dimRgb('#b2c4a4', 0.23)), M: hex(dimRgb('#b2c4c2', 0.21)), m: hex(dimRgb('#90a8b0', 0.25)), k: hex(dimRgb('#6d899a', 0.27)),
+        G: hex('#7fb190'), g: hex('#5f9a82'), u: hex('#3f6076'), T: hex('#f2a876'), t: hex('#d0764a'), Y: hex('#ffe0aa')
     };
-    outlineSolid(g, ch => 'MmkKGg'.includes(ch), 'u');
-    pal.u = hex('#2c4458');
     return render(g, pal);
-}
-// outline only the cells of one family (rocks): transparent -> not needed (they sit in sand), so darken the edge instead
-function outlineSolid(g, fam, ch) {
-    const H = g.length, W = g[0].length, add = [];
-    for (let y = 1; y < H - 1; y++) for (let x = 0; x < W; x++) {
-        if (fam(g[y][x])) continue;
-        const n = [[0, 1], [0, -1], [1, 0], [-1, 0]].filter(([dx, dy]) => fam(g[y + dy][wrapX(x + dx)] || '.'));
-        if (n.length && !'ph'.includes(g[y][x]) && fam(g[y + 1][x])) continue;
-        if (n.length && g[y][x] !== '.') add.push([x, y]);
-    }
-    for (const [x, y] of add) if (!'ph'.includes(g[y][x])) g[y][x] = ch;
 }
 
 // flora: drawn on a canvas as tall as FL.rows; roots sit on the sand surface (and are covered by seabed.png)
 function floraImg() {
-    const W = FL.cols, H = FL.rows, g = mk(W, H);
-    const rootY = x => H - SB.rows + Math.round(surf(wrapX(x))) + 2;
-    const P = (x, y, ch) => { x = wrapX(Math.round(x)); y = Math.round(y); if (y >= 0 && y < H) g[y][x] = ch; };
-    // kelp: a wavy stem with alternating leaf blades
-    const kelp = (x0, h, amp, ph, tones) => {
-        const [st, lf, lh] = tones, y0 = rootY(x0);
-        let sx = x0;
-        for (let j = 0; j < h; j++) {
-            const nx = x0 + Math.sin(j * 0.085 + ph) * amp * Math.min(1, j / 20);
-            const x = Math.round(nx);
-            if (x !== sx) P(sx, y0 - j, st);
-            P(x, y0 - j, st); if (j < h * 0.35) P(x + 1, y0 - j, st);
-            sx = x;
-            if (j > 8 && j % 7 === 3 && j < h - 4) {
-                const dir = ((j / 7) | 0) % 2 ? 1 : -1, len = 3 + Math.round(2 * Math.sin(j * 0.13 + ph) + 1.5 * (1 - j / h));
-                for (let k = 1; k <= len; k++) { P(x + dir * k, y0 - j - (k >> 1), k % 2 ? lf : lh); P(x + dir * k, y0 - j - (k >> 1) + 1, lf); }
-                P(x + dir * (len + 1), y0 - j - ((len + 1) >> 1), lh);
-            }
-        }
-        P(sx, y0 - h, lh); P(sx, y0 - h - 1, lh);
+    const W = FL.cols, H = FL.rows, g = mk(W, H), { P, disc, ribbon } = painter(g);
+    const rootY = x => H - SB.rows + Math.round(surf(wrapX(x))) + 1;
+    // palettes: three tones each (light, mid, dark), pulled slightly towards the water so the garden stays calm
+    const TONES = {
+        kA: ['#62c9a2', '#3ea788', '#277f74'], kB: ['#74d29c', '#4cb383', '#2e8a6c'], gr: ['#8adba0', '#5cbb85', '#3c9470'],
+        pk: ['#ffbfc8', '#f58fab', '#cc6489'], or: ['#ffcb92', '#f9a062', '#d27649'], pu: ['#d8b8f4', '#ae88da', '#805eb4'],
+        ye: ['#fff3b8', '#ffdc80', '#eab654'], st: ['#e4a8b8', '#c7809f', '#9d5d82'], dk: ['#7a3c64', '#6a3058', '#5a2650']
     };
-    const KT = [['#1f7a63', '#37ad86', '#72dcab'], ['#1d6e6e', '#2fa0a0', '#66d2c8'], ['#3b7a3c', '#68b052', '#a4dc72']];
-    const kc = c => c.map(h => hex(h));
-    const kelpList = [[28, 104, 5, 0.3, 0], [34, 78, 4, 1.4, 1], [41, 60, 4, 2.2, 0], [150, 96, 5, 4.0, 1], [157, 70, 4, 5.1, 0], [236, 108, 6, 2.7, 0], [244, 84, 5, 0.9, 2], [252, 52, 4, 3.3, 1],
-                      [330, 88, 5, 1.1, 1], [338, 64, 4, 2.9, 0], [415, 100, 5, 5.5, 0], [423, 72, 4, 0.2, 2], [492, 94, 5, 3.6, 1], [500, 58, 4, 4.4, 0], [575, 80, 5, 1.9, 0]];
-    for (const [x, h, a, ph, t] of kelpList) kelp(x, h, a, ph, KT[t]);
-    // sea-grass tufts: curved blades
-    const grass = (x0, n, h, c1, c2) => {
-        const y0 = rootY(x0);
-        for (let b = 0; b < n; b++) {
-            const lean = (b - (n - 1) / 2) * 0.9, hh = h - Math.abs(b - (n - 1) / 2) * 3 + (b % 2) * 2;
-            let px = x0 + b - (n >> 1);
-            for (let j = 0; j < hh; j++) {
-                const x = Math.round(x0 + b - (n >> 1) + lean * Math.pow(j / hh, 1.4) * 2 + Math.sin(j * 0.2 + b) * 0.8);
-                if (x !== px) P(px, y0 - j, c1);
-                P(x, y0 - j, j > hh * 0.75 ? c2 : c1); px = x;
-            }
-        }
+    const pal = { o: hex('#103f66', 0.92) };
+    const tk = {};
+    for (const n in TONES) { tk[n] = TONES[n].map((c, i) => { const k = n + i; pal[k] = hex(dimRgb(c, 0.24)); return k; }); }
+    const RING = 'o';
+    // ribbon kelp: pair or trio of swaying fronds sharing a root
+    const kelp = (x, h, amp, ph, wph, t, w) => ribbon(x, rootY(x), h, amp, ph, wph, w || [1.5, 1.5], tk[t], RING);
+    // chunky coral mound: overlapping round lobes, back to front, with a couple of darker dots
+    const mound = (x, s, flip, t) => {
+        const y0 = rootY(x), f = flip ? -1 : 1;
+        const lobes = [[-7, -8, 5.2], [7, -9, 5.6], [0, -12, 6], [-3.5, -5.5, 6], [5, -5, 5.4]];
+        for (const [dx, dy, r] of lobes) disc(x + f * dx * s, y0 + dy * s, r * s, r * s * 0.95, tk[t], RING);
+        for (const [dx, dy] of [[-1, -12], [7, -6], [-5, -5]]) { P(x + f * dx * s, y0 + dy * s, tk[t][2]); P(x + f * dx * s + 1, y0 + dy * s, tk[t][2]); }
     };
-    [[12, 5, 22, 'G1', 'G2'], [92, 6, 26, 'G1', 'G2'], [180, 5, 20, 'G3', 'G2'], [286, 6, 24, 'G1', 'G2'], [372, 5, 21, 'G3', 'G2'], [452, 6, 25, 'G1', 'G2'], [540, 5, 20, 'G3', 'G2'], [598, 4, 18, 'G1', 'G2']].forEach(a => grass(...a));
-    // staghorn coral: recursive branches
-    const stag = (x0, h, c1, c2, seed) => {
-        const y0 = rootY(x0);
-        const br = (x, y, dx, dy, len, depth) => {
-            for (let i = 0; i < len; i++) { x += dx; y += dy; P(x, y, depth > 1 ? c1 : c2); if (depth <= 1 || i % 2) P(x + 1, y, c1); }
-            if (depth > 0 && len > 2) { br(x, y, dx - 0.55, dy, Math.round(len * 0.72), depth - 1); br(x, y, dx + 0.55, dy, Math.round(len * 0.7), depth - 1); }
-            else P(x, y - 1, c2);
-        };
-        br(x0, y0, 0, -1, h, 3);
+    // flower anemone: a curved stalk topped by a ring of round petals around a bright centre
+    const flower = (x, h, ph, petal, centre, s) => {
+        s = s || 1.5;
+        const y0 = rootY(x), sx = j => x + Math.sin(j * 0.13 + ph) * 1.8 * Math.min(1, j / 8);
+        for (let j = 0; j <= h; j++) { for (const dx of [-1, 0, 1, 2]) P(sx(j) + dx - 0.5, y0 - j, RING); }
+        for (let j = 0; j <= h; j++) { P(sx(j) - 0.5, y0 - j, tk.kA[0]); P(sx(j) + 0.5, y0 - j, tk.kA[1]); }
+        const hx = sx(h) + 0.5, hy = y0 - h - 3 * s, n = 6;
+        const pet = [];
+        for (let k = 0; k < n; k++) { const a = k * TAU / n + 0.5; pet.push([hx + Math.cos(a) * 4.6 * s, hy + Math.sin(a) * 4.0 * s]); }
+        pet.sort((a, b) => a[1] - b[1]);
+        for (const [px, py] of pet) disc(px, py, 3.0 * s, 3.0 * s, tk[petal], RING);
+        disc(hx, hy, 2.9 * s, 2.7 * s, tk[centre], RING);
     };
-    stag(112, 13, 'C1', 'C2'); stag(268, 15, 'C3', 'C4'); stag(396, 13, 'C1', 'C2'); stag(520, 14, 'C3', 'C4'); stag(52, 11, 'C3', 'C4'); stag(200, 11, 'C1', 'C2');
-    // fan coral (sea fan): a mesh in an arc on a short stalk
-    const fan = (x0, r, c1, c2) => {
-        const y0 = rootY(x0);
-        for (let j = 0; j < 5; j++) P(x0, y0 - j, c1);
-        const R = Math.round(r * 1.45);
-        for (let j = 0; j <= R; j++) for (let i = -R; i <= R; i++) {
-            if (Math.abs(i) > 1 + j * 0.8 || Math.hypot(i, j) > R) continue;
-            if ((i & 1) === 0 || j % 4 === 0) P(x0 + i, y0 - 4 - j, (j % 4 === 0 || Math.abs(i) > j * 0.8 - 1) ? c2 : c1);
+    // tube sponges: a small cluster of fat tubes with a dark opening
+    const tubes = (x, list, t) => {
+        const y0 = rootY(x);
+        for (let [dx, w, h] of list) {
+            dx = Math.round(dx * 1.6); w = Math.round(w * 1.5); h = Math.round(h * 1.6);
+            const x0 = x + dx, top = y0 - h;
+            for (let j = 0; j <= h; j++) { P(x0 - 1, top + j, RING); P(x0 + w, top + j, RING); }
+            for (let j = 0; j <= h; j++) for (let i = 0; i < w; i++) P(x0 + i, top + j, i < w * 0.3 ? tk[t][0] : i >= w * 0.65 ? tk[t][2] : tk[t][1]);
+            disc(x0 + w / 2, top, w / 2 + 0.2, 3, [tk[t][0], tk[t][0], tk[t][1]], RING);
+            disc(x0 + w / 2, top + 0.3, w / 2 - 1.3, 1.7, tk.dk, null);
         }
     };
-    fan(72, 13, 'F1', 'F2'); fan(322, 12, 'F3', 'F4'); fan(470, 13, 'F1', 'F2'); fan(585, 10, 'F3', 'F4');
-    // brain coral domes
-    const brain = (x0, w, h, c1, c2, c3) => {
-        const y0 = rootY(x0) + 1;
-        for (let j = 0; j < h; j++) for (let i = 0; i < w; i++) {
-            const u = (i + 0.5) / w * 2 - 1, v = 1 - (j + 0.5) / h;
-            if (v > Math.sqrt(Math.max(0, 1 - u * u))) continue;
-            const lit = -u * 0.5 + v * 0.8, maze = Math.sin(i * 1.3 + Math.sin(j * 0.9) * 2) > 0.45;
-            P(x0 + i, y0 - (h - 1 - j), maze ? c3 : (lit > 0.35 ? c1 : c2));
-        }
-    };
-    brain(168, 18, 11, 'B1', 'B2', 'B3'); brain(432, 21, 12, 'B1', 'B2', 'B3'); brain(7, 14, 9, 'B1', 'B2', 'B3'); brain(298, 14, 8, 'B1', 'B2', 'B3');
-    // tube sponges: little clusters
-    const tubes = (x0, list, c1, c2, c3) => {
-        const y0 = rootY(x0);
-        list.forEach(([dx, h], i) => { for (let j = 0; j < h; j++) { P(x0 + dx, y0 - j, c1); P(x0 + dx + 1, y0 - j, c2); } P(x0 + dx, y0 - h, c3); P(x0 + dx + 1, y0 - h, c3); });
-    };
-    tubes(130, [[0, 11], [3, 17], [6, 8], [9, 12]], 'S1', 'S2', 'S3'); tubes(358, [[0, 14], [3, 8], [-3, 10], [6, 12]], 'S4', 'S5', 'S6'); tubes(560, [[0, 12], [3, 18], [6, 9]], 'S1', 'S2', 'S3');
-    const col = {
-        G1: '#2b8e70', G2: '#5cc79b', G3: '#3f8a4a', C1: '#e0728f', C2: '#ffb0b4', C3: '#a56fcc', C4: '#d3a8ee',
-        F1: '#d2563f', F2: '#f58a5a', F3: '#c04a86', F4: '#e888c0', B1: '#c8c46a', B2: '#8f9f4a', B3: '#657a3c',
-        S1: '#e8a04a', S2: '#c1762f', S3: '#6b3a22', S4: '#8c6cd0', S5: '#6648a4', S6: '#2e2058'
-    };
-    const pal = {}; for (const k in col) pal[k] = hex(col[k]);
-    KT.forEach(t => { pal[t[0]] = hex(t[0]); pal[t[1]] = hex(t[1]); pal[t[2]] = hex(t[2]); });
+    // ── the garden: five calm groups per tile, plenty of empty water between them
+    kelp(30, 70, 4, 0.3, 0.0, 'kA'); kelp(39, 50, 3.5, 1.9, 2.0, 'kB');
+    mound(68, 1.6, false, 'pk');
+    flower(106, 28, 0.6, 'or', 'ye');
+    tubes(150, [[0, 6, 14], [-7, 5, 9], [7, 5, 10]], 'or');
+    kelp(210, 78, 4.5, 2.2, 1.0, 'kB'); kelp(219, 56, 4, 0.4, 3.0, 'kA');
+    mound(250, 1.7, true, 'pu');
+    flower(292, 36, 2.1, 'pk', 'ye', 1.7);
+    tubes(336, [[0, 6, 12], [-7, 5, 8], [7, 5, 7]], 'pu');
+    kelp(392, 62, 4, 4.1, 0.6, 'kA'); kelp(401, 74, 4.5, 5.2, 2.4, 'kB');
+    mound(436, 1.7, false, 'or');
+    flower(472, 26, 3.4, 'pu', 'ye');
+    kelp(522, 72, 4, 1.2, 1.7, 'kA'); kelp(531, 48, 3.5, 3.0, 0.2, 'kB');
+    mound(562, 1.5, true, 'pk');
+    flower(592, 20, 4.4, 'or', 'ye', 1.3);
+    // a few short sea-grass tufts
+    for (const x of [88, 190, 274, 372, 500]) { ribbon(x - 2, rootY(x), 13, 1.5, x, 0.5, [0.8, 0.5], tk.gr, RING); ribbon(x + 2, rootY(x), 17, 1.8, x + 2, 1.5, [0.8, 0.5], tk.gr, RING); }
     return { W, H, px: renderMulti(g, pal) };
 }
 // like render() but characters may be multi-character keys (stored as strings in the grid)
@@ -662,18 +640,20 @@ function renderMulti(g, pal) {
     return px;
 }
 
-// far layer: distant hills, hazy rocks and a few tall silhouettes of kelp, all pulled towards the water colour
+// far layer: smooth distant hills with a few round humps and soft kelp / coral silhouettes, all pulled towards the water colour
 function farImg() {
-    const W = FA.cols, H = FA.rows, g = mk(W, H);
+    const W = FA.cols, H = FA.rows, g = mk(W, H), { disc, ribbon } = painter(g);
     for (let x = 0; x < W; x++) {
         const n = Math.round(farSurf(x));
         for (let y = n; y < H; y++) g[y][x] = y === n ? 'u' : (y < n + 4 ? 'v' : 'z');
     }
-    const rockF = (x0, w, h) => { const base = Math.round(farSurf(x0 + w / 2)) + 1; for (let j = 0; j < h; j++) { const hw = w / 2 * Math.sqrt(1 - Math.pow(j / h, 2)); for (let x = Math.ceil(w / 2 - hw); x <= Math.floor(w / 2 + hw); x++) g[base - j][wrapX(x0 + x)] = (j > h - 3 || x < w * 0.4) ? 'r' : 'q'; } };
-    rockF(48, 26, 11); rockF(66, 14, 16); rockF(300, 30, 12); rockF(330, 14, 8); rockF(480, 22, 10);
-    const weed = (x0, h, ph) => { const y0 = Math.round(farSurf(x0)) + 1; for (let j = 0; j < h; j++) { const x = x0 + Math.round(Math.sin(j * 0.12 + ph) * 3); g[y0 - j][wrapX(x)] = 'w'; if (j % 6 === 2 && j > 6) { g[y0 - j][wrapX(x + 1)] = 'w'; g[y0 - j][wrapX(x + 2)] = 'w'; g[y0 - j - 1][wrapX(x + 3)] = 'w'; } if (j % 6 === 5 && j > 6) { g[y0 - j][wrapX(x - 1)] = 'w'; g[y0 - j][wrapX(x - 2)] = 'w'; g[y0 - j - 1][wrapX(x - 3)] = 'w'; } } };
-    [[100, 34, 0.2], [108, 24, 1.4], [188, 38, 2.5], [260, 30, 3.7], [268, 22, 0.8], [372, 36, 5.0], [440, 32, 1.9], [510, 38, 4.1], [20, 28, 3.0]].forEach(a => weed(...a));
-    const pal = { u: hex(dim('#4a9bb8', 0.55)), v: hex(dim('#3a86a6', 0.62)), z: hex(dim('#2c6f93', 0.62)), r: hex(dim('#4f93b0', 0.58)), q: hex(dim('#356f93', 0.62)), w: hex(dim('#2d8a94', 0.6)) };
+    const base = x => Math.round(farSurf(wrapX(x))) + 2;
+    for (const [x, w, h] of [[56, 40, 11], [310, 46, 12], [486, 34, 10]]) disc(x, base(x), w / 2, h, ['r', 'q', 'q'], null, base(x));
+    for (const [x, h, ph] of [[104, 32, 0.2], [112, 24, 1.6], [190, 36, 2.5], [262, 28, 3.7], [372, 34, 5.0], [440, 30, 1.9], [512, 36, 4.1], [20, 26, 3.0]])
+        ribbon(x, base(x), h, 3, ph, ph * 2, [1.0, 1.0], ['wl', 'w', 'w'], null);
+    for (const [x, s] of [[150, 1], [226, 0.9], [420, 1], [566, 0.9]]) for (const [dx, dy, r] of [[-5, -4, 4], [5, -4, 4], [0, -7, 4.6], [0, -2, 5]]) disc(x + dx * s, base(x) + dy * s, r * s, r * s, ['m', 'm', 'm'], null, base(x));
+    const pal = { u: hex(dim('#4a9bb8', 0.55)), v: hex(dim('#3a86a6', 0.62)), z: hex(dim('#2c6f93', 0.62)), r: hex(dim('#4f93b0', 0.58)), q: hex(dim('#3c7899', 0.62)),
+        w: hex(dim('#2d8a94', 0.6)), wl: hex(dim('#3a9aa0', 0.6)), m: hex(dim('#4a8aa6', 0.62)) };
     return render(g, pal);
 }
 // light shaft: a leaning bar of light with a smooth alpha profile, wider and fainter with depth

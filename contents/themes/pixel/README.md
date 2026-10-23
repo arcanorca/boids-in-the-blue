@@ -35,9 +35,10 @@ writes a contact sheet of every sprite at 8x, `--scenery out.png` the backdrop t
 ## Layers (back to front)
 
 water gradient (5 stops, day and night sets blended by `daylight`, or the user's two colours) - light shafts -
-waterline + ripple strip - `far.png` (distant hills and hazy plants, bluer and dimmer) - `flora.png` (kelp in three
-greens, staghorn and sea-fan corals, brain corals, tube sponges, grass; roots are hidden by the sand) - `seabed.png`
-(dunes with ripples, rocks, shells, starfish) - marine snow - creatures (jelly, bubble, worm, fish, angler, orca).
+waterline + ripple strip - `far.png` (smooth distant hills with a few soft kelp and coral silhouettes, bluer and dimmer) - `flora.png` (a
+calm cartoon garden: ribbon kelp, chunky rounded corals in pink, orange and purple, flower anemones on stalks, tube
+sponges and a few grass tufts, all with a one-pixel outline and flat tones; roots are hidden by the sand) - `seabed.png`
+(smooth layered dunes, a few round rocks, two starfish) - marine snow - creatures (jelly, bubble, worm, fish, angler, orca).
 The three seabed textures are 600 texels wide and tile; the sand band is 8 % and the tallest plant 21 % of a
 1080p screen. At night the seabed fades into the dark with `daylight`.
 
