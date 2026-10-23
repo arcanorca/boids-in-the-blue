@@ -481,153 +481,216 @@ function bubbleImg(art) {
 }
 
 // ── AMBIENT TEXTURES ─────────────────────────────────────────
-// Three seabed layers share one width and tile horizontally: far.png (hazy distant hills, a few soft kelp and
-// coral silhouettes, bluer and dimmer), flora.png (a calm cartoon garden: ribbon kelp, chunky rounded corals,
-// flower anemones on stalks, tube sponges; drawn behind the sand so the roots are covered) and seabed.png
-// (smooth layered dunes, a few round rocks, two starfish). Every shape is a rounded blob with a one-pixel dark
-// outline and three flat tones (light from the top-left); no dithering, no noise. All periodic functions use
-// whole cycles per tile, so the seams do not show.
+// Three seabed layers share one width and tile horizontally, and read as three depths: far.png (hazy,
+// desaturated hills, rock domes, kelp and coral silhouettes), flora.png (muted mid ground: S-curved kelp with leaf
+// blades and a few coral masses; drawn behind the sand so the roots are covered) and seabed.png (the richest layer:
+// sunlit dunes with ripples and dappling, rock formations with strata and moss, shells, pebbles).
+// Every material is a six-tone ramp (rim, light, mid, shade, deep, outline) with highlights drifting warm / teal and
+// shadows drifting blue / purple; forms are shaded as lit from the top-left, with a one-pixel rim light and an
+// outline in the material's own darkest tone. Dithering is only used on the wide ramps of rock and sand.
+// All periodic functions use whole cycles per tile, so the seams do not show.
 const SB = T.SEABED, FL = T.FLORA, FA = T.FAR, TAU = Math.PI * 2, TW = SB.cols;
 const per = (x, k, ph) => Math.sin(TAU * k * x / TW + ph);
 const surf = x => 18 + 2.2 * per(x, 2, 0.3) + 1.4 * per(x, 5, 1.7);                    // sand surface row in seabed.png
-const surf2 = x => surf(x) + 9 + 1.6 * per(x, 3, 2.2) + 1.0 * per(x, 7, 0.5);          // a second, darker dune line below it
 const farSurf = x => 42 + 2.4 * per(x, 3, 0.9) + 1.5 * per(x, 7, 2.1);                 // distant hills row in far.png
 const wrapX = x => ((x % TW) + TW) % TW;
-const dim = (c, t) => lchMix(c, '#12537f', t);                                          // shift a colour towards the deep water (far layer)
-const dimRgb = (c, t) => { const a = hex(c), b = hex('#12537f'); return '#' + [0, 1, 2].map(i => Math.round(a[i] + (b[i] - a[i]) * t).toString(16).padStart(2, '0')).join(''); };   // same, hue-true (flora, sand)
+const dim = (c, t) => lchMix(c, '#12537f', t);                                          // shift a colour towards the deep water
+const dimRgb = (c, t) => { const a = hex(c), b = hex('#12537f'); return '#' + [0, 1, 2].map(i => Math.round(a[i] + (b[i] - a[i]) * t).toString(16).padStart(2, '0')).join(''); };   // same, hue-true
 
-// a painter bound to one grid: wrapped writes, optional clip below `ymax`, shaded outlined discs, ribbon kelp
-function painter(g) {
+// ramps: [rim, light, mid, shade, deep, outline]
+const RAMPS = {
+    ka: ['#d4f5b4', '#8fdfa6', '#4fbe9a', '#32967f', '#256c78', '#1b4a6c'],       // kelp, teal-green
+    kb: ['#e4f4a8', '#b0e08a', '#6fc07c', '#46987a', '#33707a', '#214c6c'],       // kelp, olive-green
+    cp: ['#ffe4d2', '#ffb9b6', '#ee8aa2', '#c06590', '#8a4a86', '#4e3478'],       // coral, rose
+    co: ['#fff0c4', '#ffcc88', '#f0a064', '#c87458', '#8e5272', '#523a74'],       // coral, apricot
+    cv: ['#f6e6ff', '#d4b4f6', '#aa86dc', '#8062b8', '#5a4a98', '#38387c'],       // coral, violet
+    ro: ['#e2eadc', '#b4c8c4', '#8aa4b0', '#66849c', '#4a6486', '#2e4a72'],       // rock, cool grey-blue
+    mo: ['#d8f2a4', '#a4d98a', '#6cb87c', '#4a9078', '#356c78', '#2a4c6c'],       // moss
+    sa: ['#f2ecc6', '#dcdcb4', '#bcccaa', '#9cb4a2', '#7d9a9c', '#64828c'],       // sand
+    sh: ['#fff6e6', '#f8dcc8', '#e8b8a8', '#c490a0', '#8e6a8e', '#5a4a80']        // shell
+};
+const IDX = lit => lit > 0.62 ? 0 : lit > 0.32 ? 1 : lit > 0.0 ? 2 : lit > -0.32 ? 3 : 4;   // lit (about -0.8..0.8) -> ramp index
+function buildPal(names, t, tint) {
+    const pal = {};
+    for (const n of names) RAMPS[n].forEach((c, i) => { pal[n + i] = hex(tint ? dim(c, t) : dimRgb(c, t)); });
+    return pal;
+}
+// remove orphan pixels (no 8-neighbour of the same tone): the hand-cleaned look
+function despeckle(g) {
+    const H = g.length, W = g[0].length;
+    for (let pass = 0; pass < 2; pass++) for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+        const ch = g[y][x]; if (ch === '.') continue;
+        let same = 0; const cnt = {};
+        for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
+            if (!dx && !dy) continue;
+            const yy = y + dy; if (yy < 0 || yy >= H) continue;
+            const c = g[yy][wrapX(x + dx)]; if (c === ch) same++;
+            if (!dx || !dy) cnt[c] = (cnt[c] || 0) + 1;
+        }
+        if (same) continue;
+        let best = '.', bn = 0; for (const c in cnt) if (cnt[c] > bn) { bn = cnt[c]; best = c; }
+        g[y][x] = best;
+    }
+}
+
+// a painter bound to one grid: wrapped writes, shaded outlined blobs, tube paths, and the plant / coral builders
+function painter(g, noRing) {
     const H = g.length;
     const P = (x, y, ch, ymax) => { x = wrapX(Math.round(x)); y = Math.round(y); if (y >= 0 && y < H && (ymax === undefined || y <= ymax)) g[y][x] = ch; };
-    // ellipse centred on (cx, cy); tones = [light, mid, dark] keys; ring = outline key (or null); ymax clips the bottom
-    const disc = (cx, cy, rx, ry, tones, ring, ymax) => {
-        for (let y = Math.floor(cy - ry - 1); y <= Math.ceil(cy + ry + 1); y++) for (let x = Math.floor(cx - rx - 1); x <= Math.ceil(cx + rx + 1); x++) {
-            const u = (x + 0.5 - cx) / rx, v = (y + 0.5 - cy) / ry, d = u * u + v * v;
-            if (d <= 1) {
-                const lit = -u * 0.45 - v * 0.55;
-                P(x, y, lit > 0.42 ? tones[0] : lit > -0.3 ? tones[1] : tones[2], ymax);
-            } else if (ring && ((x + 0.5 - cx) / (rx + 1)) ** 2 + ((y + 0.5 - cy) / (ry + 1)) ** 2 <= 1) P(x, y, ring, ymax);
+    // stamp a set of ellipses {x, y, rx, ry}: outline pass first (one union outline), then the shaded fills.
+    // o: mat, ring (false = none), shift (darker by n tones), ymax (clip)
+    const stampSet = (pts, mat, o) => {
+        o = o || {};
+        const ring = (o.ring === false || noRing) ? null : mat + 5, sh = o.shift || 0;
+        if (ring) for (const p of pts) {
+            const rx = p.rx, ry = p.ry === undefined ? rx : p.ry;
+            for (let y = Math.floor(p.y - ry - 1); y <= Math.ceil(p.y + ry + 1); y++) for (let x = Math.floor(p.x - rx - 1); x <= Math.ceil(p.x + rx + 1); x++)
+                if (((x + 0.5 - p.x) / (rx + 0.9)) ** 2 + ((y + 0.5 - p.y) / (ry + 0.9)) ** 2 <= 1) P(x, y, ring, o.ymax);
+        }
+        for (const p of pts) {
+            const rx = p.rx, ry = p.ry === undefined ? rx : p.ry;
+            for (let y = Math.floor(p.y - ry - 1); y <= Math.ceil(p.y + ry + 1); y++) for (let x = Math.floor(p.x - rx - 1); x <= Math.ceil(p.x + rx + 1); x++) {
+                const u = (x + 0.5 - p.x) / rx, v = (y + 0.5 - p.y) / ry;
+                if (u * u + v * v > 1) continue;
+                let i = IDX(-u * 0.5 - v * 0.6);
+                if (o.ridge) { const d = Math.hypot((x + 0.5 - o.ridge[0]) / rx, (y + 0.5 - o.ridge[1]) / ry) * o.ridge[2]; if (d - Math.floor(d) < 0.36) i++; }
+                P(x, y, mat + Math.min(4, i + sh), o.ymax);
+            }
         }
     };
-    // wavy ribbon rising from (x0, y0): width swells and narrows, rounded tip. wid = [base, swell]; outlined if ring
-    const ribbon = (x0, y0, h, amp, ph, wph, wid, tones, ring) => {
-        const cx = [], hw = [];
-        for (let j = 0; j <= h; j++) {
-            cx.push(x0 + Math.sin(j * 0.075 + ph) * amp * Math.min(1, j / 16));
-            hw.push((wid[0] + wid[1] * (0.5 + 0.5 * Math.sin(j * 0.19 + wph))) * (j > h - 9 ? Math.sqrt(Math.max(0.05, (h - j) / 9)) : 1));
-        }
-        const span = (j, pad) => {
-            const p = cx[Math.max(0, j - 1)], w = hw[j] + pad;
-            return [Math.round(Math.min(p, cx[j]) - w), Math.round(Math.max(p, cx[j]) + w)];
+    const R = (v, a, b) => Math.max(a, Math.min(b, v));
+    // a tube along a path of [x, y, r] samples
+    const tube = (path, mat, o) => stampSet(path.map(([x, y, r]) => ({ x, y, rx: r })), mat, o);
+    // kelp: an S-curved stem with alternating leaf blades; blades first (behind), the stem on top
+    const kelp = (x0, y0, h, A, ph, mat) => {
+        const sx = j => x0 + A * Math.sin(j * TAU / 58 + ph) * Math.min(1, j / 14);
+        const blade = (bx, by, dir, L, wmax, th0) => {
+            const pts = []; let x = bx, y = by, th = th0;
+            for (let s = 0; s <= L * 2; s++) {
+                const t = s / (L * 2);
+                pts.push([x, y, Math.max(0.75, wmax * Math.pow(Math.sin(Math.PI * Math.min(1, 0.1 + 0.9 * t)), 0.75) + 0.4 * (1 - t))]);
+                x += dir * Math.sin(th) * 0.5; y -= Math.cos(th) * 0.5; th -= 0.8 * 0.5 / L * (1.2 + t);
+            }
+            tube(pts, mat);
         };
-        if (ring) {
-            for (let j = 0; j <= h; j++) { const [a, b] = span(j, 1); for (let x = a; x <= b; x++) P(x, y0 - j, ring); }
-            for (let x = Math.round(cx[h] - 1); x <= Math.round(cx[h] + 1); x++) P(x, y0 - h - 1, ring);
-        }
-        for (let j = 0; j <= h; j++) {
-            const [a, b] = span(j, 0), w = Math.max(0.5, hw[j]);
-            for (let x = a; x <= b; x++) P(x, y0 - j, x < cx[j] - w * 0.25 ? tones[0] : x > cx[j] + w * 0.45 ? tones[2] : tones[1]);
-        }
+        let side = ph > 3 ? 1 : -1;
+        for (let j = 18; j < h - 12; j += 17) { const f = Math.sin(Math.PI * j / h); blade(sx(j), y0 - j, side, 10 + 7 * f, 1.6 + 1.0 * f, 1.0); side = -side; }
+        blade(sx(h - 12), y0 - h + 12, side, 15, 2.4, 0.5);
+        const stem = []; for (let j = 0; j <= h - 12; j += 0.5) stem.push([sx(j), y0 - j, 1.5 - 0.5 * j / h]);
+        tube(stem, mat);
     };
-    return { P, disc, ribbon };
+    // branching coral: thick rounded fingers, two or three levels, clean tips
+    const branching = (x0, y0, s, mat, flip, seed) => {
+        const pts = [], f = flip ? -1 : 1;
+        const br = (x, y, ang, len, r, depth) => {
+            const n = Math.round(len * 2);
+            for (let i = 0; i < n; i++) { x += Math.sin(ang) * 0.5 * f; y -= Math.cos(ang) * 0.5; ang += 0.02 * Math.sin(seed + depth); pts.push([x, y, r * (1 - 0.1 * i / n)]); }
+            pts.push([x, y, r * 1.1]);
+            const offs = depth === 2 ? [-0.85, 0.12, 0.9] : depth === 1 ? [-0.55, 0.5] : [];
+            offs.forEach((o, k) => br(x, y, ang + o + 0.08 * Math.sin(seed * (k + 2)), len * (depth === 2 ? 1.0 : 0.8), r * 0.74, depth - 1));
+        };
+        br(x0, y0 + 2, 0, 8 * s, 3.2 * s, 2);
+        tube(pts, mat);
+    };
+    // table coral: a short stalk under a scalloped plate with a dark underside and a thin growth ridge
+    const table = (x0, y0, rx, mat) => {
+        const yp = y0 - 14, ry = Math.max(3, rx * 0.2);
+        tube([[x0, y0 + 1, 4.2], [x0, y0 - 3, 3.2], [x0, y0 - 8, 2.9], [x0, y0 - 12, 3.4]], mat);
+        const plate = (dy, o) => stampSet([{ x: x0, y: yp + dy, rx, ry }, { x: x0 - rx * 0.62, y: yp + dy + 0.7, rx: rx * 0.5, ry: ry * 0.8 }, { x: x0 + rx * 0.64, y: yp + dy + 0.9, rx: rx * 0.46, ry: ry * 0.8 }], mat, o);
+        plate(2, { shift: 2 });
+        plate(0, { ridge: [x0 - rx * 0.1, yp + 1.5, 1.9] });
+    };
+    // dome (brain) coral with contour ridges
+    const brain = (x0, y0, rx, ry, mat) => stampSet([{ x: x0, y: y0 + 1, rx, ry }], mat, { ymax: y0 + 1, ridge: [x0 - rx * 0.15, y0 - ry * 0.5, 3.4] });
+    return { P, stampSet, tube, kelp, branching, table, brain };
 }
 
 function seabedImg() {
-    const W = SB.cols, H = SB.rows, g = mk(W, H), { P, disc } = painter(g);
-    for (let x = 0; x < W; x++) {
-        const n = Math.round(surf(x)), m = Math.round(surf2(x));
-        for (let y = n; y < H; y++) g[y][x] = y === n ? 'h' : y < m ? 'a' : y === m ? 's' : y < m + 10 ? 'b' : y < m + 15 ? 'c' : 'e';
-    }
+    const W = SB.cols, H = SB.rows, g = mk(W, H), { P, stampSet } = painter(g);
     const surfaceY = x => Math.round(surf(wrapX(x)));
-    // round rocks: half-domes sitting in the sand, three tones and a dark outline (flat at the bottom)
-    const rock = (x, w, h, mossy) => {
-        const base = surfaceY(x) + 3;
-        disc(x, base, w / 2, h, ['M', 'm', 'k'], 'u', base);
-        if (mossy) disc(x - w * 0.12, base - h * 0.62, w * 0.3, h * 0.26, ['G', 'g', 'g'], null, base - 2);
+    const sandIdx = (x, d) => {
+        const q = d + 0.9 * (surf(x + 3) - surf(x - 3));
+        let i = q < 1.1 ? 0 : q < 4.5 ? 1 : q < 9.5 ? 2 : q < 16 ? 3 : 4;
+        return Math.max(0, Math.min(4, i));
     };
-    rock(196, 40, 17, true); rock(222, 18, 8); rock(372, 34, 15); rock(396, 14, 7); rock(520, 44, 18, true); rock(548, 16, 8);
-    for (const x of [30, 150, 330, 455, 590]) { const y = surfaceY(x) + 4; P(x, y, 'p'); P(x + 1, y, 'P'); }          // a few pebbles
-    const star = (x, c1, c2) => {
-        const y = surfaceY(x) + 4;
-        for (const [dx, dy] of [[0, -2], [-1, -1], [0, -1], [1, -1], [-2, 0], [-1, 0], [0, 0], [1, 0], [2, 0], [-1, 1], [0, 1], [1, 1], [-2, 2], [2, 2]]) P(x + dx, y + dy, (dx + dy < 0 && dx < 1) ? c1 : c2);
-        P(x, y, 'Y');
+    const idx = Array.from({ length: H }, () => Array(W).fill(-1));
+    for (let x = 0; x < W; x++) { const n = surfaceY(x); for (let y = n; y < H; y++) idx[y][x] = sandIdx(x, y - n); }
+    // soft ripples: a lit crest with a shaded trough under it, in long runs that follow the dune
+    for (const [k, ph, f, ph2] of [[6, 0.0, 0.026, 0.5], [11, 1.7, 0.021, 2.4], [17, 3.1, 0.024, 4.1], [23, 4.6, 0.02, 1.2]]) for (let x = 0; x < W; x++) {
+        if (Math.sin(x * f * 2.3 + ph2) < 0.5) continue;
+        const y = surfaceY(x) + k + Math.round(1.2 * Math.sin(x * 0.03 + ph));
+        if (y + 1 < H && idx[y][x] > 0) { idx[y][x] = Math.max(0, idx[y][x] - 1); idx[y + 1][x] = Math.min(4, idx[y + 1][x] + 1); }
+    }
+    // light dappling near the surface: broad, soft, lighter ellipses
+    for (const [x0, d0, rx, ry] of [[22, 4, 11, 1.6], [64, 6.5, 8, 1.3], [118, 3.5, 13, 1.7], [172, 7, 9, 1.4], [236, 4.5, 12, 1.6], [296, 6.5, 8, 1.3], [352, 3.5, 11, 1.6], [420, 6, 10, 1.4], [476, 4, 13, 1.7], [538, 7, 8, 1.3], [580, 4.5, 10, 1.5]])
+        for (let x = Math.floor(x0 - rx); x <= x0 + rx; x++) for (let y = 0; y < H; y++) {
+            const xx = wrapX(x), n = surfaceY(xx), dy = y - (n + d0);
+            if (idx[y][xx] >= 0 && (x - x0) ** 2 / (rx * rx) + dy * dy / (ry * ry) <= 1) idx[y][xx] = Math.max(0, idx[y][xx] - 1);
+        }
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) if (idx[y][x] >= 0) g[y][x] = 'sa' + idx[y][x];
+    // contact shadow under a rock, then the rock itself: round parts with strata and an optional moss cap
+    const rock = (cx, parts, moss) => {
+        const base = surfaceY(cx) + 4;
+        for (const [dx, w, h] of parts) for (let x = Math.floor(cx + dx - w / 2 - 3); x <= cx + dx + w / 2 + 4; x++) for (let y = base - 1; y <= base + 2; y++) {
+            const u = (x - (cx + dx)) / (w / 2 + 3.5), v = (y - base - 0.5) / 2.2;
+            if (u * u + v * v <= 1 && g[y][wrapX(x)].startsWith('sa')) g[y][wrapX(x)] = 'sa' + Math.min(4, +g[y][wrapX(x)].slice(2) + 1);
+        }
+        parts.forEach(([dx, w, h], pi) => {
+            const x0 = cx + dx, rx = w / 2;
+            const cells = [];
+            for (let y = Math.floor(base - h - 1); y <= base; y++) for (let x = Math.floor(x0 - rx - 1); x <= Math.ceil(x0 + rx + 1); x++) {
+                const u = (x + 0.5 - x0) / rx, v = (y + 0.5 - base) / h;
+                if (u * u + v * v <= 1.0 && v <= 0.12) cells.push([x, y, u, v]);
+            }
+            // outline: union ring around the part, clipped at the sand
+            for (let y = Math.floor(base - h - 2); y <= base; y++) for (let x = Math.floor(x0 - rx - 2); x <= Math.ceil(x0 + rx + 2); x++)
+                if (((x + 0.5 - x0) / (rx + 0.9)) ** 2 + ((y + 0.5 - base) / (h + 0.9)) ** 2 <= 1) P(x, y, 'ro5', base);
+            for (const [x, y, u, v] of cells) {
+                const lit = -u * 0.5 + v * 0.62 + 0.18 * (1 - u * u);                       // v is negative towards the top
+                let i = IDX(lit - 0.1), mat = 'ro';
+                const s = base - y + 1.5 * Math.sin(x * 0.12 + pi * 2) + 0.8 * Math.sin(x * 0.31);
+                if (Math.abs(s - 5 * Math.round(s / 5)) < 0.5 && s > 3 && v < -0.1) i = Math.min(4, i + 1);          // a stratum crack
+                else if (Math.abs(s - 5 * Math.round(s / 5) - 1) < 0.5 && s > 3 && i > 1) i = i - 1;               // lit lip above it
+                if (moss && pi === 0 && v < -0.55 - 0.1 * Math.sin(x * 0.5 + 1) - 0.07 * Math.sin(x * 1.3)) { mat = 'mo'; i = IDX(lit + 0.1); }
+                P(x, y, mat + Math.min(4, Math.max(0, i)));
+            }
+        });
     };
-    star(170, 'T', 't'); star(450 + 5, 'T', 't');
-    const pal = {
-        h: hex(dimRgb('#d6d9b0', 0.18)), a: hex(dimRgb('#c6cfa6', 0.21)), s: hex(dimRgb('#a5bb9c', 0.25)), b: hex(dimRgb('#b2c4a0', 0.23)), c: hex(dimRgb('#96b19a', 0.27)), e: hex(dimRgb('#78a096', 0.31)),
-        p: hex(dimRgb('#e0e2c0', 0.18)), P: hex(dimRgb('#b2c4a4', 0.23)), M: hex(dimRgb('#b2c4c2', 0.21)), m: hex(dimRgb('#90a8b0', 0.25)), k: hex(dimRgb('#6d899a', 0.27)),
-        G: hex('#7fb190'), g: hex('#5f9a82'), u: hex('#3f6076'), T: hex('#f2a876'), t: hex('#d0764a'), Y: hex('#ffe0aa')
+    rock(130, [[0, 46, 20], [-17, 22, 10], [19, 24, 12]], true);
+    rock(372, [[0, 28, 12], [14, 14, 7]], false);
+    rock(500, [[0, 52, 22], [24, 22, 10], [-26, 18, 8]], true);
+    // scallop shells
+    const scallop = (x0, tint) => {
+        const y0 = surfaceY(x0) + 7, R = 6;
+        for (let y = y0 - R - 1; y <= y0 + 1; y++) for (let x = x0 - R - 1; x <= x0 + R + 1; x++) {
+            const dx = x + 0.5 - x0, dy = y + 0.5 - y0, d = Math.hypot(dx, dy * 1.15), a = Math.atan2(dx, -dy);
+            if (dy > 0.6 || d > R + 0.9 || Math.abs(a) > 1.25) continue;
+            if (d > R) { P(x, y, 'sh5'); continue; }
+            const rib = Math.abs(Math.sin(a * 4.5)) < 0.45;
+            P(x, y, 'sh' + Math.min(4, (rib ? 3 : 2) + (tint ? 0 : -1) + (dx < -1.5 && dy < -1 ? -1 : 0) + (d < 1.6 ? 1 : 0)));
+        }
     };
+    scallop(168, 0); scallop(300, 1); scallop(566, 0);
+    despeckle(g);
+    const pal = buildPal(['ro', 'mo', 'sh'], 0, false); Object.assign(pal, buildPal(['sa'], 0.2, false));
     return render(g, pal);
 }
 
 // flora: drawn on a canvas as tall as FL.rows; roots sit on the sand surface (and are covered by seabed.png)
 function floraImg() {
-    const W = FL.cols, H = FL.rows, g = mk(W, H), { P, disc, ribbon } = painter(g);
+    const W = FL.cols, H = FL.rows, g = mk(W, H), B = painter(g);
     const rootY = x => H - SB.rows + Math.round(surf(wrapX(x))) + 1;
-    // palettes: three tones each (light, mid, dark), pulled slightly towards the water so the garden stays calm
-    const TONES = {
-        kA: ['#62c9a2', '#3ea788', '#277f74'], kB: ['#74d29c', '#4cb383', '#2e8a6c'], gr: ['#8adba0', '#5cbb85', '#3c9470'],
-        pk: ['#ffbfc8', '#f58fab', '#cc6489'], or: ['#ffcb92', '#f9a062', '#d27649'], pu: ['#d8b8f4', '#ae88da', '#805eb4'],
-        ye: ['#fff3b8', '#ffdc80', '#eab654'], st: ['#e4a8b8', '#c7809f', '#9d5d82'], dk: ['#7a3c64', '#6a3058', '#5a2650']
-    };
-    const pal = { o: hex('#103f66', 0.92) };
-    const tk = {};
-    for (const n in TONES) { tk[n] = TONES[n].map((c, i) => { const k = n + i; pal[k] = hex(dimRgb(c, 0.24)); return k; }); }
-    const RING = 'o';
-    // ribbon kelp: pair or trio of swaying fronds sharing a root
-    const kelp = (x, h, amp, ph, wph, t, w) => ribbon(x, rootY(x), h, amp, ph, wph, w || [1.5, 1.5], tk[t], RING);
-    // chunky coral mound: overlapping round lobes, back to front, with a couple of darker dots
-    const mound = (x, s, flip, t) => {
-        const y0 = rootY(x), f = flip ? -1 : 1;
-        const lobes = [[-7, -8, 5.2], [7, -9, 5.6], [0, -12, 6], [-3.5, -5.5, 6], [5, -5, 5.4]];
-        for (const [dx, dy, r] of lobes) disc(x + f * dx * s, y0 + dy * s, r * s, r * s * 0.95, tk[t], RING);
-        for (const [dx, dy] of [[-1, -12], [7, -6], [-5, -5]]) { P(x + f * dx * s, y0 + dy * s, tk[t][2]); P(x + f * dx * s + 1, y0 + dy * s, tk[t][2]); }
-    };
-    // flower anemone: a curved stalk topped by a ring of round petals around a bright centre
-    const flower = (x, h, ph, petal, centre, s) => {
-        s = s || 1.5;
-        const y0 = rootY(x), sx = j => x + Math.sin(j * 0.13 + ph) * 1.8 * Math.min(1, j / 8);
-        for (let j = 0; j <= h; j++) { for (const dx of [-1, 0, 1, 2]) P(sx(j) + dx - 0.5, y0 - j, RING); }
-        for (let j = 0; j <= h; j++) { P(sx(j) - 0.5, y0 - j, tk.kA[0]); P(sx(j) + 0.5, y0 - j, tk.kA[1]); }
-        const hx = sx(h) + 0.5, hy = y0 - h - 3 * s, n = 6;
-        const pet = [];
-        for (let k = 0; k < n; k++) { const a = k * TAU / n + 0.5; pet.push([hx + Math.cos(a) * 4.6 * s, hy + Math.sin(a) * 4.0 * s]); }
-        pet.sort((a, b) => a[1] - b[1]);
-        for (const [px, py] of pet) disc(px, py, 3.0 * s, 3.0 * s, tk[petal], RING);
-        disc(hx, hy, 2.9 * s, 2.7 * s, tk[centre], RING);
-    };
-    // tube sponges: a small cluster of fat tubes with a dark opening
-    const tubes = (x, list, t) => {
-        const y0 = rootY(x);
-        for (let [dx, w, h] of list) {
-            dx = Math.round(dx * 1.6); w = Math.round(w * 1.5); h = Math.round(h * 1.6);
-            const x0 = x + dx, top = y0 - h;
-            for (let j = 0; j <= h; j++) { P(x0 - 1, top + j, RING); P(x0 + w, top + j, RING); }
-            for (let j = 0; j <= h; j++) for (let i = 0; i < w; i++) P(x0 + i, top + j, i < w * 0.3 ? tk[t][0] : i >= w * 0.65 ? tk[t][2] : tk[t][1]);
-            disc(x0 + w / 2, top, w / 2 + 0.2, 3, [tk[t][0], tk[t][0], tk[t][1]], RING);
-            disc(x0 + w / 2, top + 0.3, w / 2 - 1.3, 1.7, tk.dk, null);
-        }
-    };
-    // ── the garden: five calm groups per tile, plenty of empty water between them
-    kelp(30, 70, 4, 0.3, 0.0, 'kA'); kelp(39, 50, 3.5, 1.9, 2.0, 'kB');
-    mound(68, 1.6, false, 'pk');
-    flower(106, 28, 0.6, 'or', 'ye');
-    tubes(150, [[0, 6, 14], [-7, 5, 9], [7, 5, 10]], 'or');
-    kelp(210, 78, 4.5, 2.2, 1.0, 'kB'); kelp(219, 56, 4, 0.4, 3.0, 'kA');
-    mound(250, 1.7, true, 'pu');
-    flower(292, 36, 2.1, 'pk', 'ye', 1.7);
-    tubes(336, [[0, 6, 12], [-7, 5, 8], [7, 5, 7]], 'pu');
-    kelp(392, 62, 4, 4.1, 0.6, 'kA'); kelp(401, 74, 4.5, 5.2, 2.4, 'kB');
-    mound(436, 1.7, false, 'or');
-    flower(472, 26, 3.4, 'pu', 'ye');
-    kelp(522, 72, 4, 1.2, 1.7, 'kA'); kelp(531, 48, 3.5, 3.0, 0.2, 'kB');
-    mound(562, 1.5, true, 'pk');
-    flower(592, 20, 4.4, 'or', 'ye', 1.3);
-    // a few short sea-grass tufts
-    for (const x of [88, 190, 274, 372, 500]) { ribbon(x - 2, rootY(x), 13, 1.5, x, 0.5, [0.8, 0.5], tk.gr, RING); ribbon(x + 2, rootY(x), 17, 1.8, x + 2, 1.5, [0.8, 0.5], tk.gr, RING); }
-    return { W, H, px: renderMulti(g, pal) };
+    // the garden: five groups per tile with long stretches of empty water between them
+    B.kelp(26, rootY(26), 70, 5, 0.3, 'ka'); B.kelp(41, rootY(41), 54, 4.5, 3.6, 'kb');
+    B.branching(92, rootY(92), 1.25, 'cp', false, 1.3);
+    B.table(206, rootY(206), 17, 'cv');
+    B.kelp(268, rootY(268), 66, 5, 1.5, 'kb');
+    B.brain(322, rootY(322) - 2, 14, 10, 'co');
+    B.kelp(380, rootY(380), 72, 5, 2.2, 'ka'); B.kelp(395, rootY(395), 52, 4.5, 5.1, 'kb');
+    B.branching(446, rootY(446), 1.3, 'co', true, 2.1);
+    B.table(558, rootY(558), 15, 'cp');
+    despeckle(g);
+    return { W, H, px: renderMulti(g, buildPal(['ka', 'kb', 'cp', 'co', 'cv'], 0.16, false)) };
 }
 // like render() but characters may be multi-character keys (stored as strings in the grid)
 function renderMulti(g, pal) {
@@ -640,22 +703,23 @@ function renderMulti(g, pal) {
     return px;
 }
 
-// far layer: smooth distant hills with a few round humps and soft kelp / coral silhouettes, all pulled towards the water colour
+// far layer: hazy, desaturated hills with soft banding, rock domes, and kelp / coral silhouettes without outlines
 function farImg() {
-    const W = FA.cols, H = FA.rows, g = mk(W, H), { disc, ribbon } = painter(g);
+    const W = FA.cols, H = FA.rows, g = mk(W, H), B = painter(g, true);
     for (let x = 0; x < W; x++) {
         const n = Math.round(farSurf(x));
-        for (let y = n; y < H; y++) g[y][x] = y === n ? 'u' : (y < n + 4 ? 'v' : 'z');
+        for (let y = n; y < H; y++) { const d = y - n; g[y][x] = d === 0 ? 'hu' : d < 4 ? 'hv' : d < 11 ? 'hw' : 'hz'; if (d >= 10 && d <= 11 && ((x + y) & 1)) g[y][x] = d === 10 ? 'hz' : 'hw'; }
     }
     const base = x => Math.round(farSurf(wrapX(x))) + 2;
-    for (const [x, w, h] of [[56, 40, 11], [310, 46, 12], [486, 34, 10]]) disc(x, base(x), w / 2, h, ['r', 'q', 'q'], null, base(x));
-    for (const [x, h, ph] of [[104, 32, 0.2], [112, 24, 1.6], [190, 36, 2.5], [262, 28, 3.7], [372, 34, 5.0], [440, 30, 1.9], [512, 36, 4.1], [20, 26, 3.0]])
-        ribbon(x, base(x), h, 3, ph, ph * 2, [1.0, 1.0], ['wl', 'w', 'w'], null);
-    for (const [x, s] of [[150, 1], [226, 0.9], [420, 1], [566, 0.9]]) for (const [dx, dy, r] of [[-5, -4, 4], [5, -4, 4], [0, -7, 4.6], [0, -2, 5]]) disc(x + dx * s, base(x) + dy * s, r * s, r * s, ['m', 'm', 'm'], null, base(x));
-    const pal = { u: hex(dim('#4a9bb8', 0.55)), v: hex(dim('#3a86a6', 0.62)), z: hex(dim('#2c6f93', 0.62)), r: hex(dim('#4f93b0', 0.58)), q: hex(dim('#3c7899', 0.62)),
-        w: hex(dim('#2d8a94', 0.6)), wl: hex(dim('#3a9aa0', 0.6)), m: hex(dim('#4a8aa6', 0.62)) };
-    return render(g, pal);
+    for (const [x, w, h] of [[60, 44, 11], [76, 22, 7], [312, 50, 12], [488, 36, 10]]) B.stampSet([{ x, y: base(x), rx: w / 2, ry: h }], 'fr', { ring: false, ymax: base(x) });
+    for (const [x, h, A, ph, m] of [[110, 40, 4, 0.4, 'fk'], [119, 30, 3.5, 2.6, 'fk'], [196, 44, 4, 1.3, 'fk'], [372, 42, 4, 3.9, 'fk'], [380, 32, 3.5, 5.3, 'fk'], [520, 44, 4, 2.2, 'fk'], [20, 34, 3.5, 4.6, 'fk']]) B.kelp(x, base(x), h, A, ph, m);
+    B.branching(152, base(152), 0.9, 'fc', false, 0.7); B.branching(430, base(430), 0.95, 'fc', true, 1.9);
+    despeckle(g);
+    const pal = { hu: hex(dim('#4a9bb8', 0.55)), hv: hex(dim('#3a86a6', 0.62)), hw: hex(dim('#327aa0', 0.62)), hz: hex(dim('#2c6f93', 0.62)) };
+    for (const [m, src] of [['fr', 'ro'], ['fk', 'ka'], ['fc', 'cv']]) RAMPS[src].forEach((c, i) => { pal[m + i] = hex(dim(c, 0.74)); });
+    return { W, H, px: renderMulti(g, pal) };
 }
+
 // light shaft: a leaning bar of light with a smooth alpha profile, wider and fainter with depth
 function shaftImg() {
     const W = T.SHAFT.cols, H = T.SHAFT.rows, px = Buffer.alloc(W * H * 4);
