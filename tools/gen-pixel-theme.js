@@ -698,7 +698,7 @@ function farImg() {
     const pal = { u: hex(dim('#4a9bb8', 0.55)), v: hex(dim('#3a86a6', 0.62)), z: hex(dim('#2c6f93', 0.62)), r: hex(dim('#4f93b0', 0.58)), q: hex(dim('#356f93', 0.62)), w: hex(dim('#2d8a94', 0.6)) };
     return render(g, pal);
 }
-// light shaft 40x150: a leaning bar of light, dithered in 3 alpha steps, wider and fainter with depth
+// light shaft: a leaning bar of light with a smooth alpha profile, wider and fainter with depth
 function shaftImg() {
     const W = T.SHAFT.cols, H = T.SHAFT.rows, px = Buffer.alloc(W * H * 4);
     for (let y = 0; y < H; y++) {
@@ -707,9 +707,8 @@ function shaftImg() {
             const d = Math.abs(x - (6 + lean + half)) / half;
             if (d >= 1) continue;
             const strength = Math.pow(1 - d * d, 1.3) * Math.pow(1 - t, 1.6);
-            const lvl = Math.min(3, Math.floor(strength * 3.2 + (BAYER[y & 3][x & 3] / 16) * (0.3 + 0.7 * (1 - t))));
-            if (!lvl) continue;
-            const o = (y * W + x) * 4, a = [0, 0.3, 0.55, 0.85][lvl];
+            const o = (y * W + x) * 4, a = Math.min(1, strength * 1.05);
+            if (a < 0.02) continue;
             px[o] = 226; px[o + 1] = 247; px[o + 2] = 255; px[o + 3] = Math.round(a * 255);
         }
     }

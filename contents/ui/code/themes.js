@@ -25,7 +25,7 @@ var THEMES = [
     {
         id: "pixel",
         name: "Refined Pixel",
-        description: "Crisp pixel art with light shafts",
+        description: "Crisp pixel art, kelp seabed and light shafts",
         usesDayNight: true,
         usesWaterColors: true
     },
