@@ -74,7 +74,7 @@ var THEMES = [
     {
         id: "ukiyoe",
         name: "Ukiyo-e",
-        description: "Japanese woodblock print",
+        description: "Japanese woodblock print with quiet waves",
         usesDayNight: true,
         usesWaterColors: false
     }
