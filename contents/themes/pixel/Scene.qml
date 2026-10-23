@@ -1,5 +1,6 @@
 import QtQuick
 import "sync.js" as PixelSync
+import "theme.js" as T
 
 // Scene of the "pixel" theme (Refined Pixel): smooth water + ambience (Ambient.qml) behind the
 // pooled PixelSprite layer. Scene contract: ui/code/themes.js
@@ -17,18 +18,23 @@ Item {
     property var sim: null
     property real glimmerLevel: 0
 
+    // px per art texel (integer), see theme.js psFor
+    readonly property int ps: T.psFor(height)
+
     function sync(s) {
-        s.bodyScale = 32 / 28;      // fish 16 texels x 2 px = 32 px wide at the default size (classic 28)
+        s.top = 20 * ps;            // creatures stay below the surface strip (the orca is 34 texels tall)
+        s.bodyScale = 20 * ps / 28; // mid fish 20 texels wide (40 px at 1080p; the classic fish is 28)
         PixelSync.sync(s, entities, entities);
     }
 
     Ambient {
         anchors.fill: parent
         z: 0.5
+        ps: scene.ps
         paused: scene.paused
         daylight: scene.daylight
         customTop: scene.customWater ? scene.waterTop : ""
         customBottom: scene.customWater ? scene.waterBottom : ""
     }
-    EntityLayer { id: entities; anchors.fill: parent; z: 1; enabled: false }
+    EntityLayer { id: entities; anchors.fill: parent; z: 1; enabled: false; cell: scene.ps; paused: scene.paused }
 }

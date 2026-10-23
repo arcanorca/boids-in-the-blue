@@ -1,16 +1,25 @@
 import QtQuick
 
 // Pooling entity layer of the "pixel" theme (PixelSprite delegates). Pass it to PixelSync.sync() as
-// the "component": it implements createObject(parent, props) with a per-kind pool and hands out delegates
-// whose release() returns them to the pool (the adapter calls that from sim.onRemove, so
-// a removed entity's sprite is hidden immediately and no ghosts remain).
-// The pool grows on demand; there is no cap.
+// the "component": createObject(parent, props) hands out pooled sprites whose release() returns them
+// to the pool (the adapter calls that from sim.onRemove, so a removed entity's sprite is hidden at once
+// and no ghosts remain). The pool grows on demand; there is no cap.
+// `cell` = screen px per art texel (set by Scene.qml).
+//
+// Smooth motion: sync.js calls beginTick() once per sim tick; ONE shared tween `t` (0..1, linear, as long
+// as the real tick interval) interpolates every sprite between its previous and its new position, and the
+// sprite lands on whole screen pixels (Math.round), so slow fish glide instead of stepping at 25 Hz.
+// No per-sprite animation objects.
 Item {
     id: layer
 
-    // pool statistics (tests / debugging)
+    property int cell: 2
+    property bool paused: false
     property int created: 0
     property int live: 0
+    property real t: 1                     // tween between the last two sim ticks
+    property double _last: 0
+    property real _ema: 40                 // smoothed real interval between ticks (ms)
 
     property var _free: [[], [], [], [], [], [], []]       // indexed by delegate type
     // Stacking: the old renderer created one child per entity, so the newest was always on top.
@@ -18,6 +27,28 @@ Item {
     property double _zc: 0
 
     Component { id: spriteComponent; PixelSprite {} }
+
+    NumberAnimation {
+        id: tween
+        target: layer
+        property: "t"
+        from: 0
+        to: 1
+        duration: 40
+        running: false
+    }
+
+    // called by sync.js at the start of every tick: restart the tween. Its length is 1.35x the smoothed tick
+    // interval, so a late or early tick neither stalls nor jumps the sprites.
+    function beginTick() {
+        var now = Date.now();
+        if (_last > 0) _ema = _ema * 0.85 + Math.max(10, Math.min(150, now - _last)) * 0.15;
+        _last = now;
+        tween.stop();
+        tween.duration = Math.round(_ema * 1.35);
+        t = 0;
+        if (!paused) tween.start(); else t = 1;
+    }
 
     function createObject(parent, props) {
         var t = props.type;
@@ -30,12 +61,10 @@ Item {
             created++;
         }
         d.z = ++_zc;
-        d.animate = false;
         d.flip = false; d.shakeX = 0; d.shakeY = 0; d.opacity = 1; d.rotation = 0;
-        d.tintAlpha = 0;
-        if (props.colorString !== undefined) d.baseColor = props.colorString;   // before spriteData: no stray texture lookups
+        d.tintAlpha = 0; d.tintOpacity = 0;
+        d.sparkle = 0; d.cls = 0; d.frame = 0; d.glow = 0.4; d.lure = 1;
         for (var k in props) d[k] = props[k];
-        d.animate = true;
         d.visible = true;
         live++;
         return d;
