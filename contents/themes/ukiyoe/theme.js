@@ -126,26 +126,29 @@ function bubbleClass(scale) { return scale < 2.25 ? 0 : 1; }
 function bubbleFile(scale) { return bubbleClass(scale) ? "bubble-b.png" : "bubble-s.png"; }
 
 // ── backdrop: bokashi water with the Seigaiha (blue ocean waves) pattern ──
-// The sea is a static 640x300 texel image per daylight variant (night, dusk, day): a smooth vertical bokashi from
+// The sea is a static 672x300 texel image per daylight variant (night, dusk, day): a smooth vertical bokashi from
 // a lighter Prussian blue at the surface to deep indigo at the floor, in steps of `step` texel rows (never one
-// row, so the banding never reads as stripes), with overlapping concentric wave scales (Seigaiha, scale radius
-// `scale` texels, rings `ring` texels wide, outer arc in a lighter blue) that fade out with depth (full down to
-// row `fadeFrom`, gone at `fadeTo`). Everything below is plain bokashi. The width is a multiple of the scale
-// diameter, so the tile repeats without a seam. `stops` are [texel row, colour] of the gradient (the pattern is
-// added on top as lighter offsets: `tone` for every second ring, `arc` for the outer arc, as [r, g, b] at full
-// strength); `tones` are the five flat blues the surface strip is painted in ('2' deep, '3' mid, '4' = the gradient at row 36, '5' = the pale sky at the top).
+// row, so the banding never reads as stripes), with large overlapping concentric wave scales (Seigaiha, scale
+// radius `scale` texels = 84 px at 1080p, rings `ring` texels wide, outer arc `arcW` texels wide in a slightly
+// lighter blue) that fade out with depth (full down to row `fadeFrom`, gone at `fadeTo`, a third of the screen).
+// Everything below is plain bokashi. The width is a multiple of the scale diameter, so the tile repeats without
+// a seam. `stops` are [texel row, colour] of the gradient (the pattern is added on top as small lighter offsets:
+// `tone` for every second ring, `arc` for the outer arc, as [r, g, b] at full strength); `tones` are the five
+// flat blues the surface strip is painted in ('2' deep, '3' mid, '4' = the gradient at row 36, '5' = the pale sky
+// at the top); `foam` are the two creams of the crests (light, shade): the washi pigments by day, dimmer at dusk
+// and night so the white of the foam never glares in a dark room.
 var WATER = {
-    cols: 640, rows: 300, step: 3, scale: 16, ring: 4, startRow: 36, fadeIn: 14, fadeFrom: 90, fadeTo: 210,
+    cols: 672, rows: 300, step: 3, scale: 28, ring: 5, arcW: 3, startRow: 40, fadeIn: 16, fadeFrom: 58, fadeTo: 124,
     variants: [
-        { name: "night", daylight: 0,   tone: [6, 11, 15], arc: [13, 22, 31],
+        { name: "night", daylight: 0,   tone: [1, 3, 4], arc: [3, 6, 9],
           stops: [[0, "#1d4066"], [36, "#14304f"], [60, "#10294a"], [150, "#0c2038"], [230, "#09182b"], [285, "#0a1a2e"]],
-          tones: ["#08182a", "#08182a", "#0e2540", "#14304f", "#1d4066"] },
-        { name: "dusk",  daylight: 0.3, tone: [8, 15, 21], arc: [17, 29, 41],
+          tones: ["#08182a", "#08182a", "#0e2540", "#14304f", "#1d4066"], foam: ["#aaa896", "#807f74"] },
+        { name: "dusk",  daylight: 0.3, tone: [2, 4, 6], arc: [4, 8, 12],
           stops: [[0, "#2a6396"], [36, "#1d4d7a"], [60, "#1a4670"], [150, "#14355a"], [230, "#0e2742"], [285, "#0a1a2e"]],
-          tones: ["#0e2742", "#0e2742", "#14355a", "#1d4d7a", "#2a6396"] },
-        { name: "day",   daylight: 0.7, tone: [10, 18, 26], arc: [21, 36, 52],
+          tones: ["#0e2742", "#0e2742", "#14355a", "#1d4d7a", "#2a6396"], foam: ["#cbc3a8", "#a39b82"] },
+        { name: "day",   daylight: 0.7, tone: [2, 5, 7], arc: [5, 10, 14],
           stops: [[0, "#2f6a96"], [36, "#1f4f7e"], [70, "#1f4f7e"], [130, "#1b4573"], [190, "#153862"], [250, "#0e2a48"], [285, "#0a1a2e"]],
-          tones: ["#0e2a47", "#102f50", "#173f68", "#1f4f7e", "#2f6a96"] }
+          tones: ["#0e2a47", "#102f50", "#173f68", "#1f4f7e", "#2f6a96"], foam: ["#e8dfc6", "#c9bd9b"] }
     ]
 };
 function waterFile(level) { return "water-" + level + ".png"; }
@@ -156,10 +159,11 @@ function waterLevel(daylight) {
     return l;
 }
 function surfaceFile(level) { return "surface-" + level + ".png"; }
-// Hokusai Kanagawa-style surface strip: wave crests that curl into cream foam claws (128x18, tiles horizontally).
-// y: texel row of the strip (the top panel covers about 18 texels = 54 px; nothing but water is drawn above the
-// strip's own top row). floor: the simulation keeps creature CENTRES below this texel row (the strip ends at row 35; a mid fish is 9 texels tall).
-var SURFACE = { cols: 128, rows: 18, y: 18, floor: 44 };
+// Hokusai-style surface strip: one long, never visibly repeating line of wave crests of different size and lean
+// (640x26 texels = 1920 px wide at 1080p, tiles horizontally). y: texel row of the strip (the top panel covers
+// about 18 texels = 54 px; nothing but water is drawn above the strip's own top row). floor: the simulation
+// keeps creature CENTRES below this texel row (the strip ends at row 44).
+var SURFACE = { cols: 640, rows: 26, y: 18, floor: 44 };
 
 // seabed: layered reef & dune strip along the bottom (32 of the 360 texel rows = 8.9% <= 9%), 640 texels wide
 var SEABED = { cols: 640, rows: 32 };
