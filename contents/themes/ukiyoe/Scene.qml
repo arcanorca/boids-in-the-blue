@@ -3,7 +3,7 @@ import "sync.js" as UkiyoeSync
 import "theme.js" as T
 
 // Scene of the "ukiyoe" theme (Ukiyo-e, nishiki-e): flat traditional pigments with sumi keyblock outlines.
-// The backdrop (Ambient.qml: bokashi sea with the Seigaiha pattern, Hokusai wave crests, wakame kelp,
+// The backdrop (Ambient.qml: bokashi sea with the Seigaiha pattern, small Hokusai wave crests, wakame kelp,
 // Matsushima seabed) lives in a world of texels scaled by a whole number of device pixels (3 px per texel at
 // 1080p) with nearest-neighbour textures. Creatures (pooled UkiyoeSprite) are placed in screen pixels
 // so they glide smoothly between simulation ticks while rendering at the exact same texel scale.

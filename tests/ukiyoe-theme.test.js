@@ -189,14 +189,12 @@ test('the seigaiha tile repeats without a seam and the surface strip starts belo
     let first = -1;
     for (let y = 0; y < s.H && first < 0; y++) for (let x = 0; x < s.W; x++) if (s.px[(y * s.W + x) * 4 + 3]) { first = y; break; }
     assert.ok(T.SURFACE.y + first >= 18, 'the topmost crest pixel is on row ' + (T.SURFACE.y + first) + ', must be below the 54 px top panel (row 18)');
-    // wrap: the strip's left and right edges join (no crest is cut by the seam, both columns are plain wave line)
-    for (let y = 0; y < s.H; y++) {
-        const l = s.px.subarray((y * s.W) * 4, (y * s.W) * 4 + 4), r = s.px.subarray((y * s.W + s.W - 1) * 4, (y * s.W + s.W - 1) * 4 + 4);
-        assert.deepStrictEqual(Array.from(l), Array.from(r), 'the strip does not wrap cleanly at row ' + y);
-    }
+    // wrap: the wave line is periodic over the strip width, so its left and right edges join (no step at the seam)
+    const topRow = x => { for (let y = 0; y < s.H; y++) if (s.px[(y * s.W + x) * 4 + 3]) return y; return s.H; };
+    assert.ok(Math.abs(topRow(0) - topRow(s.W - 1)) <= 1, 'the wave line steps at the seam of the strip');
 });
 
-// ── the wave form: a long refined crest line and a quiet Seigaiha ──
+// ── the wave form: a calm, regular crest line; the Seigaiha fans ──
 const lumaOf = c => 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2];
 function surfaceInfo(v) {
     const im = load(T.surfaceFile(v)), W = im.W, H = im.H;
@@ -206,33 +204,31 @@ function surfaceInfo(v) {
     return { im, W, H, key, ink, foam, top: Array.from({ length: W }, (_, x) => { for (let y = 0; y < H; y++) if (key(x, y)) return y; return H; }) };
 }
 
-test('surface strip: long, never visibly repeating, crests of varying size and spacing', () => {
-    // at least 960 px wide at 1080p, ideally the whole 1920 px
+test('surface strip: calm and regular, small soft crests at an even rhythm on a gentle swell', () => {
+    // the whole 1920 px at 1080p in one tile, so the pattern never repeats on a 1080p screen
     assert.ok(T.SURFACE.cols * T.texelDevice(1080) >= 1920, 'strip is ' + T.SURFACE.cols * T.texelDevice(1080) + ' px wide at 1080p');
     for (let v = 0; v < NV; v++) {
         const { W, top } = surfaceInfo(v);
         const base = top.slice().sort((a, b) => a - b)[Math.floor(W * 0.6)];            // the typical wave line row
         const inCrest = top.map(t => t <= base - 3);
-        // peaks: runs of crest columns; their heights and gaps must vary
+        // peaks: runs of crest columns
         const peaks = [];
         for (let x = 0; x < W; x++) if (inCrest[x]) {
             let x1 = x, best = top[x];
             while (x1 + 1 < W && inCrest[x1 + 1]) { x1++; best = Math.min(best, top[x1]); }
-            peaks.push({ x0: x, x1, h: base - best }); x = x1;
+            peaks.push({ x0: x, x1, h: base - best, c: (x + x1) / 2 }); x = x1;
         }
-        assert.ok(peaks.length >= 6, 'only ' + peaks.length + ' crests');
-        assert.ok(new Set(peaks.map(p => p.h)).size >= 4, 'crest heights hardly vary');
-        const gaps = peaks.slice(1).map((p, i) => p.x0 - peaks[i].x1);
-        assert.ok(new Set(gaps).size >= 4, 'crest spacing is too regular: ' + gaps.join(','));
-        assert.ok(Math.max(...peaks.map(p => p.h)) >= 12 && Math.min(...peaks.map(p => p.h)) <= 7, 'big curlers and small ripples both present');
-        // no repeat: shifting the strip by any s >= 24 texels matches at most a quarter of the crest columns
-        const cols = []; for (let x = 0; x < W; x++) if (inCrest[x]) cols.push(x);
-        let worst = 0;
-        for (let sh = 24; sh <= W - 24; sh++) {
-            let n = 0; for (const x of cols) if (top[x] === top[(x + sh) % W] && inCrest[(x + sh) % W]) n++;
-            worst = Math.max(worst, n / cols.length);
-        }
-        assert.ok(worst <= 0.25, 'the crest line repeats (' + (worst * 100).toFixed(0) + '% of the crest columns match a shifted copy)');
+        assert.ok(peaks.length >= 10 && peaks.length <= 14, peaks.length + ' crests');
+        // small: no tall curler, no flat ripple; one crest every 53 texels or so (an even rhythm)
+        assert.ok(Math.max(...peaks.map(p => p.h)) <= 10 && Math.min(...peaks.map(p => p.h)) >= 3, 'crest heights ' + peaks.map(p => p.h).join(','));
+        const gaps = peaks.slice(1).map((p, i) => p.c - peaks[i].c);
+        assert.ok(Math.min(...gaps) >= 44 && Math.max(...gaps) <= 64, 'crest spacing ' + gaps.join(','));
+        // gentle swell: the troughs between crests rise and fall by only a few texels over the strip
+        const trough = top.filter((t, x) => !inCrest[x]);
+        assert.ok(Math.max(...trough) - Math.min(...trough) >= 1 && Math.max(...trough) - Math.min(...trough) <= 4, 'swell range of ' + (Math.max(...trough) - Math.min(...trough)) + ' texels');
+        // no claws and nothing hanging: the topmost texel of every column is directly above the rest of it (no overhang)
+        const { im } = surfaceInfo(v);
+        for (let x = 0; x < W; x++) for (let y = top[x]; y < im.H; y++) assert.ok(im.px[(y * W + x) * 4 + 3], 'a hole in column ' + x + ' at row ' + y);
     }
 });
 
@@ -289,25 +285,19 @@ test('the wave line is smooth: the silhouette rows change by one texel at a time
     assert.ok(jumps <= 24, jumps + ' steep jumps');
 });
 
-test('Seigaiha is large and quiet: scales 1.5-2x the old size, a barely lighter outline, plain bokashi from a third of the screen', () => {
-    assert.ok(T.WATER.scale >= 24 && T.WATER.scale <= 34, 'scale radius ' + T.WATER.scale + ' texels (old 16)');
+test('Seigaiha: the classic fan pattern, scales of 16 texels with a clear lighter outline, over the upper sea', () => {
+    assert.strictEqual(T.WATER.scale, 16, 'scale radius ' + T.WATER.scale + ' texels');
     assert.strictEqual(T.WATER.cols % (2 * T.WATER.scale), 0, 'the tile holds a whole number of scales');
-    assert.ok(T.WATER.fadeTo <= T.GRID_ROWS / 3 + 6, 'the pattern must be gone by a third of the screen height (row ' + T.WATER.fadeTo + ')');
+    assert.ok(T.WATER.fadeTo >= 200 && T.WATER.fadeTo <= 220, 'the pattern fades out at row ' + T.WATER.fadeTo);
     for (const vr of T.WATER.variants) {
-        assert.ok(lumaOf(vr.arc) <= 11, vr.name + ': outline step of ' + lumaOf(vr.arc).toFixed(1) + ' levels is a pattern at a glance');
-        assert.ok(lumaOf(vr.tone) <= 6, vr.name + ': ring step too large');
+        const L = lumaOf(vr.arc);
+        assert.ok(L >= 18 && L <= 40, vr.name + ': outline step of ' + L.toFixed(1) + ' levels');
     }
-    // measured on the baked day image: the brightest pattern texel against the gradient of the same row
+    // every baked image shows the fans: several tones in a row of the upper sea, low contrast against the bokashi
     for (let v = 0; v < NV; v++) {
-        const im = load(T.waterFile(v));
-        let worst = 0;
-        for (let y = 0; y < T.WATER.fadeTo; y += 3) {
-            const base = Array.from(im.px.subarray((y * im.W) * 4, (y * im.W) * 4 + 3));
-            let lo = 1e9, hi = -1e9;
-            for (let x = 0; x < im.W; x++) { const L = lumaOf(im.px.subarray((y * im.W + x) * 4, (y * im.W + x) * 4 + 3)); lo = Math.min(lo, L); hi = Math.max(hi, L); }
-            worst = Math.max(worst, hi - lo, 0 * base[0]);
-        }
-        assert.ok(worst <= 12, T.waterFile(v) + ': luminance range inside a row ' + worst.toFixed(1) + ' levels (limit 12 of 255)');
+        const im = load(T.waterFile(v)), y = 60, tones = new Set();
+        for (let x = 0; x < im.W; x++) tones.add(Array.from(im.px.subarray((y * im.W + x) * 4, (y * im.W + x) * 4 + 3)).join(','));
+        assert.ok(tones.size >= 3, T.waterFile(v) + ': no fans in row ' + y);
     }
 });
 

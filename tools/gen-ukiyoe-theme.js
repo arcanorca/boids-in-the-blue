@@ -487,7 +487,7 @@ function lureSprite(level) {
 // ── backdrop: bokashi water with Seigaiha ────────────────────
 // Seigaiha: scales of radius R texels on a half-radius grid (rows R/2 apart, every second row shifted by R), the
 // rows drawn top to bottom so each lower scale overlaps the one above. Rings `ring` texels wide alternate two
-// tones, the outer arc is a slightly lighter band `arcW` texels wide (never a 1-texel line). Returns the pattern index per texel: 0 none, 1 lighter ring, 2 arc.
+// tones, the outer arc is a lighter band 2 texels wide (never a 1-texel line). Returns the pattern index per texel: 0 none, 1 lighter ring, 2 arc.
 function seigaiha(cols, rows) {
     const Wt = T.WATER, R = Wt.scale, idx = new Uint8Array(cols * rows), step = R / 2;
     for (let j = -2; Wt.startRow - R + j * step <= rows + R; j++) {
@@ -498,7 +498,7 @@ function seigaiha(cols, rows) {
                     const d = Math.hypot(x - cx, y - cy);
                     if (d > R) continue;
                     const k = Math.floor(d / Wt.ring), xx = ((x % cols) + cols) % cols;
-                    idx[y * cols + xx] = d > R - Wt.arcW ? 2 : (k & 1 ? 1 : 0);
+                    idx[y * cols + xx] = d > R - 2 ? 2 : (k & 1 ? 1 : 0);
                 }
             }
         }
@@ -528,157 +528,46 @@ function waterImage(v) {
     return { W, H, px };
 }
 
-// ── surface: one long line of Hokusai-style crests ───────────
-// The strip is 640 texels wide (1920 px at 1080p) and is drawn once across a 1080p screen, so no crest repeats
-// next to its twin. Crests are curves, not pixel art by hand: each is a closed outline built from smooth splines,
-// rasterised at 8x and cut to texels by majority coverage, which gives every curve one steady step rhythm
-// (the same run lengths all along a slope, no jaggies). Shapes: a body, a darker hollow under the curling lip, a
-// cream foam cap that thickens toward the lip and tapers to a hook, up to three claw fingers hanging from the lip
-// (clean filled shapes, never specks) and a one-texel indigo keyblock outline of constant weight around all of it.
-// Under the crests runs a darker band (the undertow) in two flat blues that melts into the sea.
+// ── surface: a calm, regular line of small rolling crests ────
+// The strip is 640 texels wide (1920 px at 1080p) and tiles horizontally; the line wraps without a seam (every
+// periodic term has a whole number of cycles over the width). A low swell undulates gently, and twelve small
+// rounded crests (4 to 8 texels high, one every 53 texels give or take two) ride on it: a long soft back, a
+// slightly steeper front, a round top. Each wears a cream foam cap (light cream above, shade cream under) that
+// tapers away on both sides, nothing hangs off it: no claws, no spray. The line is a smooth function sampled once
+// per column, so every slope has one steady step rhythm. A one-texel indigo keyblock outline surrounds the whole
+// silhouette and separates foam from blue. Under the line run two flat undertow blues that follow it and melt into
+// the sea's own top blue.
 // Letters: '1'..'5' water tones, '6' foam, '7' foam shade (per daylight variant), 'i' indigo outline.
-const SURF_SS = 8;
-const SURF_CRESTS = [
-    // x: texel column of the peak, h: height in texels, d: +1 curls to the right / -1 to the left, claws: 0..3,
-    // sw: how far the lip reaches forward (1 = the full hook)
-    { x: 28,  h: 5,  d: 1,  claws: 0, sw: 0.9 },
-    { x: 120, h: 16, d: 1,  claws: 3, sw: 1.0 },
-    { x: 190, h: 6,  d: 1,  claws: 0, sw: 1.0 },
-    { x: 256, h: 12, d: 1,  claws: 1, sw: 1.0 },
-    { x: 316, h: 5,  d: -1, claws: 0, sw: 0.85 },
-    { x: 372, h: 9,  d: 1,  claws: 0, sw: 1.0 },
-    { x: 440, h: 14, d: 1,  claws: 3, sw: 1.05 },
-    { x: 505, h: 6,  d: 1,  claws: 0, sw: 0.9 },
-    { x: 552, h: 12, d: -1, claws: 1, sw: 1.0 },
-    { x: 612, h: 5,  d: -1, claws: 0, sw: 0.9 }
+const SURF_CRESTS = [   // [spacing to the next crest in texels, height in texels]
+    [54, 6], [52, 7], [55, 5], [53, 6], [52, 8], [54, 6], [53, 5], [55, 7], [52, 6], [54, 5], [53, 7], [53, 6]
 ];
-const surfBase = x => 18.2 + 0.6 * Math.sin(2 * Math.PI * x / 640 * 3 + 0.7) + 0.3 * Math.sin(2 * Math.PI * x / 640 * 5 + 2.1);
-const surfBand = (x, k) => k === 1
-    ? 2.2 + 0.4 * Math.sin(2 * Math.PI * x / 640 * 4 + 1.3)
-    : 4.4 + 0.5 * Math.sin(2 * Math.PI * x / 640 * 3 + 0.2);
-
-// open Catmull-Rom spline through the points (dense polyline)
-function spline(pts, per) {
-    const out = [], n = pts.length;
-    for (let i = 0; i < n - 1; i++) {
-        const p0 = pts[Math.max(0, i - 1)], p1 = pts[i], p2 = pts[i + 1], p3 = pts[Math.min(n - 1, i + 2)];
-        for (let k = 0; k < per; k++) {
-            const t = k / per, t2 = t * t, t3 = t2 * t;
-            out.push([0, 1].map(c => 0.5 * ((2 * p1[c]) + (-p0[c] + p2[c]) * t + (2 * p0[c] - 5 * p1[c] + 4 * p2[c] - p3[c]) * t2 + (-p0[c] + 3 * p1[c] - 3 * p2[c] + p3[c]) * t3)));
-        }
-    }
-    out.push(pts[n - 1]);
-    return out;
-}
-// crest geometry in local units (u along the lean, v up, both in multiples of h) -> polygons in texel space.
-// A crest is a long concave back slope that rolls into a round curl (a "C" of radius 0.5 h), a hollow barrel under
-// the lip (dark), a cream foam band along the outside of the curl and claw fingers fanning out of its front.
-function crestShapes(c) {
-    const h = c.h, rad = d => d * Math.PI / 180;
-    const sm = t => { t = Math.max(0, Math.min(1, t)); return t * t * (3 - 2 * t); };
-    const world = ([u, v]) => { const x = c.x + c.d * u * h; return [x, surfBase(x) - v * h]; };
-    const hollow = h >= 9;
-    const KX = 1.18, C = [0.05, 0.5], Ro = 0.5, th0 = hollow ? 0.27 : 0.46;               // ring thickness at the top of the curl
-    const tipDeg = hollow ? -12 : -2 - 12 * (c.sw - 0.9);
-    const arc = (deg0, deg1, r, n) => Array.from({ length: n + 1 }, (_, i) => { const a = rad(deg0 + (deg1 - deg0) * i / n), rr = typeof r === 'function' ? r(deg0 + (deg1 - deg0) * i / n) : r; return [C[0] + KX * rr * Math.cos(a), C[1] + rr * Math.sin(a)]; });
-    const outerArc = arc(166, tipDeg, Ro, 60);
-    const slope = spline([[-2.4, 0.0], [-1.8, 0.06], [-1.25, 0.18], [-0.9, 0.33], [-0.7, 0.47], outerArc[0]], 14);
-    const outer = slope.slice(0, -1).concat(outerArc);
-    // ring thickness along the curl: 0 at the tip, full from 10 degrees on
-    const ringTh = deg => th0 * sm((deg - tipDeg) / (hollow ? 22 : 30));
-    const innerArc = arc(tipDeg, 270, deg => Ro - ringTh(deg), 90);              // from the tip back over the top, down the left
-    const wallStart = innerArc[innerArc.length - 1];
-    const wall = spline([wallStart, [0.12, 0.17], [0.38, 0.07], [0.62, 0.02], [0.84, 0.0]], 12);
-    const shapes = { body: null, hollow: null, foam: null, foam2: null, claws: [] };
-    shapes.body = (hollow ? outer.concat(innerArc.slice().reverse().reverse(), wall.slice(1)) : outer.concat([[0.84, 0.0]])).map(world);
-    if (hollow) shapes.hollow = innerArc.concat([]).map(world);
-    // foam band along the outside of the curl
-    const foamDeg0 = hollow ? 150 : 128, n = 60;
-    const fo = [], fi = [], f2 = [];
-    for (let i = 0; i <= n; i++) {
-        const deg = foamDeg0 + (tipDeg - foamDeg0) * i / n, a = rad(deg);
-        const t = (hollow ? 0.78 : 0.7) * ringTh(deg) * sm((foamDeg0 - deg) / 40) + 0;
-        const tt = Math.max(t, 0);
-        fo.push([C[0] + KX * Ro * Math.cos(a), C[1] + Ro * Math.sin(a)]);
-        fi.push([C[0] + KX * (Ro - tt) * Math.cos(a), C[1] + (Ro - tt) * Math.sin(a)]);
-        f2.push([C[0] + KX * (Ro - tt * 0.5) * Math.cos(a), C[1] + (Ro - tt * 0.5) * Math.sin(a)]);
-    }
-    shapes.foam = fo.concat(fi.slice().reverse()).map(world);
-    if (hollow && h >= 12) shapes.foam2 = f2.slice(Math.floor(n * 0.2), Math.floor(n * 0.85)).concat(fi.slice(Math.floor(n * 0.2), Math.floor(n * 0.85)).reverse()).map(world);
-    // claw fingers fanning out of the front of the curl and drooping
-    const N = c.claws, degs = [[], [24], [54, 0], [62, 26, -10]][N], lens = [[], [0.6], [0.58, 0.5], [0.52, 0.58, 0.48]][N];
-    for (let k = 0; k < N; k++) {
-        const a = rad(degs[k]), rd = [Math.cos(a), Math.sin(a)], tg = [Math.sin(a), -Math.cos(a)];
-        const ad = a - rad([[], [34], [36, 30], [44, 40, 34]][N][k]);
-        let dir = [Math.cos(ad), Math.sin(ad)];
-        const dm = Math.hypot(dir[0], dir[1]); dir = [dir[0] / dm, dir[1] / dm];
-        const s0 = [C[0] + KX * (Ro - 0.07) * rd[0], C[1] + (Ro - 0.07) * rd[1]];
-        const Lc = lens[k], w0 = Math.max(3.1, 0.235 * h) / h, cl = [];
-        for (let i = 0; i <= 18; i++) {
-            const t = i / 18;
-            cl.push({ p: [s0[0] + dir[0] * Lc * t + 0.03 * t * t, s0[1] + dir[1] * Lc * t - 0.16 * t * t], w: w0 * Math.pow(1 - t, 0.65) });
-        }
-        const A = [], B = [];
-        cl.forEach((q, i) => {
-            const pa = cl[Math.max(0, i - 1)].p, pb = cl[Math.min(cl.length - 1, i + 1)].p;
-            const tx = pb[0] - pa[0], ty = pb[1] - pa[1], m = Math.hypot(tx, ty) || 1, nx = ty / m, ny = -tx / m;
-            A.push([q.p[0] + nx * q.w / 2, q.p[1] + ny * q.w / 2]);
-            B.push([q.p[0] - nx * q.w / 2, q.p[1] - ny * q.w / 2]);
-        });
-        shapes.claws.push(A.concat(B.reverse()).map(world));
-    }
-    return shapes;
-}
-// rasterise polygons (even-odd, wrapped in x) at SURF_SS x supersampling; a texel is set when at least half is covered
-function rasterPolys(polys, W, H) {
-    const SS = SURF_SS, sw = W * SS, sh = H * SS, sub = new Uint8Array(sw * sh);
-    for (const poly of polys) for (const ox of [-W, 0, W]) {
-        let ymin = 1e9, ymax = -1e9;
-        for (const p of poly) { ymin = Math.min(ymin, p[1]); ymax = Math.max(ymax, p[1]); }
-        for (let j = Math.max(0, Math.floor(ymin * SS)); j < Math.min(sh, Math.ceil(ymax * SS)); j++) {
-            const y = (j + 0.5) / SS, xs = [];
-            for (let i = 0; i < poly.length; i++) {
-                const a = poly[i], b = poly[(i + 1) % poly.length];
-                if ((a[1] <= y) !== (b[1] <= y)) xs.push(a[0] + ox + (y - a[1]) / (b[1] - a[1]) * (b[0] - a[0]));
-            }
-            xs.sort((p, q) => p - q);
-            for (let k = 0; k + 1 < xs.length; k += 2) {
-                for (let i = Math.max(0, Math.ceil(xs[k] * SS - 0.5)); i < Math.min(sw, Math.ceil(xs[k + 1] * SS - 0.5)); i++) sub[j * sw + i] = 1;
-            }
-        }
-    }
-    const out = new Uint8Array(W * H);
-    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
-        let n = 0;
-        for (let j = 0; j < SS; j++) for (let i = 0; i < SS; i++) n += sub[(y * SS + j) * sw + x * SS + i];
-        if (n * 2 >= SS * SS) out[y * W + x] = 1;
-    }
-    return out;
+const SURF_BACK = 25, SURF_FRONT = 15;          // half-width of the soft back slope and of the front slope
+const surfSwell = x => 9.6 + 0.8 * Math.sin(2 * Math.PI * x / 640 * 2 + 0.6) + 0.35 * Math.sin(2 * Math.PI * x / 640 * 5 + 1.9);
+function surfProfile() {
+    let xc = 10;
+    const crests = SURF_CRESTS.map(([gap, h]) => { const c = { x: xc, h }; xc += gap; return c; });
+    // rise of the water surface above the swell at column position x (crests wrap around the strip)
+    const rise = (x, c) => {
+        let u = x - c.x; if (u > 320) u -= 640; if (u < -320) u += 640;
+        const w = u < 0 ? SURF_BACK : SURF_FRONT, t = Math.abs(u) / w;
+        return t >= 1 ? 0 : c.h * Math.pow(0.5 + 0.5 * Math.cos(Math.PI * t), 1.35);
+    };
+    return { crests, top: x => surfSwell(x) - crests.reduce((s, c) => s + rise(x, c), 0), rise };
 }
 const foamCh = ch => ch === '6' || ch === '7';
 function surfaceStrip() {
-    const S = T.SURFACE, W = S.cols, H = S.rows, g = mk(W, H);
-    const sh = SURF_CRESTS.map(crestShapes);
-    // undertow bands under the wave line
+    const S = T.SURFACE, W = S.cols, H = S.rows, g = mk(W, H), P = surfProfile();
     for (let x = 0; x < W; x++) {
-        const b0 = surfBase(x + 0.5);
+        const top = P.top(x + 0.5);
+        // foam cap: thickest at the crest, thinning to nothing down both flanks
+        const fd = P.crests.reduce((m, c) => Math.max(m, (1.2 + 0.4 * c.h) * smooth((P.rise(x + 0.5, c) / c.h - 0.1) / 0.55)), 0);
         for (let y = 0; y < H; y++) {
-            const yc = y + 0.5;
-            g[y][x] = yc < b0 ? '.' : yc < b0 + surfBand(x + 0.5, 1) ? '2' : yc < b0 + surfBand(x + 0.5, 2) ? '3' : '4';
+            const d = y + 0.5 - top;
+            g[y][x] = d < 0 ? '.' : d < fd ? (d > fd - 1.8 && fd > 3.2 ? '7' : '6') : d < fd + 2.5 ? '2' : d < fd + 5.5 ? '3' : '4';
         }
     }
-    const paint = (polys, ch) => {
-        const m = rasterPolys(polys, W, H);
-        for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) if (m[y * W + x]) g[y][x] = ch;
-        return m;
-    };
-    paint(sh.map(s => s.body), '3');
-    paint(sh.filter(s => s.hollow).map(s => s.hollow), '2');
-    paint(sh.map(s => s.foam), '6');
-    paint(sh.filter(s => s.foam2).map(s => s.foam2), '7');
-    paint([].concat(...sh.map(s => s.claws)), '6');
-    // clean-up: a foam piece smaller than 8 texels (a claw tip cut off by the texel grid) is a speck: it takes the
-    // blue around it, or clears
+    const at = (x, y) => get(g, (x + W) % W, y);
+    // clean-up: a foam piece smaller than 8 texels is a speck: it takes the blue around it
     {
         const seen = new Set();
         for (let y0 = 0; y0 < H; y0++) for (let x0 = 0; x0 < W; x0++) {
@@ -699,30 +588,14 @@ function surfaceStrip() {
             }
         }
     }
-    // clean-up: a clear texel squeezed between filled texels on two opposite sides (a 1-texel channel) is filled
-    // (with the blue next to it, else foam), so outlines never run as a double line or leave a pinhole of water
-    const at = (x, y) => get(g, (x + W) % W, y);
-    for (let pass = 0; pass < 3; pass++) {
-        const fill = [];
-        for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
-            if (g[y][x] !== '.') continue;
-            for (const [a, b] of [[at(x - 1, y), at(x + 1, y)], [at(x, y - 1), at(x, y + 1)]]) {
-                if (a === '.' || b === '.') continue;
-                const blue = [a, b].find(ch => !foamCh(ch));
-                fill.push([x, y, blue || '6']); break;
-            }
-        }
-        for (const [x, y, ch] of fill) g[y][x] = ch;
-    }
     // keyblock outlines: indigo outside the silhouette and between foam and blue
-    const foam = foamCh;
     const add = [];
     for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
         const c = g[y][x];
         for (const [dx, dy] of N4) {
             const n = get(g, (x + dx + W) % W, y + dy);
             if (c === '.' && n !== '.') { add.push([x, y]); break; }
-            if (!foam(c) && c !== '.' && foam(n)) { add.push([x, y]); break; }
+            if (!foamCh(c) && c !== '.' && foamCh(n)) { add.push([x, y]); break; }
         }
     }
     for (const [x, y] of add) g[y][x] = 'i';
@@ -731,7 +604,7 @@ function surfaceStrip() {
         const pin = [];
         for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
             const c = g[y][x];
-            if (c === 'i' || c === '.' || foam(c)) continue;
+            if (c === 'i' || c === '.' || foamCh(c)) continue;
             if ((at(x - 1, y) === 'i' && at(x + 1, y) === 'i') || (at(x, y - 1) === 'i' && at(x, y + 1) === 'i')) pin.push([x, y]);
         }
         for (const [x, y] of pin) g[y][x] = 'i';
